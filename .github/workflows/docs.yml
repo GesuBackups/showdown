@@ -9,12 +9,15 @@ on:
       - 'docs/**'
       - '.github/workflows/docs.yml'
 
+permissions:
+  contents: read
+
 jobs:
   build_docs:
     name: Build documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Trigger external build
         env:
@@ -24,8 +27,12 @@ jobs:
           OWNER: showdownjs
           REPO: showdownjs.github.io
         run: |
+          # Build the JSON payload with jq so the GitHub-controlled COMMIT/COMMITTER
+          # values are properly escaped (no shell/JSON injection into the request body).
+          PAYLOAD=$(jq -n --arg et "e: \"${COMMIT}\" by ${COMMITTER}" \
+            '{event_type: $et, client_payload: {source: "showdown"}}')
           curl -X POST \
           -H "Authorization: token ${TOKEN}" \
           -H "Accept: application/vnd.github.v3+json" \
           https://api.github.com/repos/${OWNER}/${REPO}/dispatches \
-          -d '{ "event_type": "e: \"'"${COMMIT}"'\" by '"${COMMITTER}"'", "client_payload": { "source": "showdown" } }'
+          --data-binary "${PAYLOAD}"
