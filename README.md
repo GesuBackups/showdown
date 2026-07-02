@@ -359,6 +359,18 @@ var defaultOptions = showdown.getDefaultOptions();
  * **relativePathBaseUrl**: (string) [default ''] Prepends a base URL to relative paths (in links and images).
    Absolute paths (starting with a protocol, `//`, or `#`) are left untouched. (since v3.0.0)
 
+#### Security options
+
+By default Showdown follows the trusted-input model and does **not** sanitize (see [XSS vulnerability](#xss-vulnerability)). The options below add opt-in, defense-in-depth hardening for when the Markdown source is untrusted. They are **not** a replacement for a dedicated HTML sanitizer.
+
+ * **safeMode**: (boolean) [default false] Defense-in-depth hardening for untrusted Markdown. When enabled it:
+   - **blocks dangerous URL schemes** (`javascript:`, `vbscript:`, `data:` — except `data:image/...` for image `src`) in generated links/images, resolving obfuscations (entities, control characters) before checking; and
+   - **escapes all raw HTML tags** and strips inline event-handler attributes (`onerror`, `onload`, `onclick`, …), so embedded `<script>`, `<img onerror=…>` and `<svg onload=…>` cannot execute.
+
+   > ⚠️ `safeMode` is **defense-in-depth, not a full HTML sanitizer**. For fully untrusted input, still run the output through a dedicated sanitizer such as [DOMPurify](https://github.com/cure53/DOMPurify) and serve a [Content-Security-Policy](https://developer.mozilla.org/docs/Web/HTTP/CSP). (since v3.0.0)
+
+ * **disallowRawHTML**: (boolean) [default false] Applies the GFM ["disallowed raw HTML" tagfilter](https://github.github.com/gfm/#disallowed-raw-html-extension-), escaping the leading `<` of a small blacklist (`title`, `textarea`, `style`, `xmp`, `iframe`, `noembed`, `noframes`, `script`, `plaintext`). This is a narrow GFM-compatibility filter — it does **not** block event handlers, `javascript:` URLs, `<svg>`, etc. Use **safeMode** for broader hardening.
+
 #### CommonMark options **(since v3.0.0)**
 
 These options make Showdown follow the [CommonMark spec](https://spec.commonmark.org/). They are
@@ -419,6 +431,12 @@ To use ShowdownJS as a Vue component quickly, you can check [vue-showdown](https
 
 Showdown doesn't sanitize the input. This is by design since markdown relies on it to allow certain features to be correctly parsed into HTML.
 This, however, means XSS injection is quite possible.
+
+**If your Markdown source is untrusted**, you should:
+
+ 1. Enable the [**safeMode**](#security-options) option — it blocks dangerous URL schemes (`javascript:`, etc.) and escapes raw HTML tags / event handlers as defense-in-depth; **and**
+ 2. Run the generated HTML through a dedicated sanitizer such as [DOMPurify](https://github.com/cure53/DOMPurify) before inserting it into the DOM, and serve a [Content-Security-Policy](https://developer.mozilla.org/docs/Web/HTTP/CSP). `safeMode` is not a full HTML sanitizer and does not replace this step; and
+ 3. Cap the size of untrusted input (and/or convert off the request thread with a timeout) — converting very large adversarial inputs can be CPU-intensive.
 
 Please refer to the wiki article [Markdown's XSS Vulnerability (and how to mitigate it)][xss-wiki]
 for more information.

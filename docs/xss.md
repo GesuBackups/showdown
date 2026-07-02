@@ -86,9 +86,45 @@ After parsing with Markdown, the first `>` on the second line disappears because
 
 Did Markdown generate the HTML? No, the HTML was already in plain sight in the input. The XSS filter couldn’t catch it because the input doesn’t follow HTML rules: it’s a mix of Markdown and HTML, and the filter doesn’t know a dime about Markdown.
 
+## Showdown's built-in hardening
+
+Showdown still follows the **trusted-input** model — it is **not** an HTML sanitizer, and by default it passes raw HTML and arbitrary URL schemes straight through. However, recent versions add opt-in and always-on hardening you should be aware of:
+
+### `safeMode` (opt-in, recommended for untrusted input)
+
+Enabling the [`safeMode`](options.md#safemode) option provides defense-in-depth:
+
+```js
+const converter = new showdown.Converter({ safeMode: true });
+converter.makeHtml("[click](javascript:alert(1))"); // => <p><a href="">click</a></p>
+converter.makeHtml("<img src=x onerror=alert(1)>"); // => <p><img src=x></p>
+converter.makeHtml("<script>alert(1)</script>");    // => &lt;script>alert(1)&lt;/script>
+```
+
+It (1) blocks dangerous URL schemes (`javascript:`, `vbscript:`, `data:` — except `data:image/...`), resolving entity/whitespace obfuscations, and (2) escapes all raw HTML tags and strips inline event-handler attributes (`onerror`, `onload`, …). It directly addresses the `[text](javascript:…)` and mixed HTML/Markdown attacks shown above.
+
+!!! danger "Still not a full sanitizer"
+    `safeMode` is **defense-in-depth, not a replacement** for a dedicated sanitizer. Treat it as one layer, not the whole defense.
+
+### Always-on hardening
+
+These apply regardless of options:
+
+* **Front-matter metadata is HTML-escaped** before being written into the document head, so a `metadata` value like `</title><script>…` can no longer break out of `<title>`/`<meta>` when `completeHTMLDocument` is enabled.
+* **Generated attribute values are quote-escaped** at emit time, so values injected via an extension/listener (through the `setAttributes()` event API) cannot break out of an attribute.
+* **`makeMarkdown` (HTML → Markdown) parses into an *inert* document.** Assigning untrusted HTML never executes `<script>` nor fires `on*` handlers such as `<img onerror>`/`<svg onload>`, even in a browser.
+* **`makeMarkdown` escapes emitted destinations/titles**, so a crafted attribute cannot inject a brand-new `[link](javascript:…)` when the Markdown is round-tripped back through `makeHtml`.
+* **Link/image and reference parsing are bounded**, so pathological inputs cannot cause catastrophic (quadratic) backtracking — a denial-of-service vector when converting large untrusted inputs.
+
 ## Mitigate XSS
 
-So, is it all lost? Not really. The answer is not to filter the *input* but rather the *output*. After the *input* text is converted into full-fledged HTML, you can reliably apply the correct XSS filters to remove any dangerous or malicious content.
+So, is it all lost? Not really. Combine the built-in hardening above with output filtering:
+
+1. **Enable [`safeMode`](options.md#safemode)** when the Markdown is untrusted.
+2. **Filter the *output*, not the input.** After the input is converted to full-fledged HTML, apply a dedicated sanitizer such as [DOMPurify](https://github.com/cure53/DOMPurify). Filtering the *input* breaks Markdown features and still leaves holes (as shown above).
+3. **Serve a [Content-Security-Policy](https://developer.mozilla.org/docs/Web/HTTP/CSP)** (e.g. a `script-src` without `unsafe-inline`) as a backstop.
+4. **Bound untrusted input size and/or use a timeout.** Converting very large adversarial inputs can be CPU-intensive; cap the size and/or convert off the request thread.
+5. **Only load extensions you trust** — extensions run with full trust and can inject arbitrary HTML.
 
 Also, client-side validations are not reliable. It should be a given, but in case you're wondering, you should (almost) never trust data sent by the client. If there's some critical operation you must perform on the data (such as XSS filtering), you should do it *SERVER-SIDE* not client-side.
 
@@ -96,11 +132,13 @@ HTML XSS filtering libraries are useful here since they prevent most of the atta
 
 ## Conclusion
 
-Showdown tries to convert the input text as closely as possible, without any concerns for XSS attacks or malicious intent. So, the basic rules are:
+Showdown converts the input text as closely as possible; by default it does not itself filter for XSS or malicious intent. So, the basic rules are:
 
+* **enable [`safeMode`](options.md#safemode) for untrusted input** — it blocks dangerous URL schemes and neutralizes raw HTML/event handlers as defense-in-depth (but is not a full sanitizer).
 * **removing HTML entities from Markdown does not prevent XSS**. Markdown syntax can generate XSS attacks.
-* **XSS filtering should be done after Showdown has processed input, not before or during**. If you filter before, it will break some of Markdown’s features and will leave security holes.
+* **XSS filtering should be done after Showdown has processed input, not before or during**. If you filter before, it will break some of Markdown’s features and will leave security holes. Use a dedicated sanitizer such as [DOMPurify](https://github.com/cure53/DOMPurify) on the output, and serve a [CSP](https://developer.mozilla.org/docs/Web/HTTP/CSP).
 * **perform the necessary filtering server-side, not client-side**. XSS filtering libraries are useful but should not be used blindly.
+* **bound the size of untrusted input** to avoid CPU-intensive conversions of adversarial payloads.
 
 ## Disclaimer
 

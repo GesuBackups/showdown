@@ -221,7 +221,7 @@ Disable the rule of 4 spaces to indent sub-lists. If enabled, this option effect
 
 Enable GFM's [disallowed raw HTML extension](https://github.github.com/gfm/#disallowed-raw-html-extension-) (the *tagfilter*). When turned on, a small blacklist of raw HTML tags — `title`, `textarea`, `style`, `xmp`, `iframe`, `noembed`, `noframes`, `script`, `plaintext` — is neutralized in the output by escaping the leading `<` to `&lt;`. All other tags pass through untouched.
 
-These tags are singled out because they change how the surrounding markup is interpreted. Enabling this option mitigates a class of HTML/script injection when rendering untrusted Markdown, but it is **not** a full XSS filter (see [xss](xss.md)) — you should still sanitize the output.
+These tags are singled out because they change how the surrounding markup is interpreted. Enabling this option mitigates a class of HTML/script injection when rendering untrusted Markdown, but it is **not** a full XSS filter (see [xss](xss.md)) — you should still sanitize the output. For broader hardening (dangerous URL schemes, event handlers, and all raw tags) prefer [`safeMode`](#safemode).
 
 This option is **off by default in every flavor, including `gfm`**, so it must be enabled explicitly.
 
@@ -777,6 +777,50 @@ Require a space between a heading `#` and the heading text.
 
     ```html
     <p>#heading</p>
+    ```
+
+### safeMode
+
+Defense-in-depth hardening for rendering **untrusted** Markdown. When enabled, `safeMode` does two things:
+
+1. **URL scheme allowlist** — dangerous schemes (`javascript:`, `vbscript:`, `data:` — except `data:image/...`, which stays allowed for image `src`) are blocked in generated links and images; the neutralized attribute is emitted empty. The scheme is resolved *after* decoding HTML entities and stripping the whitespace/control characters browsers ignore, so obfuscations such as `java&#115;cript:` or `java&Tab;script:` are caught too.
+2. **Raw-HTML escaping** — all raw HTML tags are escaped and inline event-handler attributes (`onerror`, `onload`, `onclick`, …) are stripped, so embedded `<script>`, `<img onerror=…>` and `<svg onload=…>` cannot execute. Markdown-generated tags (links, images, tasklist checkboxes, `completeHTMLDocument` head, …) are unaffected.
+
+!!! danger "Not a full sanitizer"
+    `safeMode` is **defense-in-depth, not a replacement for a dedicated HTML sanitizer**. For fully untrusted input you should *still* run the output through a library such as [DOMPurify](https://github.com/cure53/DOMPurify) and serve a [Content-Security-Policy](https://developer.mozilla.org/docs/Web/HTTP/CSP). See the [XSS page](xss.md) for the full picture. It is broader than [`disallowRawHTML`](#disallowrawhtml) (which is only the narrow GFM tagfilter blacklist).
+
+* type: `boolean`
+* default value: `false`
+* introduced in: `3.0.0`
+
+=== "input"
+
+    ```
+    [click](javascript:alert(1))
+
+    <img src=x onerror=alert(1)>
+
+    <script>alert(1)</script>
+
+    ![ok](data:image/png;base64,iVBORw0KGgo=)
+    ```
+
+=== "output (value is `false`)"
+
+    ```html
+    <p><a href="javascript:alert(1)">click</a></p>
+    <p><img src=x onerror=alert(1)></p>
+    <script>alert(1)</script>
+    <p><img src="data:image/png;base64,iVBORw0KGgo=" alt="ok" /></p>
+    ```
+
+=== "output (value is `true`)"
+
+    ```html
+    <p><a href="">click</a></p>
+    <p><img src=x></p>
+    &lt;script>alert(1)&lt;/script>
+    <p><img src="data:image/png;base64,iVBORw0KGgo=" alt="ok" /></p>
     ```
 
 ### simpleLineBreaks
