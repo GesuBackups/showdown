@@ -36,8 +36,8 @@ showdown.subParser('makeMarkdown.image', function (node, options, globals) {
           return node.outerHTML;
         }
 
-        txt += '![' + (node.getAttribute('alt') || '') + '](';
-        txt += '<' + node.getAttribute('src') + '>';
+        txt += '![' + showdown.helper.escapeMarkdownText(node.getAttribute('alt') || '') + '](';
+        txt += '<' + showdown.helper.escapeMarkdownDestination(node.getAttribute('src')) + '>';
         if (hasDimensions) {
           let width = node.getAttribute('width');
           let height = node.getAttribute('height');
@@ -45,7 +45,7 @@ showdown.subParser('makeMarkdown.image', function (node, options, globals) {
         }
 
         if (node.hasAttribute('title')) {
-          txt += ' "' + node.getAttribute('title') + '"';
+          txt += ' "' + showdown.helper.escapeMarkdownTitle(node.getAttribute('title')) + '"';
         }
         txt += ')';
       }

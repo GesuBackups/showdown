@@ -24,8 +24,13 @@ showdown.subParser('makehtml.table', function (text, options, globals) {
   // tail is reprocessed and converted normally.
   const blockStartRgx = /^ {0,3}(?:>|#{1,6}(?:[ \t]|$)|```|~~~|(?:\*[ \t]*){3,}$|(?:-[ \t]*){3,}$|(?:_[ \t]*){3,}$)/;
 
-  // parse multi column tables
-  const tableRgx = /^ {0,3}\|?.+\|.+\n {0,3}\|?[ \t]*:?[ \t]*[-=]+[ \t]*:?[ \t]*\|[ \t]*:?[ \t]*[-=]+[\s\S]+?(?:\n\n|¨0)/gm;
+  // parse multi column tables.
+  // The header row is matched as `(?=[^\n]*\|)[^\n]+\n` (a whole line that contains at least one
+  // pipe) instead of `\|?.+\|.+\n`. The old form had two greedy `.+` around a `\|`, so when the
+  // following delimiter row failed to match it backtracked over every pipe position in the header
+  // — quadratic on a long pipe-heavy line like `'|a'.repeat(n)`. The lookahead + single greedy
+  // `[^\n]+` matches the same set of header lines without that backtracking.
+  const tableRgx = /^ {0,3}(?=[^\n]*\|)[^\n]+\n {0,3}\|?[ \t]*:?[ \t]*[-=]+[ \t]*:?[ \t]*\|[ \t]*:?[ \t]*[-=]+[\s\S]+?(?:\n\n|¨0)/gm;
   text = text.replace(tableRgx, function (wholeMatch) {
     let split = breakOnBlock(wholeMatch);
     // Neutralize escaped pipes only within the actual table text (not the trailing block

@@ -585,7 +585,9 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
     }
 
     function buildLink (innerHTML, dest, title) {
-      let attrs = ' href="' + normalizeDest(dest) + '"' + buildTitleAttr(title);
+      // safeMode: neutralize dangerous URL schemes (javascript:, vbscript:, data:, ...)
+      let href = (options.safeMode && !showdown.helper.isSafeUrl(dest)) ? '' : normalizeDest(dest);
+      let attrs = ' href="' + href + '"' + buildTitleAttr(title);
       innerHTML = showdown.subParser('makehtml.hardLineBreaks')(innerHTML, options, globals);
       return hashSpan('<a' + attrs + '>' + innerHTML + '</a>');
     }
@@ -596,7 +598,9 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
       let alt = showdown.subParser('makehtml.unhashHTMLSpans')(innerHTML, options, globals)
         .replace(/<img\b[^>]*?\salt="([^"]*)"[^>]*?\/?>/g, '$1')
         .replace(/<[^>]*>/g, '');
-      let attrs = ' src="' + normalizeDest(dest) + '" alt="' + alt + '"' + buildTitleAttr(title);
+      // safeMode: neutralize dangerous URL schemes; data:image/* stays allowed
+      let src = (options.safeMode && !showdown.helper.isSafeUrl(dest, {allowDataImage: true})) ? '' : normalizeDest(dest);
+      let attrs = ' src="' + src + '" alt="' + alt + '"' + buildTitleAttr(title);
       // width/height gating copied from writeImageTag in image.js (parseImgDimensions)
       if (options.parseImgDimensions) {
         if (width)  { attrs += ' width="'  + (width  === '*' ? 'auto' : width)  + '"'; }
@@ -740,6 +744,8 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
     if (uri) {
       let raw = uri[0].slice(1, -1),
           href = showdown.helper.cmEncodeURI(raw).replace(/&/g, '&amp;');
+      // safeMode: neutralize dangerous autolink schemes but keep the visible text
+      if (options.safeMode && !showdown.helper.isSafeUrl(raw)) { href = ''; }
       return {html: showdown.helper._hashHTMLSpan('<a href="' + href + '">' + escapeAngles(raw) + '</a>', globals), end: i + uri[0].length};
     }
     reAutoEmail.lastIndex = i;

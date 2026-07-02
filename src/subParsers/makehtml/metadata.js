@@ -53,13 +53,10 @@ showdown.subParser('makehtml.metadata', function (text, options, globals) {
     globals.metadata.raw = content;
     globals.metadata.format = format;
 
-    // escape chars forbidden in html attributes
-    // double quotes
-    content = content
-      // ampersand first
-      .replace(/&/g, '&amp;')
-      // double quotes
-      .replace(/"/g, '&quot;')
+    // escape chars significant in html element and attribute contexts so metadata
+    // values/keys can't break out of <title>, <meta ...> or the doctype when
+    // completeHTMLDocument concatenates them into the document head
+    content = showdown.helper.escapeHTMLEntities(content)
     // Restore dollar signs and tremas
       .replace(/¨D/g, '$$')
       .replace(/¨T/g, '¨')

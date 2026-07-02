@@ -351,6 +351,19 @@
 
   });
 
+  // Strip a trailing ATX closing sequence — `[ \t]*#*[ \t]*` — from a heading's text, computed
+  // right-to-left in linear time (a regex `/[ \t]*#*[ \t]*$/` would itself backtrack quadratically
+  // while searching for the match position). If the whole text is strippable (e.g. `# ###`), the
+  // legacy lazy regex kept the first character, so we do the same.
+  function stripAtxClosingSequence (str) {
+    let end = str.length;
+    while (end > 0 && (str.charAt(end - 1) === ' ' || str.charAt(end - 1) === '\t')) { end--; }
+    while (end > 0 && str.charAt(end - 1) === '#') { end--; }
+    while (end > 0 && (str.charAt(end - 1) === ' ' || str.charAt(end - 1) === '\t')) { end--; }
+    let stripped = str.slice(0, end);
+    return stripped === '' ? str.charAt(0) : stripped;
+  }
+
   showdown.subParser('makehtml.heading.atx', function (text, options, globals) {
 
     let startEvent = new showdown.Event('makehtml.heading.atx.onStart', text);
@@ -361,11 +374,19 @@
     startEvent = globals.converter.dispatch(startEvent);
     text = startEvent.output;
 
-    const atxRegex = (options.requireSpaceBeforeHeadingText) ? /^ {0,3}(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm : /^ {0,3}(#{1,6})[ \t]*(.+?)[ \t]*#*[ \t]*$/gm;
+    // The default variant captures the heading text greedily (`(.+)$`) and strips the optional
+    // trailing closing-hash sequence (of ANY length, per CommonMark) in code below. The old
+    // `(.+?)[ \t]*#*[ \t]*$` form backtracked quadratically on a line of many `#` followed by
+    // text (e.g. `'#'.repeat(n) + ' h'`), because the lazy text capture re-scanned the `#` run
+    // at every position. The requireSpace variant already can't backtrack that way (its `[ \t]+`
+    // after the opening hashes fails fast on a pure/`#`-prefixed line), so it is left unchanged.
+    const atxRegex = (options.requireSpaceBeforeHeadingText) ? /^ {0,3}(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm : /^ {0,3}(#{1,6})[ \t]*(.+)$/gm;
+    const stripClosing = !options.requireSpaceBeforeHeadingText;
     text = text.replace(atxRegex, function (wholeMatch, m1, m2) {
-      let headingLevel = options.headerLevelStart - 1 + m1.length,
-          id = (options.noHeaderId) ? null : showdown.subParser('makehtml.heading.id')(m2, options, globals);
-      return parseHeader('atx', atxRegex, wholeMatch, m2, headingLevel, id, options, globals);
+      let headingText = stripClosing ? stripAtxClosingSequence(m2) : m2,
+          headingLevel = options.headerLevelStart - 1 + m1.length,
+          id = (options.noHeaderId) ? null : showdown.subParser('makehtml.heading.id')(headingText, options, globals);
+      return parseHeader('atx', atxRegex, wholeMatch, headingText, headingLevel, id, options, globals);
     });
 
     let afterEvent = new showdown.Event('makehtml.heading.atx.onEnd', text);

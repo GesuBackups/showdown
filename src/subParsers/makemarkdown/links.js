@@ -51,12 +51,12 @@ showdown.subParser('makeMarkdown.links', function (node, options, globals) {
       // autolink: when the link text is identical to the href and there's no title,
       // emit the compact <href> form instead of [href](<href>)
       if (!node.hasAttribute('title') && innerTxt === href) {
-        return '<' + href + '>';
+        return '<' + showdown.helper.escapeMarkdownDestination(href) + '>';
       }
 
-      txt = '[' + innerTxt + '](<' + href + '>';
+      txt = '[' + innerTxt + '](<' + showdown.helper.escapeMarkdownDestination(href) + '>';
       if (node.hasAttribute('title')) {
-        txt += ' "' + node.getAttribute('title') + '"';
+        txt += ' "' + showdown.helper.escapeMarkdownTitle(node.getAttribute('title')) + '"';
       }
       txt += ')';
       return txt;

@@ -34,6 +34,33 @@ Object.defineProperty(showdown.helper, 'document', {
 });
 
 /**
+ * Parse an untrusted HTML string into a detached <div> and return it, for
+ * makeMarkdown to walk. The HTML is parsed inside an *inert* document (one with
+ * no browsing context, obtained via document.implementation.createHTMLDocument)
+ * whenever the host DOM supports it. In an inert document, assigning to innerHTML
+ * never executes <script> and never triggers resource loads or fires on* handlers
+ * such as `<img onerror>` / `<svg onload>` — so parsing attacker HTML client-side
+ * cannot run script. happy-dom (Node) is already inert; using the same path keeps
+ * behavior uniform.
+ * @param {string} html
+ * @returns {Object} a detached div element whose innerHTML is the parsed html
+ */
+let lazyInertDocument = null;
+showdown.helper.parseHTML = function (html) {
+  'use strict';
+  let ownerDoc = showdown.helper.document;
+  if (ownerDoc.implementation && typeof ownerDoc.implementation.createHTMLDocument === 'function') {
+    if (lazyInertDocument === null) {
+      lazyInertDocument = ownerDoc.implementation.createHTMLDocument('');
+    }
+    ownerDoc = lazyInertDocument;
+  }
+  let div = ownerDoc.createElement('div');
+  div.innerHTML = html;
+  return div;
+};
+
+/**
  * Check if var is string
  * @static
  * @param {*} a
@@ -563,6 +590,46 @@ showdown.helper.isAbsolutePath = function (path) {
   return /(^([a-z]+:)?\/\/)|(^#)/i.test(path);
 };
 
+// URL schemes allowed by safeMode. Relative URLs, fragments (#...) and
+// protocol-relative URLs (//host) carry no scheme and are always allowed.
+showdown.helper.safeUrlSchemes = ['http', 'https', 'ftp', 'ftps', 'mailto', 'tel', 'sms'];
+
+/**
+ * safeMode URL guard: decide whether a link/image destination is safe to emit.
+ * Rejects dangerous schemes (javascript:, vbscript:, data:text/html, ...). The
+ * scheme is resolved after decoding character references and stripping the
+ * characters browsers ignore when parsing a scheme (whitespace and control
+ * chars), so evasions like `java&#115;cript:` or `java\tscript:` are caught.
+ * `data:` is only permitted when opts.allowDataImage is set and the payload is a
+ * `data:image/...` URL (so inline base64 images keep working under safeMode).
+ * @param {string} url
+ * @param {{allowDataImage?: boolean}} [opts]
+ * @returns {boolean}
+ */
+showdown.helper.isSafeUrl = function (url, opts) {
+  'use strict';
+  let allowDataImage = !!(opts && opts.allowDataImage);
+  // resolve character references (numeric + named) that could hide the scheme
+  let decoded = showdown.helper.cmDecodeEntities(String(url));
+  // restore showdown's internal escape placeholders (¨E<code>E) to their chars
+  decoded = decoded.replace(/¨E(\d+)E/g, function (wm, code) {
+    return String.fromCharCode(+code);
+  });
+  // remove whitespace/control chars browsers ignore while resolving the scheme
+  // eslint-disable-next-line no-control-regex -- intentionally stripping ASCII control chars used to obfuscate schemes
+  let stripped = decoded.replace(/[\u0000-\u0020\u00a0]+/g, '');
+  let m = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(stripped);
+  if (!m) {
+    // no scheme: relative path, fragment (#...) or protocol-relative (//host)
+    return true;
+  }
+  let scheme = m[1].toLowerCase();
+  if (scheme === 'data') {
+    return allowDataImage && /^data:image\//i.test(stripped);
+  }
+  return showdown.helper.safeUrlSchemes.indexOf(scheme) !== -1;
+};
+
 
 /**
  * Polyfill method for trimStart
@@ -749,6 +816,46 @@ showdown.helper.cmNormalizeURL = function (url) {
   url = showdown.helper.cmDecodeEntities(url);
   url = showdown.helper.cmEncodeURI(url);
   return url.replace(/&(?![a-zA-Z#0-9]+;)/g, '&amp;');
+};
+
+/**
+ * HTML-escape the characters that are significant in element and (double-quoted)
+ * attribute contexts: `&`, `<`, `>`, `"`. Ampersand is escaped unconditionally,
+ * so callers must pass a decoded/plain string (not one that already contains
+ * entities they wish to preserve). Used to harden values that are concatenated
+ * straight into generated markup (e.g. document metadata).
+ * @param {string} str
+ * @returns {string}
+ */
+showdown.helper.escapeHTMLEntities = function (str) {
+  'use strict';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+};
+
+/**
+ * makeMarkdown emitters: backslash-escape the characters that would otherwise let
+ * an attribute value break out of the generated Markdown syntax and inject new
+ * constructs when the Markdown is re-rendered (round-trip injection).
+ *
+ * - Destination: emitted inside `<...>`, so `\`, `<` and `>` must be escaped.
+ * - Title: emitted inside `"..."`, so `\` and `"` must be escaped.
+ * - Text (link/image alt): emitted inside `[...]`, so `\`, `[` and `]` must be escaped.
+ */
+showdown.helper.escapeMarkdownDestination = function (url) {
+  'use strict';
+  return String(url).replace(/([\\<>])/g, '\\$1');
+};
+showdown.helper.escapeMarkdownTitle = function (title) {
+  'use strict';
+  return String(title).replace(/([\\"])/g, '\\$1');
+};
+showdown.helper.escapeMarkdownText = function (text) {
+  'use strict';
+  return String(text).replace(/([\\[\]])/g, '\\$1');
 };
 
 /**
@@ -950,7 +1057,11 @@ showdown.helper._populateAttributes = function (attributes) {
 
         // default behavior for all other attributes types
         default:
-          text += (val === null) ? '' : ' ' + key + '="' + val + '"';
+          // Encode any literal double-quote so an attribute value cannot break out of
+          // the quoted attribute. Core callers already pre-escape their values (so this
+          // is a no-op for them); this closes the hole for values injected via an
+          // extension/listener through the setAttributes() event API.
+          text += (val === null) ? '' : ' ' + key + '="' + String(val).replace(/"/g, '&quot;') + '"';
           break;
       }
     }

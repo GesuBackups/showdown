@@ -19,22 +19,28 @@ showdown.subParser('makehtml.unhashHTMLSpans', function (text, options, globals)
   startEvent = globals.converter.dispatch(startEvent);
   text = startEvent.output;
 
-  for (let i = 0; i < globals.gHtmlSpans.length; ++i) {
-    let repText = globals.gHtmlSpans[i],
-        // limiter to prevent infinite loop (assume 20 as limit for recurse)
+  // Resolve one span placeholder to its stored HTML, expanding any nested placeholders it
+  // contains (bounded depth, mirrors the historical "assume 20 as limit for recurse").
+  function resolveSpan (num) {
+    let repText = globals.gHtmlSpans[num],
         limit = 0;
-
     while (/¨C(\d+)C/.test(repText)) {
-      let num = repText.match(/¨C(\d+)C/)[1];
-      repText = repText.replace('¨C' + num + 'C', globals.gHtmlSpans[num]);
+      let n2 = repText.match(/¨C(\d+)C/)[1];
+      repText = repText.replace('¨C' + n2 + 'C', globals.gHtmlSpans[n2]);
       if (limit === 10) {
         console.error('maximum nesting of 20 spans reached!!!');
         break;
       }
       ++limit;
     }
-    text = text.replace('¨C' + i + 'C', repText);
+    return repText;
   }
+
+  // Single pass over the document (was: one String.replace per span, i.e. O(spans × text) —
+  // quadratic when the input produces many spans, e.g. `'a_'.repeat(n)`).
+  text = text.replace(/¨C(\d+)C/g, function (whole, num) {
+    return resolveSpan(num);
+  });
 
   let afterEvent = new showdown.Event('makehtml.unhashHTMLSpans.onEnd', text);
   afterEvent

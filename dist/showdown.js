@@ -181,6 +181,11 @@ function getDefaultOpts (simple) {
       describe: 'Filter the GFM "disallowed raw HTML" tags (title, textarea, style, xmp, iframe, noembed, noframes, script, plaintext) by escaping their leading < to &lt; in the output',
       type: 'boolean'
     },
+    safeMode: {
+      defaultValue: false,
+      describe: 'Defense-in-depth hardening for untrusted Markdown: (1) block dangerous URL schemes (javascript:, vbscript:, data: except data:image for image src) in generated links/images, and (2) escape ALL raw HTML tags so embedded <script>/<img onerror>/event handlers cannot execute. NOTE: this is not a full HTML sanitizer — for fully untrusted input still run the output through a dedicated sanitizer (e.g. DOMPurify) and serve a Content-Security-Policy',
+      type: 'boolean'
+    },
   };
   if (simple === false) {
     return JSON.parse(JSON.stringify(defaultOptions));
@@ -618,6 +623,33 @@ Object.defineProperty(showdown.helper, 'document', {
     return lazyDocument;
   }
 });
+
+/**
+ * Parse an untrusted HTML string into a detached <div> and return it, for
+ * makeMarkdown to walk. The HTML is parsed inside an *inert* document (one with
+ * no browsing context, obtained via document.implementation.createHTMLDocument)
+ * whenever the host DOM supports it. In an inert document, assigning to innerHTML
+ * never executes <script> and never triggers resource loads or fires on* handlers
+ * such as `<img onerror>` / `<svg onload>` — so parsing attacker HTML client-side
+ * cannot run script. happy-dom (Node) is already inert; using the same path keeps
+ * behavior uniform.
+ * @param {string} html
+ * @returns {Object} a detached div element whose innerHTML is the parsed html
+ */
+let lazyInertDocument = null;
+showdown.helper.parseHTML = function (html) {
+  'use strict';
+  let ownerDoc = showdown.helper.document;
+  if (ownerDoc.implementation && typeof ownerDoc.implementation.createHTMLDocument === 'function') {
+    if (lazyInertDocument === null) {
+      lazyInertDocument = ownerDoc.implementation.createHTMLDocument('');
+    }
+    ownerDoc = lazyInertDocument;
+  }
+  let div = ownerDoc.createElement('div');
+  div.innerHTML = html;
+  return div;
+};
 
 /**
  * Check if var is string
@@ -1149,6 +1181,46 @@ showdown.helper.isAbsolutePath = function (path) {
   return /(^([a-z]+:)?\/\/)|(^#)/i.test(path);
 };
 
+// URL schemes allowed by safeMode. Relative URLs, fragments (#...) and
+// protocol-relative URLs (//host) carry no scheme and are always allowed.
+showdown.helper.safeUrlSchemes = ['http', 'https', 'ftp', 'ftps', 'mailto', 'tel', 'sms'];
+
+/**
+ * safeMode URL guard: decide whether a link/image destination is safe to emit.
+ * Rejects dangerous schemes (javascript:, vbscript:, data:text/html, ...). The
+ * scheme is resolved after decoding character references and stripping the
+ * characters browsers ignore when parsing a scheme (whitespace and control
+ * chars), so evasions like `java&#115;cript:` or `java\tscript:` are caught.
+ * `data:` is only permitted when opts.allowDataImage is set and the payload is a
+ * `data:image/...` URL (so inline base64 images keep working under safeMode).
+ * @param {string} url
+ * @param {{allowDataImage?: boolean}} [opts]
+ * @returns {boolean}
+ */
+showdown.helper.isSafeUrl = function (url, opts) {
+  'use strict';
+  let allowDataImage = !!(opts && opts.allowDataImage);
+  // resolve character references (numeric + named) that could hide the scheme
+  let decoded = showdown.helper.cmDecodeEntities(String(url));
+  // restore showdown's internal escape placeholders (¨E<code>E) to their chars
+  decoded = decoded.replace(/¨E(\d+)E/g, function (wm, code) {
+    return String.fromCharCode(+code);
+  });
+  // remove whitespace/control chars browsers ignore while resolving the scheme
+  // eslint-disable-next-line no-control-regex -- intentionally stripping ASCII control chars used to obfuscate schemes
+  let stripped = decoded.replace(/[\u0000-\u0020\u00a0]+/g, '');
+  let m = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(stripped);
+  if (!m) {
+    // no scheme: relative path, fragment (#...) or protocol-relative (//host)
+    return true;
+  }
+  let scheme = m[1].toLowerCase();
+  if (scheme === 'data') {
+    return allowDataImage && /^data:image\//i.test(stripped);
+  }
+  return showdown.helper.safeUrlSchemes.indexOf(scheme) !== -1;
+};
+
 
 /**
  * Polyfill method for trimStart
@@ -1335,6 +1407,46 @@ showdown.helper.cmNormalizeURL = function (url) {
   url = showdown.helper.cmDecodeEntities(url);
   url = showdown.helper.cmEncodeURI(url);
   return url.replace(/&(?![a-zA-Z#0-9]+;)/g, '&amp;');
+};
+
+/**
+ * HTML-escape the characters that are significant in element and (double-quoted)
+ * attribute contexts: `&`, `<`, `>`, `"`. Ampersand is escaped unconditionally,
+ * so callers must pass a decoded/plain string (not one that already contains
+ * entities they wish to preserve). Used to harden values that are concatenated
+ * straight into generated markup (e.g. document metadata).
+ * @param {string} str
+ * @returns {string}
+ */
+showdown.helper.escapeHTMLEntities = function (str) {
+  'use strict';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+};
+
+/**
+ * makeMarkdown emitters: backslash-escape the characters that would otherwise let
+ * an attribute value break out of the generated Markdown syntax and inject new
+ * constructs when the Markdown is re-rendered (round-trip injection).
+ *
+ * - Destination: emitted inside `<...>`, so `\`, `<` and `>` must be escaped.
+ * - Title: emitted inside `"..."`, so `\` and `"` must be escaped.
+ * - Text (link/image alt): emitted inside `[...]`, so `\`, `[` and `]` must be escaped.
+ */
+showdown.helper.escapeMarkdownDestination = function (url) {
+  'use strict';
+  return String(url).replace(/([\\<>])/g, '\\$1');
+};
+showdown.helper.escapeMarkdownTitle = function (title) {
+  'use strict';
+  return String(title).replace(/([\\"])/g, '\\$1');
+};
+showdown.helper.escapeMarkdownText = function (text) {
+  'use strict';
+  return String(text).replace(/([\\[\]])/g, '\\$1');
 };
 
 /**
@@ -1536,7 +1648,11 @@ showdown.helper._populateAttributes = function (attributes) {
 
         // default behavior for all other attributes types
         default:
-          text += (val === null) ? '' : ' ' + key + '="' + val + '"';
+          // Encode any literal double-quote so an attribute value cannot break out of
+          // the quoted attribute. Core callers already pre-escape their values (so this
+          // is a no-op for them); this closes the hole for values injected via an
+          // extension/listener through the setAttributes() event API.
+          text += (val === null) ? '' : ' ' + key + '="' + String(val).replace(/"/g, '&quot;') + '"';
           break;
       }
     }
@@ -4671,7 +4787,9 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
     }
 
     function buildLink (innerHTML, dest, title) {
-      let attrs = ' href="' + normalizeDest(dest) + '"' + buildTitleAttr(title);
+      // safeMode: neutralize dangerous URL schemes (javascript:, vbscript:, data:, ...)
+      let href = (options.safeMode && !showdown.helper.isSafeUrl(dest)) ? '' : normalizeDest(dest);
+      let attrs = ' href="' + href + '"' + buildTitleAttr(title);
       innerHTML = showdown.subParser('makehtml.hardLineBreaks')(innerHTML, options, globals);
       return hashSpan('<a' + attrs + '>' + innerHTML + '</a>');
     }
@@ -4682,7 +4800,9 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
       let alt = showdown.subParser('makehtml.unhashHTMLSpans')(innerHTML, options, globals)
         .replace(/<img\b[^>]*?\salt="([^"]*)"[^>]*?\/?>/g, '$1')
         .replace(/<[^>]*>/g, '');
-      let attrs = ' src="' + normalizeDest(dest) + '" alt="' + alt + '"' + buildTitleAttr(title);
+      // safeMode: neutralize dangerous URL schemes; data:image/* stays allowed
+      let src = (options.safeMode && !showdown.helper.isSafeUrl(dest, {allowDataImage: true})) ? '' : normalizeDest(dest);
+      let attrs = ' src="' + src + '" alt="' + alt + '"' + buildTitleAttr(title);
       // width/height gating copied from writeImageTag in image.js (parseImgDimensions)
       if (options.parseImgDimensions) {
         if (width)  { attrs += ' width="'  + (width  === '*' ? 'auto' : width)  + '"'; }
@@ -4826,6 +4946,8 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
     if (uri) {
       let raw = uri[0].slice(1, -1),
           href = showdown.helper.cmEncodeURI(raw).replace(/&/g, '&amp;');
+      // safeMode: neutralize dangerous autolink schemes but keep the visible text
+      if (options.safeMode && !showdown.helper.isSafeUrl(raw)) { href = ''; }
       return {html: showdown.helper._hashHTMLSpan('<a href="' + href + '">' + escapeAngles(raw) + '</a>', globals), end: i + uri[0].length};
     }
     reAutoEmail.lastIndex = i;
@@ -5834,6 +5956,11 @@ showdown.subParser('makehtml.decodeEntities', function (text, options, globals) 
 // are singled out because they change how the surrounding markup is interpreted
 // (script/style/iframe/etc.). See https://github.github.com/gfm/#disallowed-raw-html-extension-
 //
+// When the `safeMode` option is on, this stage also neutralizes a broader set of
+// dangerous raw-HTML tags Showdown never generates and strips inline event-handler
+// attributes (on*=...), so that embedded `<script>`, `<img onerror>`, `<svg onload>`
+// and similar cannot execute. This is defense-in-depth, not a full HTML sanitizer.
+//
 // ***Author:***
 // - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
 ////
@@ -5841,7 +5968,7 @@ showdown.subParser('makehtml.decodeEntities', function (text, options, globals) 
 
 showdown.subParser('makehtml.disallowedHtmlTags', function (text, options, globals) {
   'use strict';
-  if (!options.disallowRawHTML) {
+  if (!options.disallowRawHTML && !options.safeMode) {
     return text;
   }
 
@@ -5860,6 +5987,44 @@ showdown.subParser('makehtml.disallowedHtmlTags', function (text, options, globa
     /<(\/?(?:title|textarea|style|xmp|iframe|noembed|noframes|script|plaintext))/gi,
     '&lt;$1'
   );
+
+  if (options.safeMode) {
+    // Additional dangerous tags Showdown never emits from Markdown (svg/math/form/
+    // media/embedding/document-metadata). Escaping the leading `<` renders them inert.
+    text = text.replace(
+      /<(\/?(?:svg|math|form|object|embed|base|link|meta|applet|frame|frameset|button|select|option|audio|video|source|track|template|portal))(?=[\s/>])/gi,
+      '&lt;$1'
+    );
+    // Strip inline event-handler attributes (onclick, onerror, onload, ...) from any
+    // surviving tag. Showdown's own generated attributes are never `on*`, so this only
+    // affects raw-HTML passthrough (e.g. `<img src=x onerror=alert(1)>`). The separator
+    // before the handler may be whitespace, `/`, or the closing quote of the previous
+    // attribute — browsers accept all of these (`<img/onerror>`, `<img\tonerror>`,
+    // `<a href="x"onmouseover=y>`). A whitespace/`/` separator is dropped; a quote
+    // separator is preserved so the previous attribute stays terminated.
+    text = text.replace(
+      /(["'\s/])on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+)/gi,
+      function (whole, sep) { return (sep === '"' || sep === '\'') ? sep : ''; }
+    );
+    // Neutralize dangerous URL schemes (javascript:, vbscript:, data:text/html, ...) in the
+    // href of raw-HTML `<a>`/`<area>` tags — Showdown's own scheme allowlist only covers the
+    // links/images it generates, not raw HTML the author embedded. Only real tags are matched
+    // (code blocks have their `<` entity-escaped, so `&lt;a ...` is skipped), and Showdown's
+    // generated anchors are already scheme-safe so re-checking them is a harmless no-op.
+    // The tag body is `(?:"[^"]*"|'[^']*'|[^>])*` (quote-aware) rather than `[^>]*` so a `>`
+    // inside a quoted attribute value (e.g. `href="data:text/html,<b>"`) does not truncate the
+    // tag early and let a dangerous href slip past the scheme check. Browsers keep `>` inside a
+    // quoted attribute, so we must too.
+    text = text.replace(/<(?:a|area)\b(?:"[^"]*"|'[^']*'|[^>])*>/gi, function (tag) {
+      return tag.replace(
+        /(\s(?:href|xlink:href)\s*=\s*)("[^"]*"|'[^']*'|[^\s"'>]+)/gi,
+        function (whole, pre, val) {
+          let unquoted = val.replace(/^(["'])([\s\S]*)\1$/, '$2');
+          return showdown.helper.isSafeUrl(unquoted) ? whole : pre + '""';
+        }
+      );
+    });
+  }
 
   let afterEvent = new showdown.Event('makehtml.disallowedHtmlTags.onEnd', text);
   afterEvent
@@ -6772,8 +6937,11 @@ showdown.subParser('makehtml.footnotes', function (text, options, globals, phase
     let spans = [];
     str = hashInlineCodeSpans(str, spans);
 
-    // a footnote label may not contain whitespace, so `[^a b]` is not a reference
-    str = str.replace(/\[\^([^\s\]]+)]/g, function (whole, rawLabel, offset, full) {
+    // a footnote label may not contain whitespace, so `[^a b]` is not a reference.
+    // `[` is excluded from the label too: it can never appear in a valid label, and
+    // excluding it stops the scan from running past the label start of the *next*
+    // `[^...` (which would otherwise backtrack quadratically on inputs like `[^`.repeat(n)).
+    str = str.replace(/\[\^([^\s\][]+)]/g, function (whole, rawLabel, offset, full) {
       // an escaped reference (`\[^id]`, an odd number of leading back-slashes) is literal
       let bs = 0, p = offset - 1;
       while (p >= 0 && full.charAt(p) === '\\') { bs++; p--; }
@@ -7456,30 +7624,73 @@ showdown.subParser('makehtml.hashHTMLSpans', function (text, options, globals) {
   startEvent = globals.converter.dispatch(startEvent);
   text = startEvent.output;
 
+  // NOTE: the self-closing character classes exclude `<` (`[^<>]` rather than `[^>]`) so a scan
+  // for a tag's `>` can never run across the start of the *next* `<`. This keeps matching linear
+  // on pathological input (`'<'.repeat(n)`) without changing results — a real tag has no bare `<`.
+
   // Hash Self Closing tags
   if (!options.cmSpec) {
-    text = text.replace(/<[^>]+?\/>/gi, function (wm) {
+    text = text.replace(/<[^<>]+?\/>/gi, function (wm) {
       return showdown.helper._hashHTMLSpan(wm, globals);
     });
   }
 
-  // Hash tags without properties (whole <tag>…</tag> span)
-  text = text.replace(/<([^>]+?)>[\s\S]*?<\/\1>/g, function (wm) {
-    return showdown.helper._hashHTMLSpan(wm, globals);
-  });
-
-  // Hash tags with properties (whole <tag …>…</tag> span, e.g. generated markup)
-  text = text.replace(/<([^>]+?)\s[^>]+?>[\s\S]*?<\/\1>/g, function (wm) {
-    return showdown.helper._hashHTMLSpan(wm, globals);
-  });
+  // Hash whole `<tag …>…</tag>` spans. This is done with a forward cursor + an "absent close
+  // tag" cache rather than a `<([^<>]+?)>[\s\S]*?<\/\1>` regex: that regex re-scans to EOF for a
+  // matching `</tag>` at *every* `<` when none follows, which is O(n^2) on inputs like
+  // `'<a>'.repeat(n)` or `'<a>'.repeat(n) + '</z>'`. The cursor scans each character once and, the
+  // first time a given `</name>` is found to be absent ahead, never searches for it again. Two
+  // passes preserve the old ordering/semantics: first tags whose *entire* `<…>` content is the
+  // closing name (no attributes), then tags whose first token is the closing name (with attributes).
+  text = hashPairedTags(text, 'full');
+  text = hashPairedTags(text, 'name');
 
   // Hash self closing tags without />. In CommonMark raw-HTML mode the valid inline
   // raw HTML has already been hashed earlier (spanGamut); any `<…>` left here is
   // malformed and must NOT be hashed (it is escaped by encodeAmpsAndAngles instead).
   if (!options.cmSpec) {
-    text = text.replace(/<[^>]+?>/gi, function (wm) {
+    text = text.replace(/<[^<>]+?>/gi, function (wm) {
       return showdown.helper._hashHTMLSpan(wm, globals);
     });
+  }
+
+  /**
+   * Hash `<open>…</close>` spans in a single linear pass.
+   * @param {string} str
+   * @param {'full'|'name'} mode `full`: the close tag name is the whole `<…>` content (tags
+   *   without attributes); `name`: the content must contain whitespace and the close tag name
+   *   is its first token (tags with attributes).
+   * @returns {string}
+   */
+  function hashPairedTags (str, mode) {
+    let out = '',
+        i = 0,
+        len = str.length,
+        absent = Object.create(null);
+    while (i < len) {
+      if (str.charAt(i) !== '<') { out += str.charAt(i); i++; continue; }
+      let gt = str.indexOf('>', i + 1);
+      // a real open tag has a `>` and no `<` between `<` and `>`
+      if (gt === -1) { out += str.charAt(i); i++; continue; }
+      let inner = str.slice(i + 1, gt);
+      if (inner.indexOf('<') !== -1) { out += str.charAt(i); i++; continue; }
+      let closeName;
+      if (mode === 'full') {
+        if (inner.length === 0) { out += str.charAt(i); i++; continue; }
+        closeName = inner;
+      } else {
+        let sp = inner.search(/\s/);
+        if (sp <= 0) { out += str.charAt(i); i++; continue; }
+        closeName = inner.slice(0, sp);
+      }
+      let closeStr = '</' + closeName + '>';
+      if (absent[closeStr]) { out += str.charAt(i); i++; continue; }
+      let ci = str.indexOf(closeStr, gt + 1);
+      if (ci === -1) { absent[closeStr] = true; out += str.charAt(i); i++; continue; }
+      out += showdown.helper._hashHTMLSpan(str.slice(i, ci + closeStr.length), globals);
+      i = ci + closeStr.length;
+    }
+    return out;
   }
 
   let afterEvent = new showdown.Event('makehtml.hashHTMLSpans.onEnd', text);
@@ -7883,6 +8094,19 @@ showdown.subParser('makehtml.hashPreCodeTags', function (text, options, globals)
 
   });
 
+  // Strip a trailing ATX closing sequence — `[ \t]*#*[ \t]*` — from a heading's text, computed
+  // right-to-left in linear time (a regex `/[ \t]*#*[ \t]*$/` would itself backtrack quadratically
+  // while searching for the match position). If the whole text is strippable (e.g. `# ###`), the
+  // legacy lazy regex kept the first character, so we do the same.
+  function stripAtxClosingSequence (str) {
+    let end = str.length;
+    while (end > 0 && (str.charAt(end - 1) === ' ' || str.charAt(end - 1) === '\t')) { end--; }
+    while (end > 0 && str.charAt(end - 1) === '#') { end--; }
+    while (end > 0 && (str.charAt(end - 1) === ' ' || str.charAt(end - 1) === '\t')) { end--; }
+    let stripped = str.slice(0, end);
+    return stripped === '' ? str.charAt(0) : stripped;
+  }
+
   showdown.subParser('makehtml.heading.atx', function (text, options, globals) {
 
     let startEvent = new showdown.Event('makehtml.heading.atx.onStart', text);
@@ -7893,11 +8117,19 @@ showdown.subParser('makehtml.hashPreCodeTags', function (text, options, globals)
     startEvent = globals.converter.dispatch(startEvent);
     text = startEvent.output;
 
-    const atxRegex = (options.requireSpaceBeforeHeadingText) ? /^ {0,3}(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm : /^ {0,3}(#{1,6})[ \t]*(.+?)[ \t]*#*[ \t]*$/gm;
+    // The default variant captures the heading text greedily (`(.+)$`) and strips the optional
+    // trailing closing-hash sequence (of ANY length, per CommonMark) in code below. The old
+    // `(.+?)[ \t]*#*[ \t]*$` form backtracked quadratically on a line of many `#` followed by
+    // text (e.g. `'#'.repeat(n) + ' h'`), because the lazy text capture re-scanned the `#` run
+    // at every position. The requireSpace variant already can't backtrack that way (its `[ \t]+`
+    // after the opening hashes fails fast on a pure/`#`-prefixed line), so it is left unchanged.
+    const atxRegex = (options.requireSpaceBeforeHeadingText) ? /^ {0,3}(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm : /^ {0,3}(#{1,6})[ \t]*(.+)$/gm;
+    const stripClosing = !options.requireSpaceBeforeHeadingText;
     text = text.replace(atxRegex, function (wholeMatch, m1, m2) {
-      let headingLevel = options.headerLevelStart - 1 + m1.length,
-          id = (options.noHeaderId) ? null : showdown.subParser('makehtml.heading.id')(m2, options, globals);
-      return parseHeader('atx', atxRegex, wholeMatch, m2, headingLevel, id, options, globals);
+      let headingText = stripClosing ? stripAtxClosingSequence(m2) : m2,
+          headingLevel = options.headerLevelStart - 1 + m1.length,
+          id = (options.noHeaderId) ? null : showdown.subParser('makehtml.heading.id')(headingText, options, globals);
+      return parseHeader('atx', atxRegex, wholeMatch, headingText, headingLevel, id, options, globals);
     });
 
     let afterEvent = new showdown.Event('makehtml.heading.atx.onEnd', text);
@@ -10215,46 +10447,54 @@ showdown.subParser('makehtml.image', function (text, options, globals) {
   startEvent = globals.converter.dispatch(startEvent);
   text = startEvent.output;
 
-  let inlineRegExp      = /!\[([^\]]*?)][ \t]*\([ \t]?<?(\S+?(?:\(\S*?\)\S*?)?)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*(?:(["'])([^"]*?)\5)?[ \t]?\)/g,
+  let inlineRegExp      = /!\[([^\]]*?)][ \t]*\([ \t]?<?(\S+?(?:\(\S{0,200}?\)\S{0,200}?)?)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*(?:(["'])([^"]*?)\5)?[ \t]?\)/g,
       crazyRegExp       = /!\[([^\]]*?)][ \t]*\([ \t]?<([^>]*)>(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*(?:(["'])([^"]*?)\5)?[ \t]?\)/g,
       base64RegExp      = /!\[([^\]]*?)][ \t]*\([ \t]?<?(data:.+?\/.+?;base64,[A-Za-z\d+/=\n]+?)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*(?:(["'])([^"]*?)\6)?[ \t]?\)/g,
       referenceRegExp   = /!\[([^\]]*?)] ?(?:\n *)?\[([\s\S]*?)]/g,
       refShortcutRegExp = /!\[([^[\]]+)]/g;
 
+  // Every markdown image syntax requires a closing ']'. When there is none there is nothing to
+  // match, so skip the (backtracking-prone) passes. This also neutralizes pathological inputs
+  // such as '!['.repeat(n), whose alt-text scan would otherwise cost O(n^2) looking for a ']'.
+  if (text.indexOf(']') !== -1) {
   // First, handle reference-style labeled images: ![alt text][id]
-  text = text.replace(referenceRegExp, function (wholeMatch, altText, linkId) {
-    return writeImageTag ('reference', referenceRegExp, wholeMatch, altText, null, linkId);
-  });
+    text = text.replace(referenceRegExp, function (wholeMatch, altText, linkId) {
+      return writeImageTag ('reference', referenceRegExp, wholeMatch, altText, null, linkId);
+    });
 
-  // Next, handle inline images:  ![alt text](url =<width>x<height> "optional title")
-  if (options.cmSpec) {
+    // Next, handle inline images:  ![alt text](url =<width>x<height> "optional title")
+    if (options.cmSpec) {
     // CommonMark inline-image parsing, symmetric to the link scanner: balanced-paren
     // and `<...>` destinations, titles, backslash escapes, arbitrary label nesting.
-    text = parseCmInlineImages(text);
-  } else {
+      text = parseCmInlineImages(text);
+    } else if (text.indexOf(')') !== -1) {
+    // Every legacy inline-image syntax ends in ')'. Without one there is nothing to match, so
+    // skip these passes — this neutralizes inputs like '![a](' + 'a('.repeat(n) whose
+    // destination scan would otherwise backtrack quadratically looking for a ')'.
     // base64 encoded images
-    text = text.replace(base64RegExp, function (wholeMatch, altText, url, width, height, m5, title) {
-      url = url.replace(/\s/g, '');
-      return writeImageTag ('inline', base64RegExp, wholeMatch, altText, url, null, width, height, title);
-    });
+      text = text.replace(base64RegExp, function (wholeMatch, altText, url, width, height, m5, title) {
+        url = url.replace(/\s/g, '');
+        return writeImageTag ('inline', base64RegExp, wholeMatch, altText, url, null, width, height, title);
+      });
 
-    // cases with crazy urls like ./image/cat1).png
-    text = text.replace(crazyRegExp, function (wholeMatch, altText, url, width, height, m5, title) {
-      url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
-      return writeImageTag ('inline', crazyRegExp, wholeMatch, altText, url, null, width, height, title);
-    });
+      // cases with crazy urls like ./image/cat1).png
+      text = text.replace(crazyRegExp, function (wholeMatch, altText, url, width, height, m5, title) {
+        url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
+        return writeImageTag ('inline', crazyRegExp, wholeMatch, altText, url, null, width, height, title);
+      });
 
-    // normal cases
-    text = text.replace(inlineRegExp, function (wholeMatch, altText, url, width, height, m5, title) {
-      url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
-      return writeImageTag ('inline', inlineRegExp, wholeMatch, altText, url, null, width, height, title);
+      // normal cases
+      text = text.replace(inlineRegExp, function (wholeMatch, altText, url, width, height, m5, title) {
+        url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
+        return writeImageTag ('inline', inlineRegExp, wholeMatch, altText, url, null, width, height, title);
+      });
+    }
+
+    // handle reference-style shortcuts: ![img text]
+    text = text.replace(refShortcutRegExp, function (wholeMatch, altText) {
+      return writeImageTag ('reference', refShortcutRegExp, wholeMatch, altText);
     });
   }
-
-  // handle reference-style shortcuts: ![img text]
-  text = text.replace(refShortcutRegExp, function (wholeMatch, altText) {
-    return writeImageTag ('reference', refShortcutRegExp, wholeMatch, altText);
-  });
 
   let afterEvent = new showdown.Event('makehtml.image.onEnd', text);
   afterEvent
@@ -10325,6 +10565,12 @@ showdown.subParser('makehtml.image', function (text, options, globals) {
       } else {
         return wholeMatch;
       }
+    }
+
+    // safeMode: neutralize dangerous URL schemes; data:image/* stays allowed so
+    // inline base64 images keep working
+    if (options.safeMode && !showdown.helper.isSafeUrl(url, {allowDataImage: true})) {
+      url = '';
     }
 
     if (options.cmSpec) {
@@ -10541,56 +10787,70 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
   startEvent = globals.converter.dispatch(startEvent);
   text = startEvent.output;
 
+  // Every markdown link/reference syntax requires a closing ']'. When there is none there is
+  // nothing for the (backtracking-prone) reference/inline passes to match, so skip them. This
+  // also neutralizes pathological inputs such as '['.repeat(n), which would otherwise cost
+  // O(n^2) as each pass scans forward for a ']' that never appears. Autolinks (< >) below do
+  // not need ']', so they stay outside this guard.
+  if (text.indexOf(']') !== -1) {
   // 1. Handle reference-style links: [link text] [id]
-  let referenceRegex = /\[((?:\[[^\]]*]|[^[\]])*)] ?(?:\n *)?\[(.*?)]/g;
-  text = text.replace(referenceRegex, function (wholeMatch, text, linkId) {
+    // The label sub-pattern excludes `[` from the inner negated class (`[^\][]` not `[^\]]`) so a
+    // scan for the label's closing `]` cannot run across the `[` that starts the *next* bracket
+    // group. This keeps matching linear on inputs like `'[^'.repeat(n) + ' ]'` (which contain a
+    // stray `]` that defeats the earlier "no `]` at all" fast-path) without changing results.
+    let referenceRegex = /\[((?:\[[^\][]*]|[^[\]])*)] ?(?:\n *)?\[(.*?)]/g;
+    text = text.replace(referenceRegex, function (wholeMatch, text, linkId) {
     // bail if we find 2 newlines somewhere
-    if (/\n\n/.test(wholeMatch)) {
-      return wholeMatch;
-    }
-    return writeAnchorTag ('reference', referenceRegex, wholeMatch, text, linkId);
-  });
+      if (/\n\n/.test(wholeMatch)) {
+        return wholeMatch;
+      }
+      return writeAnchorTag ('reference', referenceRegex, wholeMatch, text, linkId);
+    });
 
-  // 2. Handle inline-style links: [link text](url "optional title")
-  if (options.cmSpec) {
+    // 2. Handle inline-style links: [link text](url "optional title")
+    if (options.cmSpec) {
     // CommonMark inline-link parsing: a manual scanner that handles balanced-paren
     // and `<...>` destinations, titles in "...", '...' or (...), and backslash escapes.
-    text = parseCmInlineLinks(text);
-  } else {
+      text = parseCmInlineLinks(text);
+    } else if (text.indexOf(')') !== -1) {
+    // Every legacy inline-link syntax ends in ')'. Without one there is nothing to match, so
+    // skip these passes — this neutralizes pathological inputs like '[a](' + 'a('.repeat(n),
+    // whose destination scan would otherwise backtrack quadratically looking for a ')'.
     // 2.1. Look for empty cases: []() and [empty]() and []("title")
-    let inlineEmptyRegex = /\[(.*?)]\(<? ?>? ?(["'](.*)["'])?\)/g;
-    text = text.replace(inlineEmptyRegex, function (wholeMatch, text, m1, title) {
-      return writeAnchorTag ('inline', inlineEmptyRegex, wholeMatch, text, null, null, title, true);
-    });
+      let inlineEmptyRegex = /\[(.*?)]\(<? ?>? ?(["'](.*)["'])?\)/g;
+      text = text.replace(inlineEmptyRegex, function (wholeMatch, text, m1, title) {
+        return writeAnchorTag ('inline', inlineEmptyRegex, wholeMatch, text, null, null, title, true);
+      });
 
-    // 2.2. Look for cases with crazy urls like ./image/cat1).png
-    // the url mus be enclosed in <>
-    let inlineCrazyRegex = /\[((?:\[[^\]]*]|[^[\]])*)]\s?\([ \t]?<([^>]*)>(?:[ \t]*((["'])([^"]*?)\4))?[ \t]?\)/g;
-    text = text.replace(inlineCrazyRegex, function (wholeMatch, text, url, m1, m2, title) {
-      return writeAnchorTag ('inline', inlineCrazyRegex, wholeMatch, text, null, url, title);
-    });
+      // 2.2. Look for cases with crazy urls like ./image/cat1).png
+      // the url mus be enclosed in <>
+      let inlineCrazyRegex = /\[((?:\[[^\][]*]|[^[\]])*)]\s?\([ \t]?<([^>]*)>(?:[ \t]*((["'])([^"]*?)\4))?[ \t]?\)/g;
+      text = text.replace(inlineCrazyRegex, function (wholeMatch, text, url, m1, m2, title) {
+        return writeAnchorTag ('inline', inlineCrazyRegex, wholeMatch, text, null, url, title);
+      });
 
-    // 2.3. inline links with no title or titles wrapped in ' or ":
-    // [text](url.com) || [text](<url.com>) || [text](url.com "title") || [text](<url.com> "title")
-    let inlineNormalRegex1 = /\[([\S ]*?)]\s?\( *<?([^\s'"]*?(?:\(\S*?\)\S*?)?)>?\s*(?:(['"])(.*?)\3)? *\)/g;
-    text = text.replace(inlineNormalRegex1, function (wholeMatch, text, url, m1, title) {
-      return writeAnchorTag ('inline', inlineNormalRegex1, wholeMatch, text, null, url, title);
-    });
+      // 2.3. inline links with no title or titles wrapped in ' or ":
+      // [text](url.com) || [text](<url.com>) || [text](url.com "title") || [text](<url.com> "title")
+      let inlineNormalRegex1 = /\[([\S ]*?)]\s?\( *<?([^\s'"]*?(?:\(\S{0,200}?\)\S{0,200}?)?)>?\s*(?:(['"])(.*?)\3)? *\)/g;
+      text = text.replace(inlineNormalRegex1, function (wholeMatch, text, url, m1, title) {
+        return writeAnchorTag ('inline', inlineNormalRegex1, wholeMatch, text, null, url, title);
+      });
 
-    // 2.4. inline links with titles wrapped in (): [foo](bar.com (title))
-    let inlineNormalRegex2 = /\[([\S ]*?)]\s?\( *<?([^\s'"]*?(?:\(\S*?\)\S*?)?)>?\s+\((.*?)\) *\)/g;
-    text = text.replace(inlineNormalRegex2, function (wholeMatch, text, url, title) {
-      return writeAnchorTag ('inline', inlineNormalRegex2, wholeMatch, text, null, url, title);
+      // 2.4. inline links with titles wrapped in (): [foo](bar.com (title))
+      let inlineNormalRegex2 = /\[([\S ]*?)]\s?\( *<?([^\s'"]*?(?:\(\S{0,200}?\)\S{0,200}?)?)>?\s+\((.*?)\) *\)/g;
+      text = text.replace(inlineNormalRegex2, function (wholeMatch, text, url, title) {
+        return writeAnchorTag ('inline', inlineNormalRegex2, wholeMatch, text, null, url, title);
+      });
+    }
+
+
+    // 3. Handle reference-style shortcuts: [link text]
+    // These must come last in case there's a [link text][1] or [link text](/foo)
+    let referenceShortcutRegex = /\[([^[\]]+)]/g;
+    text = text.replace(referenceShortcutRegex, function (wholeMatch, text) {
+      return writeAnchorTag ('reference', referenceShortcutRegex, wholeMatch, text);
     });
   }
-
-
-  // 3. Handle reference-style shortcuts: [link text]
-  // These must come last in case there's a [link text][1] or [link text](/foo)
-  let referenceShortcutRegex = /\[([^[\]]+)]/g;
-  text = text.replace(referenceShortcutRegex, function (wholeMatch, text) {
-    return writeAnchorTag ('reference', referenceShortcutRegex, wholeMatch, text);
-  });
 
   // 4. Handle angle brackets links -> `<http://example.com/>`
   // Must come after links, because you can use < and > delimiters in inline links like [this](<url>).
@@ -10603,7 +10863,9 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
     text = text.replace(cmUriAutolinkRegex, function (wholeMatch, uri) {
       // backslash escapes do not work inside autolinks, so restore them to literal backslash + char
       let raw = showdown.subParser('makehtml.unescapeSpecialChars')(uri.replace(/(¨E\d+E)/g, '\\$1'), options, globals);
-      let otp = '<a href="' + cmEscapeHref(showdown.helper.cmEncodeURI(raw)) + '">' + cmEscapeText(raw) + '</a>';
+      // safeMode: neutralize dangerous autolink schemes but keep the visible text
+      let href = (options.safeMode && !showdown.helper.isSafeUrl(raw)) ? '' : cmEscapeHref(showdown.helper.cmEncodeURI(raw));
+      let otp = '<a href="' + href + '">' + cmEscapeText(raw) + '</a>';
       return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
     });
 
@@ -10929,6 +11191,10 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
     }
 
     url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
+    // safeMode: neutralize dangerous URL schemes (javascript:, vbscript:, data:, ...)
+    if (options.safeMode && !showdown.helper.isSafeUrl(url)) {
+      url = '';
+    }
     if (options.cmSpec) {
       url = showdown.helper.cmNormalizeURL(url);
     }
@@ -11454,13 +11720,10 @@ showdown.subParser('makehtml.metadata', function (text, options, globals) {
     globals.metadata.raw = content;
     globals.metadata.format = format;
 
-    // escape chars forbidden in html attributes
-    // double quotes
-    content = content
-      // ampersand first
-      .replace(/&/g, '&amp;')
-      // double quotes
-      .replace(/"/g, '&quot;')
+    // escape chars significant in html element and attribute contexts so metadata
+    // values/keys can't break out of <title>, <meta ...> or the doctype when
+    // completeHTMLDocument concatenates them into the document head
+    content = showdown.helper.escapeHTMLEntities(content)
     // Restore dollar signs and tremas
       .replace(/¨D/g, '$$')
       .replace(/¨T/g, '¨')
@@ -12113,8 +12376,13 @@ showdown.subParser('makehtml.table', function (text, options, globals) {
   // tail is reprocessed and converted normally.
   const blockStartRgx = /^ {0,3}(?:>|#{1,6}(?:[ \t]|$)|```|~~~|(?:\*[ \t]*){3,}$|(?:-[ \t]*){3,}$|(?:_[ \t]*){3,}$)/;
 
-  // parse multi column tables
-  const tableRgx = /^ {0,3}\|?.+\|.+\n {0,3}\|?[ \t]*:?[ \t]*[-=]+[ \t]*:?[ \t]*\|[ \t]*:?[ \t]*[-=]+[\s\S]+?(?:\n\n|¨0)/gm;
+  // parse multi column tables.
+  // The header row is matched as `(?=[^\n]*\|)[^\n]+\n` (a whole line that contains at least one
+  // pipe) instead of `\|?.+\|.+\n`. The old form had two greedy `.+` around a `\|`, so when the
+  // following delimiter row failed to match it backtracked over every pipe position in the header
+  // — quadratic on a long pipe-heavy line like `'|a'.repeat(n)`. The lookahead + single greedy
+  // `[^\n]+` matches the same set of header lines without that backtracking.
+  const tableRgx = /^ {0,3}(?=[^\n]*\|)[^\n]+\n {0,3}\|?[ \t]*:?[ \t]*[-=]+[ \t]*:?[ \t]*\|[ \t]*:?[ \t]*[-=]+[\s\S]+?(?:\n\n|¨0)/gm;
   text = text.replace(tableRgx, function (wholeMatch) {
     let split = breakOnBlock(wholeMatch);
     // Neutralize escaped pipes only within the actual table text (not the trailing block
@@ -12682,22 +12950,28 @@ showdown.subParser('makehtml.unhashHTMLSpans', function (text, options, globals)
   startEvent = globals.converter.dispatch(startEvent);
   text = startEvent.output;
 
-  for (let i = 0; i < globals.gHtmlSpans.length; ++i) {
-    let repText = globals.gHtmlSpans[i],
-        // limiter to prevent infinite loop (assume 20 as limit for recurse)
+  // Resolve one span placeholder to its stored HTML, expanding any nested placeholders it
+  // contains (bounded depth, mirrors the historical "assume 20 as limit for recurse").
+  function resolveSpan (num) {
+    let repText = globals.gHtmlSpans[num],
         limit = 0;
-
     while (/¨C(\d+)C/.test(repText)) {
-      let num = repText.match(/¨C(\d+)C/)[1];
-      repText = repText.replace('¨C' + num + 'C', globals.gHtmlSpans[num]);
+      let n2 = repText.match(/¨C(\d+)C/)[1];
+      repText = repText.replace('¨C' + n2 + 'C', globals.gHtmlSpans[n2]);
       if (limit === 10) {
         console.error('maximum nesting of 20 spans reached!!!');
         break;
       }
       ++limit;
     }
-    text = text.replace('¨C' + i + 'C', repText);
+    return repText;
   }
+
+  // Single pass over the document (was: one String.replace per span, i.e. O(spans × text) —
+  // quadratic when the input produces many spans, e.g. `'a_'.repeat(n)`).
+  text = text.replace(/¨C(\d+)C/g, function (whole, num) {
+    return resolveSpan(num);
+  });
 
   let afterEvent = new showdown.Event('makehtml.unhashHTMLSpans.onEnd', text);
   afterEvent
@@ -13105,8 +13379,8 @@ showdown.subParser('makeMarkdown.image', function (node, options, globals) {
           return node.outerHTML;
         }
 
-        txt += '![' + (node.getAttribute('alt') || '') + '](';
-        txt += '<' + node.getAttribute('src') + '>';
+        txt += '![' + showdown.helper.escapeMarkdownText(node.getAttribute('alt') || '') + '](';
+        txt += '<' + showdown.helper.escapeMarkdownDestination(node.getAttribute('src')) + '>';
         if (hasDimensions) {
           let width = node.getAttribute('width');
           let height = node.getAttribute('height');
@@ -13114,7 +13388,7 @@ showdown.subParser('makeMarkdown.image', function (node, options, globals) {
         }
 
         if (node.hasAttribute('title')) {
-          txt += ' "' + node.getAttribute('title') + '"';
+          txt += ' "' + showdown.helper.escapeMarkdownTitle(node.getAttribute('title')) + '"';
         }
         txt += ')';
       }
@@ -13261,12 +13535,12 @@ showdown.subParser('makeMarkdown.links', function (node, options, globals) {
       // autolink: when the link text is identical to the href and there's no title,
       // emit the compact <href> form instead of [href](<href>)
       if (!node.hasAttribute('title') && innerTxt === href) {
-        return '<' + href + '>';
+        return '<' + showdown.helper.escapeMarkdownDestination(href) + '>';
       }
 
-      txt = '[' + innerTxt + '](<' + href + '>';
+      txt = '[' + innerTxt + '](<' + showdown.helper.escapeMarkdownDestination(href) + '>';
       if (node.hasAttribute('title')) {
-        txt += ' "' + node.getAttribute('title') + '"';
+        txt += ' "' + showdown.helper.escapeMarkdownTitle(node.getAttribute('title')) + '"';
       }
       txt += ')';
       return txt;
@@ -14597,8 +14871,7 @@ showdown.Converter = function (converterOptions) {
     // ex: <em>this is</em> <strong>sparta</strong>
     src = src.replace(/>[ \t]+</, '>¨NBSP;<');
 
-    let doc = showdown.helper.document.createElement('div');
-    doc.innerHTML = src;
+    let doc = showdown.helper.parseHTML(src);
 
     let globals = {
       preList: substitutePreCodeTags(doc),

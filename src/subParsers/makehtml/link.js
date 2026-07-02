@@ -26,56 +26,70 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
   startEvent = globals.converter.dispatch(startEvent);
   text = startEvent.output;
 
+  // Every markdown link/reference syntax requires a closing ']'. When there is none there is
+  // nothing for the (backtracking-prone) reference/inline passes to match, so skip them. This
+  // also neutralizes pathological inputs such as '['.repeat(n), which would otherwise cost
+  // O(n^2) as each pass scans forward for a ']' that never appears. Autolinks (< >) below do
+  // not need ']', so they stay outside this guard.
+  if (text.indexOf(']') !== -1) {
   // 1. Handle reference-style links: [link text] [id]
-  let referenceRegex = /\[((?:\[[^\]]*]|[^[\]])*)] ?(?:\n *)?\[(.*?)]/g;
-  text = text.replace(referenceRegex, function (wholeMatch, text, linkId) {
+    // The label sub-pattern excludes `[` from the inner negated class (`[^\][]` not `[^\]]`) so a
+    // scan for the label's closing `]` cannot run across the `[` that starts the *next* bracket
+    // group. This keeps matching linear on inputs like `'[^'.repeat(n) + ' ]'` (which contain a
+    // stray `]` that defeats the earlier "no `]` at all" fast-path) without changing results.
+    let referenceRegex = /\[((?:\[[^\][]*]|[^[\]])*)] ?(?:\n *)?\[(.*?)]/g;
+    text = text.replace(referenceRegex, function (wholeMatch, text, linkId) {
     // bail if we find 2 newlines somewhere
-    if (/\n\n/.test(wholeMatch)) {
-      return wholeMatch;
-    }
-    return writeAnchorTag ('reference', referenceRegex, wholeMatch, text, linkId);
-  });
+      if (/\n\n/.test(wholeMatch)) {
+        return wholeMatch;
+      }
+      return writeAnchorTag ('reference', referenceRegex, wholeMatch, text, linkId);
+    });
 
-  // 2. Handle inline-style links: [link text](url "optional title")
-  if (options.cmSpec) {
+    // 2. Handle inline-style links: [link text](url "optional title")
+    if (options.cmSpec) {
     // CommonMark inline-link parsing: a manual scanner that handles balanced-paren
     // and `<...>` destinations, titles in "...", '...' or (...), and backslash escapes.
-    text = parseCmInlineLinks(text);
-  } else {
+      text = parseCmInlineLinks(text);
+    } else if (text.indexOf(')') !== -1) {
+    // Every legacy inline-link syntax ends in ')'. Without one there is nothing to match, so
+    // skip these passes — this neutralizes pathological inputs like '[a](' + 'a('.repeat(n),
+    // whose destination scan would otherwise backtrack quadratically looking for a ')'.
     // 2.1. Look for empty cases: []() and [empty]() and []("title")
-    let inlineEmptyRegex = /\[(.*?)]\(<? ?>? ?(["'](.*)["'])?\)/g;
-    text = text.replace(inlineEmptyRegex, function (wholeMatch, text, m1, title) {
-      return writeAnchorTag ('inline', inlineEmptyRegex, wholeMatch, text, null, null, title, true);
-    });
+      let inlineEmptyRegex = /\[(.*?)]\(<? ?>? ?(["'](.*)["'])?\)/g;
+      text = text.replace(inlineEmptyRegex, function (wholeMatch, text, m1, title) {
+        return writeAnchorTag ('inline', inlineEmptyRegex, wholeMatch, text, null, null, title, true);
+      });
 
-    // 2.2. Look for cases with crazy urls like ./image/cat1).png
-    // the url mus be enclosed in <>
-    let inlineCrazyRegex = /\[((?:\[[^\]]*]|[^[\]])*)]\s?\([ \t]?<([^>]*)>(?:[ \t]*((["'])([^"]*?)\4))?[ \t]?\)/g;
-    text = text.replace(inlineCrazyRegex, function (wholeMatch, text, url, m1, m2, title) {
-      return writeAnchorTag ('inline', inlineCrazyRegex, wholeMatch, text, null, url, title);
-    });
+      // 2.2. Look for cases with crazy urls like ./image/cat1).png
+      // the url mus be enclosed in <>
+      let inlineCrazyRegex = /\[((?:\[[^\][]*]|[^[\]])*)]\s?\([ \t]?<([^>]*)>(?:[ \t]*((["'])([^"]*?)\4))?[ \t]?\)/g;
+      text = text.replace(inlineCrazyRegex, function (wholeMatch, text, url, m1, m2, title) {
+        return writeAnchorTag ('inline', inlineCrazyRegex, wholeMatch, text, null, url, title);
+      });
 
-    // 2.3. inline links with no title or titles wrapped in ' or ":
-    // [text](url.com) || [text](<url.com>) || [text](url.com "title") || [text](<url.com> "title")
-    let inlineNormalRegex1 = /\[([\S ]*?)]\s?\( *<?([^\s'"]*?(?:\(\S*?\)\S*?)?)>?\s*(?:(['"])(.*?)\3)? *\)/g;
-    text = text.replace(inlineNormalRegex1, function (wholeMatch, text, url, m1, title) {
-      return writeAnchorTag ('inline', inlineNormalRegex1, wholeMatch, text, null, url, title);
-    });
+      // 2.3. inline links with no title or titles wrapped in ' or ":
+      // [text](url.com) || [text](<url.com>) || [text](url.com "title") || [text](<url.com> "title")
+      let inlineNormalRegex1 = /\[([\S ]*?)]\s?\( *<?([^\s'"]*?(?:\(\S{0,200}?\)\S{0,200}?)?)>?\s*(?:(['"])(.*?)\3)? *\)/g;
+      text = text.replace(inlineNormalRegex1, function (wholeMatch, text, url, m1, title) {
+        return writeAnchorTag ('inline', inlineNormalRegex1, wholeMatch, text, null, url, title);
+      });
 
-    // 2.4. inline links with titles wrapped in (): [foo](bar.com (title))
-    let inlineNormalRegex2 = /\[([\S ]*?)]\s?\( *<?([^\s'"]*?(?:\(\S*?\)\S*?)?)>?\s+\((.*?)\) *\)/g;
-    text = text.replace(inlineNormalRegex2, function (wholeMatch, text, url, title) {
-      return writeAnchorTag ('inline', inlineNormalRegex2, wholeMatch, text, null, url, title);
+      // 2.4. inline links with titles wrapped in (): [foo](bar.com (title))
+      let inlineNormalRegex2 = /\[([\S ]*?)]\s?\( *<?([^\s'"]*?(?:\(\S{0,200}?\)\S{0,200}?)?)>?\s+\((.*?)\) *\)/g;
+      text = text.replace(inlineNormalRegex2, function (wholeMatch, text, url, title) {
+        return writeAnchorTag ('inline', inlineNormalRegex2, wholeMatch, text, null, url, title);
+      });
+    }
+
+
+    // 3. Handle reference-style shortcuts: [link text]
+    // These must come last in case there's a [link text][1] or [link text](/foo)
+    let referenceShortcutRegex = /\[([^[\]]+)]/g;
+    text = text.replace(referenceShortcutRegex, function (wholeMatch, text) {
+      return writeAnchorTag ('reference', referenceShortcutRegex, wholeMatch, text);
     });
   }
-
-
-  // 3. Handle reference-style shortcuts: [link text]
-  // These must come last in case there's a [link text][1] or [link text](/foo)
-  let referenceShortcutRegex = /\[([^[\]]+)]/g;
-  text = text.replace(referenceShortcutRegex, function (wholeMatch, text) {
-    return writeAnchorTag ('reference', referenceShortcutRegex, wholeMatch, text);
-  });
 
   // 4. Handle angle brackets links -> `<http://example.com/>`
   // Must come after links, because you can use < and > delimiters in inline links like [this](<url>).
@@ -88,7 +102,9 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
     text = text.replace(cmUriAutolinkRegex, function (wholeMatch, uri) {
       // backslash escapes do not work inside autolinks, so restore them to literal backslash + char
       let raw = showdown.subParser('makehtml.unescapeSpecialChars')(uri.replace(/(¨E\d+E)/g, '\\$1'), options, globals);
-      let otp = '<a href="' + cmEscapeHref(showdown.helper.cmEncodeURI(raw)) + '">' + cmEscapeText(raw) + '</a>';
+      // safeMode: neutralize dangerous autolink schemes but keep the visible text
+      let href = (options.safeMode && !showdown.helper.isSafeUrl(raw)) ? '' : cmEscapeHref(showdown.helper.cmEncodeURI(raw));
+      let otp = '<a href="' + href + '">' + cmEscapeText(raw) + '</a>';
       return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
     });
 
@@ -414,6 +430,10 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
     }
 
     url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
+    // safeMode: neutralize dangerous URL schemes (javascript:, vbscript:, data:, ...)
+    if (options.safeMode && !showdown.helper.isSafeUrl(url)) {
+      url = '';
+    }
     if (options.cmSpec) {
       url = showdown.helper.cmNormalizeURL(url);
     }

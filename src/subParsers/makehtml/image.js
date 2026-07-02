@@ -20,46 +20,54 @@ showdown.subParser('makehtml.image', function (text, options, globals) {
   startEvent = globals.converter.dispatch(startEvent);
   text = startEvent.output;
 
-  let inlineRegExp      = /!\[([^\]]*?)][ \t]*\([ \t]?<?(\S+?(?:\(\S*?\)\S*?)?)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*(?:(["'])([^"]*?)\5)?[ \t]?\)/g,
+  let inlineRegExp      = /!\[([^\]]*?)][ \t]*\([ \t]?<?(\S+?(?:\(\S{0,200}?\)\S{0,200}?)?)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*(?:(["'])([^"]*?)\5)?[ \t]?\)/g,
       crazyRegExp       = /!\[([^\]]*?)][ \t]*\([ \t]?<([^>]*)>(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*(?:(["'])([^"]*?)\5)?[ \t]?\)/g,
       base64RegExp      = /!\[([^\]]*?)][ \t]*\([ \t]?<?(data:.+?\/.+?;base64,[A-Za-z\d+/=\n]+?)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*(?:(["'])([^"]*?)\6)?[ \t]?\)/g,
       referenceRegExp   = /!\[([^\]]*?)] ?(?:\n *)?\[([\s\S]*?)]/g,
       refShortcutRegExp = /!\[([^[\]]+)]/g;
 
+  // Every markdown image syntax requires a closing ']'. When there is none there is nothing to
+  // match, so skip the (backtracking-prone) passes. This also neutralizes pathological inputs
+  // such as '!['.repeat(n), whose alt-text scan would otherwise cost O(n^2) looking for a ']'.
+  if (text.indexOf(']') !== -1) {
   // First, handle reference-style labeled images: ![alt text][id]
-  text = text.replace(referenceRegExp, function (wholeMatch, altText, linkId) {
-    return writeImageTag ('reference', referenceRegExp, wholeMatch, altText, null, linkId);
-  });
+    text = text.replace(referenceRegExp, function (wholeMatch, altText, linkId) {
+      return writeImageTag ('reference', referenceRegExp, wholeMatch, altText, null, linkId);
+    });
 
-  // Next, handle inline images:  ![alt text](url =<width>x<height> "optional title")
-  if (options.cmSpec) {
+    // Next, handle inline images:  ![alt text](url =<width>x<height> "optional title")
+    if (options.cmSpec) {
     // CommonMark inline-image parsing, symmetric to the link scanner: balanced-paren
     // and `<...>` destinations, titles, backslash escapes, arbitrary label nesting.
-    text = parseCmInlineImages(text);
-  } else {
+      text = parseCmInlineImages(text);
+    } else if (text.indexOf(')') !== -1) {
+    // Every legacy inline-image syntax ends in ')'. Without one there is nothing to match, so
+    // skip these passes — this neutralizes inputs like '![a](' + 'a('.repeat(n) whose
+    // destination scan would otherwise backtrack quadratically looking for a ')'.
     // base64 encoded images
-    text = text.replace(base64RegExp, function (wholeMatch, altText, url, width, height, m5, title) {
-      url = url.replace(/\s/g, '');
-      return writeImageTag ('inline', base64RegExp, wholeMatch, altText, url, null, width, height, title);
-    });
+      text = text.replace(base64RegExp, function (wholeMatch, altText, url, width, height, m5, title) {
+        url = url.replace(/\s/g, '');
+        return writeImageTag ('inline', base64RegExp, wholeMatch, altText, url, null, width, height, title);
+      });
 
-    // cases with crazy urls like ./image/cat1).png
-    text = text.replace(crazyRegExp, function (wholeMatch, altText, url, width, height, m5, title) {
-      url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
-      return writeImageTag ('inline', crazyRegExp, wholeMatch, altText, url, null, width, height, title);
-    });
+      // cases with crazy urls like ./image/cat1).png
+      text = text.replace(crazyRegExp, function (wholeMatch, altText, url, width, height, m5, title) {
+        url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
+        return writeImageTag ('inline', crazyRegExp, wholeMatch, altText, url, null, width, height, title);
+      });
 
-    // normal cases
-    text = text.replace(inlineRegExp, function (wholeMatch, altText, url, width, height, m5, title) {
-      url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
-      return writeImageTag ('inline', inlineRegExp, wholeMatch, altText, url, null, width, height, title);
+      // normal cases
+      text = text.replace(inlineRegExp, function (wholeMatch, altText, url, width, height, m5, title) {
+        url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
+        return writeImageTag ('inline', inlineRegExp, wholeMatch, altText, url, null, width, height, title);
+      });
+    }
+
+    // handle reference-style shortcuts: ![img text]
+    text = text.replace(refShortcutRegExp, function (wholeMatch, altText) {
+      return writeImageTag ('reference', refShortcutRegExp, wholeMatch, altText);
     });
   }
-
-  // handle reference-style shortcuts: ![img text]
-  text = text.replace(refShortcutRegExp, function (wholeMatch, altText) {
-    return writeImageTag ('reference', refShortcutRegExp, wholeMatch, altText);
-  });
 
   let afterEvent = new showdown.Event('makehtml.image.onEnd', text);
   afterEvent
@@ -130,6 +138,12 @@ showdown.subParser('makehtml.image', function (text, options, globals) {
       } else {
         return wholeMatch;
       }
+    }
+
+    // safeMode: neutralize dangerous URL schemes; data:image/* stays allowed so
+    // inline base64 images keep working
+    if (options.safeMode && !showdown.helper.isSafeUrl(url, {allowDataImage: true})) {
+      url = '';
     }
 
     if (options.cmSpec) {

@@ -160,8 +160,11 @@ showdown.subParser('makehtml.footnotes', function (text, options, globals, phase
     let spans = [];
     str = hashInlineCodeSpans(str, spans);
 
-    // a footnote label may not contain whitespace, so `[^a b]` is not a reference
-    str = str.replace(/\[\^([^\s\]]+)]/g, function (whole, rawLabel, offset, full) {
+    // a footnote label may not contain whitespace, so `[^a b]` is not a reference.
+    // `[` is excluded from the label too: it can never appear in a valid label, and
+    // excluding it stops the scan from running past the label start of the *next*
+    // `[^...` (which would otherwise backtrack quadratically on inputs like `[^`.repeat(n)).
+    str = str.replace(/\[\^([^\s\][]+)]/g, function (whole, rawLabel, offset, full) {
       // an escaped reference (`\[^id]`, an odd number of leading back-slashes) is literal
       let bs = 0, p = offset - 1;
       while (p >= 0 && full.charAt(p) === '\\') { bs++; p--; }
