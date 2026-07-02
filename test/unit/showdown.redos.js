@@ -26,6 +26,8 @@ describe('ReDoS resistance', function () {
     {name: 'inline image destination — unbalanced (', input: '![a](' + 'a('.repeat(N)},
     {name: 'inline image destination — unbalanced ( + )', input: '![a](' + 'a('.repeat(N) + ')'},
     {name: 'link destination with many open parens', input: '[a](http://x/' + '('.repeat(N)},
+    {name: 'balanced nested links', input: '[x]('.repeat(N) + 'u' + ')'.repeat(N)},
+    {name: 'balanced nested images', input: '![x]('.repeat(N) + 'u' + ')'.repeat(N)},
 
     // --- reference labels / bracket runs ---
     {name: 'open square brackets', input: '['.repeat(N)},

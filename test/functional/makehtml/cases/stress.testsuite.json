@@ -1829,5 +1829,85 @@
     "options": {
       "safeMode": true
     }
+  },
+  {
+    "name": "anchor-slash-sep",
+    "markdown": "<a/href=\"javascript:alert(1)\">x</a>",
+    "html": "<p><a/href=\"\">x</a></p>",
+    "section": "safemode-malformed",
+    "number": 209,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "anchor-quote-adjacent",
+    "markdown": "<a id=\"x\"href=\"javascript:alert(1)\">x</a>",
+    "html": "<p><a id=\"x\"href=\"\">x</a></p>",
+    "section": "safemode-malformed",
+    "number": 210,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "anchor-squote-adjacent",
+    "markdown": "<a id='x'href='javascript:alert(1)'>x</a>",
+    "html": "<p><a id='x'href=\"\">x</a></p>",
+    "section": "safemode-malformed",
+    "number": 211,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "area-slash-sep",
+    "markdown": "<area/href=\"javascript:alert(1)\">",
+    "html": "<p><area/href=\"\"></p>",
+    "section": "safemode-malformed",
+    "number": 212,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "anchor-safe-adjacent",
+    "markdown": "<a id=\"x\"href=\"https://ok\">x</a>",
+    "html": "<p><a id=\"x\"href=\"https://ok\">x</a></p>",
+    "section": "safemode-malformed",
+    "number": 213,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "input-formaction-js",
+    "markdown": "<input formaction=\"javascript:alert(1)\" type=\"submit\">",
+    "html": "<p><input formaction=\"\" type=\"submit\"></p>",
+    "section": "safemode-malformed",
+    "number": 214,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "input-formaction-safe",
+    "markdown": "<input formaction=\"/submit\" type=\"submit\">",
+    "html": "<p><input formaction=\"/submit\" type=\"submit\"></p>",
+    "section": "safemode-malformed",
+    "number": 215,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "button-formaction",
+    "markdown": "<button formaction=\"javascript:alert(1)\">x</button>",
+    "html": "<p>&lt;button formaction=\"javascript:alert(1)\">x&lt;/button></p>",
+    "section": "safemode-malformed",
+    "number": 216,
+    "options": {
+      "safeMode": true
+    }
   }
 ]

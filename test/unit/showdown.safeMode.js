@@ -61,6 +61,13 @@ describe('showdown.Converter safeMode option', function () {
       expect(converter.makeHtml('<img/onerror=alert(1)>')).toBe('<p><img></p>');
       expect(converter.makeHtml('<a href="x"onmouseover="alert(1)">y</a>')).toBe('<p><a href="x">y</a></p>');
     });
+    it('should neutralize dangerous URL schemes in form-action attributes (e.g. <input formaction>)', function () {
+      // <input> is not escaped (kept for tasklists), so its formaction must be scheme-checked
+      expect(converter.makeHtml('<input formaction="javascript:alert(1)" type="submit">')).not.toContain('formaction="javascript');
+      expect(converter.makeHtml('<input formaction=javascript:alert(1) type=submit>')).not.toContain('formaction=javascript');
+      // control: a safe formaction is preserved
+      expect(converter.makeHtml('<input formaction="/submit" type="submit">')).toContain('formaction="/submit"');
+    });
   });
 
   describe('raw-HTML anchor URL scheme allowlist', function () {
@@ -89,6 +96,16 @@ describe('showdown.Converter safeMode option', function () {
     it('should not corrupt an anchor href shown inside a code span', function () {
       expect(converter.makeHtml('`<a href="javascript:x">`'))
         .toBe('<p><code>&lt;a href=&quot;javascript:x&quot;&gt;</code></p>');
+    });
+    it('should neutralize a dangerous href regardless of the attribute separator (slash / quote-adjacent)', function () {
+      // browsers accept `/` and quote-adjacent separators between attributes, so a href that is
+      // not preceded by whitespace must still be neutralized
+      expect(converter.makeHtml('<a/href="javascript:alert(1)">click</a>')).toContain('href=""');
+      expect(converter.makeHtml('<a id="x"href="javascript:alert(1)">click</a>')).toContain('href=""');
+      expect(converter.makeHtml('<a id=\'x\'href=\'javascript:alert(1)\'>click</a>')).toContain('href=""');
+      expect(converter.makeHtml('<area/href="javascript:alert(1)">')).toContain('href=""');
+      // control: a safe href adjacent to a preceding attribute must be preserved
+      expect(converter.makeHtml('<a id="x"href="https://ok">y</a>')).toContain('href="https://ok"');
     });
   });
 

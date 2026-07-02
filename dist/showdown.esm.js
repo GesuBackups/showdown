@@ -1,4 +1,4 @@
-/*! showdown v 3.0.0-rc2 - 02-07-2026 */
+/*! showdown v 3.0.0-rc2 - 03-07-2026 */
 const showdown = (function () {
 // noinspection HtmlRequiredLangAttribute
 
@@ -6007,17 +6007,19 @@ showdown.subParser('makehtml.disallowedHtmlTags', function (text, options, globa
       function (whole, sep) { return (sep === '"' || sep === '\'') ? sep : ''; }
     );
     // Neutralize dangerous URL schemes (javascript:, vbscript:, data:text/html, ...) in the
-    // href of raw-HTML `<a>`/`<area>` tags — Showdown's own scheme allowlist only covers the
-    // links/images it generates, not raw HTML the author embedded. Only real tags are matched
-    // (code blocks have their `<` entity-escaped, so `&lt;a ...` is skipped), and Showdown's
-    // generated anchors are already scheme-safe so re-checking them is a harmless no-op.
-    // The tag body is `(?:"[^"]*"|'[^']*'|[^>])*` (quote-aware) rather than `[^>]*` so a `>`
-    // inside a quoted attribute value (e.g. `href="data:text/html,<b>"`) does not truncate the
-    // tag early and let a dangerous href slip past the scheme check. Browsers keep `>` inside a
-    // quoted attribute, so we must too.
-    text = text.replace(/<(?:a|area)\b(?:"[^"]*"|'[^']*'|[^>])*>/gi, function (tag) {
+    // URL-bearing attributes of raw-HTML tags — Showdown's own scheme allowlist only covers the
+    // links/images it generates, not raw HTML the author embedded. This runs over EVERY surviving
+    // tag (not just `<a>`/`<area>`) so it also catches e.g. `<input formaction="javascript:...">`
+    // (`<input>` is intentionally not escaped, to keep tasklist checkboxes). Only real tags are
+    // matched (code blocks have their `<` entity-escaped, so `&lt;a ...` is skipped), and Showdown's
+    // generated tags carry only safe/relative URLs so re-checking them is a harmless no-op.
+    //   - The tag body is `(?:"[^"]*"|'[^']*'|[^>])*` (quote-aware) rather than `[^>]*` so a `>`
+    //     inside a quoted attribute value does not truncate the tag early.
+    //   - The attribute separator is `["'\s/]` (not just `\s`) because browsers accept `/` and
+    //     quote-adjacent attributes (`<a/href=…>`, `<a id="x"href=…>`); the separator is preserved.
+    text = text.replace(/<[a-zA-Z][a-zA-Z0-9:-]*\b(?:"[^"]*"|'[^']*'|[^>])*>/g, function (tag) {
       return tag.replace(
-        /(\s(?:href|xlink:href)\s*=\s*)("[^"]*"|'[^']*'|[^\s"'>]+)/gi,
+        /(["'\s/](?:href|xlink:href|formaction|action)\s*=\s*)("[^"]*"|'[^']*'|[^\s"'>]+)/gi,
         function (whole, pre, val) {
           let unquoted = val.replace(/^(["'])([\s\S]*)\1$/, '$2');
           return showdown.helper.isSafeUrl(unquoted) ? whole : pre + '""';
@@ -10817,7 +10819,12 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
     // skip these passes — this neutralizes pathological inputs like '[a](' + 'a('.repeat(n),
     // whose destination scan would otherwise backtrack quadratically looking for a ')'.
     // 2.1. Look for empty cases: []() and [empty]() and []("title")
-      let inlineEmptyRegex = /\[(.*?)]\(<? ?>? ?(["'](.*)["'])?\)/g;
+      // The link text and title captures exclude their own delimiters (`[^\]]*?` / `[^"']*`)
+      // rather than the unbounded `.*?` / `.*`. Run as the first inline pass over raw text, the
+      // old form re-scanned O(n) chars from every `[` on balanced nested input like
+      // `'[x]('.repeat(n) + 'u' + ')'.repeat(n)`, giving O(n^2). This mirrors the bounding already
+      // applied to the sibling inline/image regexes (the image parser likewise disallows `]` in alt).
+      let inlineEmptyRegex = /\[([^\]]*?)]\(<? ?>? ?(["']([^"']*)["'])?\)/g;
       text = text.replace(inlineEmptyRegex, function (wholeMatch, text, m1, title) {
         return writeAnchorTag ('inline', inlineEmptyRegex, wholeMatch, text, null, null, title, true);
       });

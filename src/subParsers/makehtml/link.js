@@ -56,7 +56,12 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
     // skip these passes — this neutralizes pathological inputs like '[a](' + 'a('.repeat(n),
     // whose destination scan would otherwise backtrack quadratically looking for a ')'.
     // 2.1. Look for empty cases: []() and [empty]() and []("title")
-      let inlineEmptyRegex = /\[(.*?)]\(<? ?>? ?(["'](.*)["'])?\)/g;
+      // The link text and title captures exclude their own delimiters (`[^\]]*?` / `[^"']*`)
+      // rather than the unbounded `.*?` / `.*`. Run as the first inline pass over raw text, the
+      // old form re-scanned O(n) chars from every `[` on balanced nested input like
+      // `'[x]('.repeat(n) + 'u' + ')'.repeat(n)`, giving O(n^2). This mirrors the bounding already
+      // applied to the sibling inline/image regexes (the image parser likewise disallows `]` in alt).
+      let inlineEmptyRegex = /\[([^\]]*?)]\(<? ?>? ?(["']([^"']*)["'])?\)/g;
       text = text.replace(inlineEmptyRegex, function (wholeMatch, text, m1, title) {
         return writeAnchorTag ('inline', inlineEmptyRegex, wholeMatch, text, null, null, title, true);
       });
