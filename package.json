@@ -80,7 +80,7 @@
     "@stylistic/eslint-plugin": "^5.10.0",
     "@vitest/browser": "^4.1.9",
     "@vitest/browser-playwright": "^4.1.9",
-    "browserstack-node-sdk": "^1.59.0",
+    "browserstack-node-sdk": "^1.60.1",
     "commonmark-spec": "^0.31.2",
     "conventional-changelog-cli": "^5.0.0",
     "diffable-html": "^5.0.0",
@@ -98,6 +98,8 @@
     "happy-dom": "^20.10.6"
   },
   "overrides": {
-    "minimist": "^1.2.6"
+    "minimist": "^1.2.6",
+    "tmp": "^0.2.7",
+    "uuid": "^11.1.1"
   }
 }
