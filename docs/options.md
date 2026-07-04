@@ -473,6 +473,7 @@ Controls the `id` attribute generated on headings. Accepts either `false` (no ID
 
 * type: `false | object`
 * default value: `{}`
+* introduced in: `3.0.0`
 
 === "input"
     

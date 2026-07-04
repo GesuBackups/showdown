@@ -40,6 +40,8 @@ Legend: ✅ = `on` · ❌ = `off` · _(blank)_ = `off` (default).
 !!! note
     `ghCodeBlocks` defaults to `on`, so `vanilla`, `gfm` and `commonmark` all keep GFM fenced code blocks enabled; only `original` turns them off. `strikethrough` likewise defaults to `on` (enabled in `vanilla` and `gfm`); the spec-oriented `original` and `commonmark` flavors turn it off.
 
+    The `headerIds` row is the odd one out: `headerIds` is not a boolean but an object (default `{}`, i.e. ids **enabled**). A ✅ there means the flavor sets `headerIds: false` to **disable** ids; a blank cell means it keeps the default (ids enabled).
+
 ## Set flavor
 
 === "Globally"
