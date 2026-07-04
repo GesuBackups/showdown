@@ -43,7 +43,7 @@ CommonMark spec:
 | Area            | What it does                                                                                                                                                               |
 |-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Emphasis        | Parse emphasis / strong emphasis with the CommonMark delimiter-run (flanking) algorithm.                                                                                   |
-| Autolinks       | Recognize CommonMark autolinks `<scheme:uri>` and `<email>` without entity-encoding.                                                                                       |
+| Autolinks       | Recognize CommonMark autolinks `<scheme:uri>` and `<email>` without entity-encoding, plus `<www.…>` (a Showdown extension — see [Known differences](#known-differences)).   |
 | Links & images  | Parse links, images and link reference definitions per the spec (balanced-paren and `<...>` destinations, backslash escapes, in-URL entity decoding, alt-text flattening). |
 | Inline raw HTML | Recognize inline raw HTML with the strict CommonMark grammar; malformed tags are escaped instead of passed through.                                                        |
 | HTML blocks     | Recognize HTML blocks using the 7 CommonMark block types instead of Showdown's balanced-tag matching.                                                                      |
@@ -139,6 +139,34 @@ Showdown emits both the bare language name and the `language-`-prefixed class.
     ```html
     <pre><code class="language-ruby">foo
     </code></pre>
+    ```
+
+### Angle-bracket `www.` autolinks
+
+CommonMark only autolinks `<…>` content that is a full URI with a scheme (e.g.
+`<https://example.com>`) or an email address. `<www.example.com>` has no scheme, so the spec leaves
+it as literal text. Showdown instead treats the explicit angle brackets as unambiguous user intent
+and links it, applying the GFM `www.` autolink rule (`http://` prefix, `https://` with
+[`httpsAutoLinks`](options.md#httpsautolinks), plus domain validation). This also matches Showdown's
+default (legacy) flavor, which has always linked `<www.…>`. Note this is a deliberate divergence from
+**cmark-gfm** too, which likewise leaves `<www.…>` as text.
+
+=== "input"
+
+    ```md
+    <www.example.com>
+    ```
+
+=== "Showdown output"
+
+    ```html
+    <p><a href="http://www.example.com">www.example.com</a></p>
+    ```
+
+=== "CommonMark output"
+
+    ```html
+    <p>&lt;www.example.com&gt;</p>
     ```
 
 ### Other intentional deviations

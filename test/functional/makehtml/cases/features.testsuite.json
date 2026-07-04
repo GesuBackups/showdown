@@ -1458,5 +1458,69 @@
     "section": "main",
     "number": 10104,
     "options": {}
+  },
+  {
+    "name": "cmSpec-angle-www-autolink",
+    "markdown": "<www.google.com>\n",
+    "html": "<p><a href=\"http://www.google.com\">www.google.com</a></p>",
+    "section": "cmSpec-www-autolink",
+    "number": 10200,
+    "options": { "cmSpec": true, "simplifiedAutoLink": true }
+  },
+  {
+    "name": "cmSpec-angle-www-autolink-in-emphasis",
+    "markdown": "*<www.foo.com>*\n",
+    "html": "<p><em><a href=\"http://www.foo.com\">www.foo.com</a></em></p>",
+    "section": "cmSpec-www-autolink",
+    "number": 10201,
+    "options": { "cmSpec": true, "simplifiedAutoLink": true }
+  },
+  {
+    "name": "cmSpec-angle-www-malformed-not-double-processed",
+    "markdown": "<www.google.com/a b>\n",
+    "html": "<p>&lt;www.google.com/a b&gt;</p>",
+    "section": "cmSpec-www-autolink",
+    "number": 10202,
+    "options": { "cmSpec": true, "simplifiedAutoLink": true }
+  },
+  {
+    "name": "cmSpec-angle-www-autolink-without-simplifiedAutoLink",
+    "markdown": "<www.google.com>\n",
+    "html": "<p><a href=\"http://www.google.com\">www.google.com</a></p>",
+    "section": "cmSpec-www-autolink",
+    "number": 10203,
+    "options": { "cmSpec": true }
+  },
+  {
+    "name": "naked-www-no-options-not-linked",
+    "markdown": "www.google.com\n",
+    "html": "<p>www.google.com</p>",
+    "section": "naked-www-autolink",
+    "number": 10204,
+    "options": {}
+  },
+  {
+    "name": "naked-www-cmSpec-not-linked",
+    "markdown": "www.google.com\n",
+    "html": "<p>www.google.com</p>",
+    "section": "naked-www-autolink",
+    "number": 10205,
+    "options": { "cmSpec": true }
+  },
+  {
+    "name": "naked-www-simplifiedAutoLink-linked",
+    "markdown": "www.google.com\n",
+    "html": "<p><a href=\"http://www.google.com\">www.google.com</a></p>",
+    "section": "naked-www-autolink",
+    "number": 10206,
+    "options": { "simplifiedAutoLink": true }
+  },
+  {
+    "name": "naked-www-cmSpec-and-simplifiedAutoLink-linked",
+    "markdown": "www.google.com\n",
+    "html": "<p><a href=\"http://www.google.com\">www.google.com</a></p>",
+    "section": "naked-www-autolink",
+    "number": 10207,
+    "options": { "cmSpec": true, "simplifiedAutoLink": true }
   }
 ]

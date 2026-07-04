@@ -1,4 +1,4 @@
-/*! showdown v 3.0.0-rc2 - 04-07-2026 */
+/*! showdown v 3.0.0-rc2 - 05-07-2026 */
 const showdown = (function () {
 // noinspection HtmlRequiredLangAttribute
 
@@ -4227,6 +4227,10 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
   const reEntity = /&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[a-zA-Z][a-zA-Z0-9]*);/y;
   // eslint-disable-next-line no-control-regex -- CommonMark autolinks exclude control chars (\x00-\x20) per spec
   const reAutoUri = /<[A-Za-z][A-Za-z0-9+.-]{1,31}:[^<>\x00-\x20]*>/y;
+  // Showdown extension: <www...> angle autolinks (cmark-gfm does not autolink these, but the
+  // explicit <> is unambiguous user intent). Single variable class → linear / ReDoS-safe.
+  // eslint-disable-next-line no-control-regex -- same control-char exclusion as reAutoUri
+  const reAutoWww = /<www\.[^<>\x00-\x20]+>/y;
   const reAutoEmail = /<[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*>/y;
   const reRawHtml = new RegExp('(?:' + showdown.helper.regexes.cmHTMLTagSource + ')', 'y');
 
@@ -4273,8 +4277,15 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
       // An explicit scheme (http/https/ftp) does not require the host to contain a dot;
       // a `www.` shortcut does (and is domain-validated below).
       let nakedUrlRegex = /([_*~]*?)((?:(?:https?|ftp):\/\/[^\s<>"'`´]+|www\.[^\s<>"'`´.-][^\s<>"'`´]*?\.[a-z\d.]+[^\s<>"']*))\1/gi;
-      text = text.replace(nakedUrlRegex, function (wholeMatch, leadingMDChars, url) {
+      text = text.replace(nakedUrlRegex, function (wholeMatch, leadingMDChars, url, offset, fullText) {
         let isWww = /^www\./i.test(url);
+        // GFM boundary rule: a "www." autolink (unlike a scheme URL) is not recognized when
+        // preceded by "<". By this pass "<" has been escaped to "&lt;", so a www match sitting
+        // right after it (e.g. the interior of a malformed <www.x.com foo> the angle recognizer
+        // could not consume) is left untouched — matching cmark-gfm, which links <https://x bim>
+        // but not <www.x bim>.
+        let urlStart = offset + leadingMDChars.length;
+        if (isWww && fullText.substring(urlStart - 4, urlStart) === '&lt;') { return wholeMatch; }
         // we now will start traversing the url from the front to back, looking for punctuation chars [_*~,;:.!?\)\]]
         const len = url.length;
         let suffix = '';
@@ -4956,6 +4967,24 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
         txt = escapeAngles(raw);
       }
       return {html: showdown.helper._hashHTMLSpan('<a href="' + href + '">' + txt + '</a>', globals), end: i + email[0].length};
+    }
+    // Showdown extension: <www...> angle autolink. Applies the GFM www rule (http(s)://
+    // prepend + domain validation) to the explicitly delimited form. Active whenever
+    // cmSpec is on (the early `!options.cmSpec` guard above already scopes this).
+    reAutoWww.lastIndex = i;
+    let www = reAutoWww.exec(str);
+    if (www) {
+      let raw = www[0].slice(1, -1),
+          host = raw.split(/[/?#]/)[0];
+      // GFM www rule: the domain after "www." must contain a period, plus the shared host
+      // validation (>= 2 labels, last two labels have no "_").
+      if (host.slice(4).indexOf('.') !== -1 && validAutolinkHost(raw, true)) {
+        let full = (options.httpsAutoLinks ? 'https://' : 'http://') + raw,
+            href = showdown.helper.cmEncodeURI(full).replace(/&/g, '&amp;');
+        // safeMode: neutralize dangerous schemes but keep the visible text
+        if (options.safeMode && !showdown.helper.isSafeUrl(full)) { href = ''; }
+        return {html: showdown.helper._hashHTMLSpan('<a href="' + href + '">' + escapeAngles(raw) + '</a>', globals), end: i + www[0].length};
+      }
     }
     return null;
   }
