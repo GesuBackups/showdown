@@ -1,4 +1,4 @@
-/*! showdown v 3.0.0-rc2 - 03-07-2026 */
+/*! showdown v 3.0.0-rc2 - 04-07-2026 */
 const showdown = (function () {
 // noinspection HtmlRequiredLangAttribute
 
@@ -16,20 +16,10 @@ function getDefaultOpts (simple) {
       describe: 'Omit the default extra whiteline added to code blocks',
       type: 'boolean'
     },
-    noHeaderId: {
-      defaultValue: false,
-      describe: 'Turn on/off generated header id',
-      type: 'boolean'
-    },
-    prefixHeaderId: {
-      defaultValue: false,
-      describe: 'Add a prefix to the generated header ids. Passing a string will prefix that string to the header id. Setting to true will add a generic \'section-\' prefix',
-      type: 'string'
-    },
-    rawHeaderId: {
-      defaultValue: false,
-      describe: 'Remove only spaces, \', ", > and < from generated header ids (including any prefix), replacing them with dashes (-), instead of the default github-compatible sanitization. WARNING: This might result in malformed ids',
-      type: 'boolean'
+    headerIds: {
+      defaultValue: {},
+      describe: 'Controls the id attribute generated on headings. Accepts either `false` (no ids) or an object `{prefix, raw}`. `{}` (the default) generates github-compatible ids with no prefix. `prefix` (string) is prepended to every id. `raw: true` uses minimal sanitization (only spaces, \', ", > and < become dashes, including in any prefix) instead of the default github-compatible sanitization. WARNING: raw ids might be malformed',
+      type: 'object'
     },
     headerLevelStart: {
       defaultValue: 1,
@@ -210,7 +200,7 @@ let showdown = {},
     setFlavor = 'vanilla',
     flavor = {
       commonmark: {
-        noHeaderId:                           true,
+        headerIds:                            false,
         requireSpaceBeforeHeadingText:        true,
         decodeEntities:                       true,
         cmSpec:                               true,
@@ -218,7 +208,7 @@ let showdown = {},
         encodeEmails:                         false
       },
       gfm: {
-        noHeaderId:                           true,
+        headerIds:                            false,
         requireSpaceBeforeHeadingText:        true,
         decodeEntities:                       true,
         cmSpec:                               true,
@@ -233,13 +223,14 @@ let showdown = {},
         emoji:                                true,
         omitExtraWLInCodeBlocks:              true,
 
+        disallowRawHTML:                      true, // GFM tagfilter extension (spec §6.11)
+
         //literalMidWordUnderscores:            true,
         //disableForced4SpacesIndentedSublists: true,
         //backslashEscapesHTMLTags:             true,
-        //disallowRawHTML:                       true, // GFM tagfilter (opt-in, see options)
       },
       original: {
-        noHeaderId:                           true,
+        headerIds:                            false,
         ghCodeBlocks:                         false,
         strikethrough:                        false
       },
@@ -1745,11 +1736,11 @@ showdown.helper.validateOptions = function (options) {
       options[opt] = defaultOptions[opt].defaultValue;
     }
 
-    // TODO: dirty code. think about this we refactoring options
     switch (opt) {
-      case 'prefixHeaderId':
-        if (typeof options[opt] !== 'boolean' && !showdown.helper.isString(options[opt])) {
-          throw new TypeError('Option prefixHeaderId must be of type boolean or string but ' + typeof options[opt] + ' given');
+      case 'headerIds':
+        // accepts `false` (or any boolean) or a plain object {prefix, raw}
+        if (typeof options[opt] !== 'boolean' && !showdown.helper.isObject(options[opt])) {
+          throw new TypeError('Option headerIds must be `false` or an object but ' + typeof options[opt] + ' given');
         }
         break;
       default:
@@ -7844,24 +7835,36 @@ showdown.subParser('makehtml.hashPreCodeTags', function (text, options, globals)
 
   });
 
+  // Normalize the `headerIds` option into {enabled, prefix, raw}. Accepts `false`
+  // (no ids), an object `{prefix, raw}`, or `true`/undefined (github ids, no prefix).
+  function resolveHeaderIds (opt) {
+    if (opt === false) {
+      return { enabled: false, prefix: '', raw: false };
+    }
+    if (showdown.helper.isObject(opt)) {
+      return {
+        enabled: true,
+        prefix: showdown.helper.isString(opt.prefix) ? opt.prefix : '',
+        raw: !!opt.raw
+      };
+    }
+    // true / null / undefined / anything else: default github ids, no prefix
+    return { enabled: true, prefix: '', raw: false };
+  }
+
   showdown.subParser('makehtml.heading.id', function (m, options, globals) {
-    let title,
-        prefix;
+    let title;
 
-    title = m;
-
-    // Prefix id to prevent causing inadvertent pre-existing style matches.
-    if (showdown.helper.isString(options.prefixHeaderId)) {
-      prefix = options.prefixHeaderId;
-    } else if (options.prefixHeaderId === true) {
-      prefix = 'section-';
-    } else {
-      prefix = '';
+    let cfg = resolveHeaderIds(options.headerIds);
+    // when ids are disabled the caller omits the attribute entirely
+    if (!cfg.enabled) {
+      return null;
     }
 
-    title = prefix + title;
+    // Prefix id to prevent causing inadvertent pre-existing style matches.
+    title = cfg.prefix + m;
 
-    if (options.rawHeaderId) {
+    if (cfg.raw) {
       // minimal sanitization: only spaces, ', ", > and < become dashes (the prefix is
       // included, so it gets the same treatment). WARNING: may produce malformed ids.
       title = title
@@ -8089,7 +8092,8 @@ showdown.subParser('makehtml.hashPreCodeTags', function (text, options, globals)
       }
 
       // after this, we're pretty sure it's a heading so let's proceed
-      let id = (options.noHeaderId) ? null : showdown.subParser('makehtml.heading.id')(headingText, options, globals);
+      // (the id subparser returns null when the headerIds option disables ids)
+      let id = showdown.subParser('makehtml.heading.id')(headingText, options, globals);
       return prepend + parseHeader('setext', pattern, wholeMatch, headingText, headingLevel, id, options, globals);
     }
 
@@ -8130,7 +8134,8 @@ showdown.subParser('makehtml.hashPreCodeTags', function (text, options, globals)
     text = text.replace(atxRegex, function (wholeMatch, m1, m2) {
       let headingText = stripClosing ? stripAtxClosingSequence(m2) : m2,
           headingLevel = options.headerLevelStart - 1 + m1.length,
-          id = (options.noHeaderId) ? null : showdown.subParser('makehtml.heading.id')(headingText, options, globals);
+          // the id subparser returns null when the headerIds option disables ids
+          id = showdown.subParser('makehtml.heading.id')(headingText, options, globals);
       return parseHeader('atx', atxRegex, wholeMatch, headingText, headingLevel, id, options, globals);
     });
 

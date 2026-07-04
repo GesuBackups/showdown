@@ -9,7 +9,7 @@ let showdown = {},
     setFlavor = 'vanilla',
     flavor = {
       commonmark: {
-        noHeaderId:                           true,
+        headerIds:                            false,
         requireSpaceBeforeHeadingText:        true,
         decodeEntities:                       true,
         cmSpec:                               true,
@@ -17,7 +17,7 @@ let showdown = {},
         encodeEmails:                         false
       },
       gfm: {
-        noHeaderId:                           true,
+        headerIds:                            false,
         requireSpaceBeforeHeadingText:        true,
         decodeEntities:                       true,
         cmSpec:                               true,
@@ -32,13 +32,14 @@ let showdown = {},
         emoji:                                true,
         omitExtraWLInCodeBlocks:              true,
 
+        disallowRawHTML:                      true, // GFM tagfilter extension (spec §6.11)
+
         //literalMidWordUnderscores:            true,
         //disableForced4SpacesIndentedSublists: true,
         //backslashEscapesHTMLTags:             true,
-        //disallowRawHTML:                       true, // GFM tagfilter (opt-in, see options)
       },
       original: {
-        noHeaderId:                           true,
+        headerIds:                            false,
         ghCodeBlocks:                         false,
         strikethrough:                        false
       },

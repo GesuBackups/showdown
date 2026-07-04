@@ -32,8 +32,8 @@ HTML blocks, links and inline parsing all follow the spec's rules.
 CommonMark compliance is controlled by a single option, [`cmSpec`](options.md#cmspec)
 (`boolean`, default `false`, introduced in `3.0.0`), plus the companion
 [`decodeEntities`](options.md#decodeentities) option. The `commonmark` flavor turns both on (along
-with `noHeaderId` and `requireSpaceBeforeHeadingText`). Prefer the flavor unless you have a specific
-reason to set the options yourself.
+with disabling header ids via `headerIds: false` and enabling `requireSpaceBeforeHeadingText`). Prefer
+the flavor unless you have a specific reason to set the options yourself.
 
 ## What `cmSpec` covers
 
@@ -69,7 +69,7 @@ keep working on top of it, so you can combine CommonMark parsing with Showdown/G
 | Lists           | `tasklists`, `moreStyling`                                                                                                          |
 | Tables          | `tables`, `tablesHeaderId`                                                                                                          |
 | Code blocks     | `ghCodeBlocks`, `omitExtraWLInCodeBlocks`                                                                                           |
-| Headings        | `noHeaderId`, `prefixHeaderId`, `rawHeaderId`, `headerLevelStart`, `requireSpaceBeforeHeadingText`                                  |
+| Headings        | `headerIds`, `headerLevelStart`, `requireSpaceBeforeHeadingText`                                                                    |
 | Document / misc | `completeHTMLDocument`, `metadata`, `simpleLineBreaks`, `smartIndentationFix`                                                       |
 
 !!! note ""

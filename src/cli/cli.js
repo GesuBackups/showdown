@@ -227,7 +227,12 @@ function showShowdownOptions () {
   // show showdown options
   for (let sopt in showdownOptions) {
     if (Object.prototype.hasOwnProperty.call(showdownOptions, sopt)) {
-      console.log('  ' + sopt + ':', '[default=' + showdownOptions[sopt].defaultValue + ']', showdownOptions[sopt].describe);
+      let def = showdownOptions[sopt].defaultValue;
+      // stringify object defaults (e.g. headerIds) so they don't print as [object Object]
+      if (def !== null && typeof def === 'object') {
+        def = JSON.stringify(def);
+      }
+      console.log('  ' + sopt + ':', '[default=' + def + ']', showdownOptions[sopt].describe);
     }
   }
   console.log('\n\nBoolean options can be enabled with `-c <option>` or `-c <option>=true`, and disabled with `-c <option>=false`.');
@@ -274,16 +279,26 @@ function showFlavors () {
  */
 function coerceOptionValue (key, rawVal, type, messenger) {
   'use strict';
+
+  // headerIds is special: it accepts `false` or an object {prefix, raw}. A bare
+  // flag or `=true` enables ids with defaults (`{}`); `=false` disables them; any
+  // other value is parsed as a JSON object, e.g. -c 'headerIds={"prefix":"section-"}'.
+  if (key === 'headerIds') {
+    if (rawVal === true || /^true$/i.test(rawVal)) { return {}; }
+    if (/^false$/i.test(rawVal)) { return false; }
+    try {
+      let parsed = JSON.parse(rawVal);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch { /* not valid JSON — fall through to the warning below */ }
+    messenger.printWarning('WARNING: invalid value \'' + rawVal + '\' for option \'headerIds\' (expected false or a JSON object like {"prefix":"section-"}), ignored');
+    return undefined;
+  }
+
   // a bare flag (no '=value') always means "enable this option"
   if (rawVal === true) {
     return true;
-  }
-
-  // prefixHeaderId is special: it accepts a boolean or a string prefix
-  if (key === 'prefixHeaderId') {
-    if (/^true$/i.test(rawVal)) { return true; }
-    if (/^false$/i.test(rawVal)) { return false; }
-    return rawVal;
   }
 
   if (type === 'boolean') {

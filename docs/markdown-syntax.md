@@ -195,10 +195,9 @@ Showdown generates a bookmark id on every heading by default:
 
 The generated ids are **github-compatible** by default. This can be modified with options:
 
-* [**`noHeaderId`**][noHeaderId] disables automatic id generation;
-* [**`rawHeaderId`**][rawHeaderId] uses minimal sanitization (only spaces, `'`, `"`, `>` and `<`
-  become dashes);
-* [**`prefixHeaderId`**][prefixHeaderId] adds a prefix to the generated ids;
+* [**`headerIds`**][headerIds] controls id generation: set it to `false` to disable ids, `{prefix: '…'}`
+  to add a prefix, or `{raw: true}` for minimal sanitization (only spaces, `'`, `"`, `>` and `<`
+  become dashes); `prefix` and `raw` can be combined;
 * [**`headerLevelStart`**][headerLevelStart] sets the starting level (e.g. `3` makes `# header` an
   `<h3>`).
 
@@ -315,9 +314,7 @@ In most cases Showdown's output is identical to Perl Markdown v1.0.2b7. The know
 [ghMentionsLink]: options.md#ghmentionslink
 [footnotes]: options.md#footnotes
 [parseImgDimensions]: options.md#parseimgdimensions
-[noHeaderId]: options.md#noheaderid
-[rawHeaderId]: options.md#rawheaderid
-[prefixHeaderId]: options.md#prefixheaderid
+[headerIds]: options.md#headerids
 [headerLevelStart]: options.md#headerlevelstart
 [requireSpaceBeforeHeadingText]: options.md#requirespacebeforeheadingtext
 [simpleLineBreaks]: options.md#simplelinebreaks

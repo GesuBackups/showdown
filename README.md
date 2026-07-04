@@ -210,18 +210,16 @@ var defaultOptions = showdown.getDefaultOptions();
     <code><pre>var foo = 'bar';</pre></code>
     ```
 
- * **noHeaderId**: (boolean) [default false] Disable the automatic generation of header ids.
-   Setting to true overrides **prefixHeaderId** and **rawHeaderId**
+ * **headerIds**: (false | object) [default `{}`] Controls the `id` attribute generated on headings. Accepts either
+   `false` (no ids at all) or an object `{prefix, raw}`:
+   * `{}` (the default) — github-compatible ids (spaces become dashes and most non-alphanumeric chars are stripped), no prefix.
+   * `prefix` (string) — prepended to every generated id, e.g. `{prefix: 'section-'}`.
+   * `raw: true` — minimal sanitization: replace only spaces, `'`, `"`, `>` and `<` with dashes (-), including in any prefix,
+     instead of the default github-compatible style. WARNING: This might result in malformed ids.
+   * The `prefix` and `raw` settings can be combined, e.g. `{prefix: '/p/', raw: true}`.
 
- * **prefixHeaderId**: (string/boolean) [default false] Add a prefix to the generated header ids.
-   Passing a string will prefix that string to the header id. Setting to `true` will add a generic 'section' prefix.
-
- * **rawHeaderId**: (boolean) [default false] Use minimal sanitization for generated header ids instead of the
-   default github-compatible style: replace only spaces, `'`, `"`, `>` and `<` with dashes (-), including in any prefix.
-   WARNING: This might result in malformed ids **(since v1.7.3)**
-
- > **NOTE**: Header ids are **github-compatible by default** (spaces become dashes and most non-alphanumeric chars are
- > stripped). Use **rawHeaderId** for minimal sanitization, or **noHeaderId** to disable ids entirely.
+ > **NOTE**: this option replaces the removed `noHeaderId`, `prefixHeaderId` and `rawHeaderId` options.
+ > `noHeaderId: true` → `headerIds: false`; `prefixHeaderId: 'foo'` → `headerIds: {prefix: 'foo'}`; `rawHeaderId: true` → `headerIds: {raw: true}`.
  
  * **headerLevelStart**: (integer) [default 1] Set the header starting level. For instance, setting this to 3 means that
 

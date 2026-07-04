@@ -99,24 +99,36 @@
 
   });
 
+  // Normalize the `headerIds` option into {enabled, prefix, raw}. Accepts `false`
+  // (no ids), an object `{prefix, raw}`, or `true`/undefined (github ids, no prefix).
+  function resolveHeaderIds (opt) {
+    if (opt === false) {
+      return { enabled: false, prefix: '', raw: false };
+    }
+    if (showdown.helper.isObject(opt)) {
+      return {
+        enabled: true,
+        prefix: showdown.helper.isString(opt.prefix) ? opt.prefix : '',
+        raw: !!opt.raw
+      };
+    }
+    // true / null / undefined / anything else: default github ids, no prefix
+    return { enabled: true, prefix: '', raw: false };
+  }
+
   showdown.subParser('makehtml.heading.id', function (m, options, globals) {
-    let title,
-        prefix;
+    let title;
 
-    title = m;
-
-    // Prefix id to prevent causing inadvertent pre-existing style matches.
-    if (showdown.helper.isString(options.prefixHeaderId)) {
-      prefix = options.prefixHeaderId;
-    } else if (options.prefixHeaderId === true) {
-      prefix = 'section-';
-    } else {
-      prefix = '';
+    let cfg = resolveHeaderIds(options.headerIds);
+    // when ids are disabled the caller omits the attribute entirely
+    if (!cfg.enabled) {
+      return null;
     }
 
-    title = prefix + title;
+    // Prefix id to prevent causing inadvertent pre-existing style matches.
+    title = cfg.prefix + m;
 
-    if (options.rawHeaderId) {
+    if (cfg.raw) {
       // minimal sanitization: only spaces, ', ", > and < become dashes (the prefix is
       // included, so it gets the same treatment). WARNING: may produce malformed ids.
       title = title
@@ -344,7 +356,8 @@
       }
 
       // after this, we're pretty sure it's a heading so let's proceed
-      let id = (options.noHeaderId) ? null : showdown.subParser('makehtml.heading.id')(headingText, options, globals);
+      // (the id subparser returns null when the headerIds option disables ids)
+      let id = showdown.subParser('makehtml.heading.id')(headingText, options, globals);
       return prepend + parseHeader('setext', pattern, wholeMatch, headingText, headingLevel, id, options, globals);
     }
 
@@ -385,7 +398,8 @@
     text = text.replace(atxRegex, function (wholeMatch, m1, m2) {
       let headingText = stripClosing ? stripAtxClosingSequence(m2) : m2,
           headingLevel = options.headerLevelStart - 1 + m1.length,
-          id = (options.noHeaderId) ? null : showdown.subParser('makehtml.heading.id')(headingText, options, globals);
+          // the id subparser returns null when the headerIds option disables ids
+          id = showdown.subParser('makehtml.heading.id')(headingText, options, globals);
       return parseHeader('atx', atxRegex, wholeMatch, headingText, headingLevel, id, options, globals);
     });
 

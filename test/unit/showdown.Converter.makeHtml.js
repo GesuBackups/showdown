@@ -38,22 +38,48 @@ describe('showdown.Converter', function () {
     });
   });
 
-  describe('makeHtml() with option prefixHeaderId', function () {
+  describe('makeHtml() with option headerIds', function () {
     let converter = new showdown.Converter(),
         text = 'foo header';
 
-    it('should prefix header id with "section"', function () {
-      converter.setOption('prefixHeaderId', true);
+    it('should generate github-compatible ids by default', function () {
       let html = converter.makeHtml('# ' + text),
-          expectedHtml = '<h1 id="section-foo-header">' + text + '</h1>';
+          expectedHtml = '<h1 id="foo-header">' + text + '</h1>';
       expect(html).toBe(expectedHtml);
     });
 
-    it('should prefix header id with custom string', function () {
-      converter.setOption('prefixHeaderId', 'blabla');
+    it('should prefix header id with a custom string', function () {
+      converter.setOption('headerIds', { prefix: 'blabla' });
       let html = converter.makeHtml('# ' + text),
           expectedHtml = '<h1 id="blablafoo-header">' + text + '</h1>';
       expect(html).toBe(expectedHtml);
+    });
+
+    it('should omit the id when set to false', function () {
+      converter.setOption('headerIds', false);
+      let html = converter.makeHtml('# ' + text),
+          expectedHtml = '<h1>' + text + '</h1>';
+      expect(html).toBe(expectedHtml);
+    });
+
+    it('should use minimal sanitization when raw is true', function () {
+      converter.setOption('headerIds', { raw: true });
+      let html = converter.makeHtml('# foo/bar header'),
+          expectedHtml = '<h1 id="foo/bar-header">foo/bar header</h1>';
+      expect(html).toBe(expectedHtml);
+    });
+
+    it('should combine a prefix with raw sanitization', function () {
+      converter.setOption('headerIds', { prefix: '/p/', raw: true });
+      let html = converter.makeHtml('# foo/bar header'),
+          expectedHtml = '<h1 id="/p/foo/bar-header">foo/bar header</h1>';
+      expect(html).toBe(expectedHtml);
+    });
+
+    it('should throw a TypeError for an invalid headerIds value', function () {
+      expect(function () {
+        new showdown.Converter({ headerIds: 3 });
+      }).toThrow();
     });
   });
 

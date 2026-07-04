@@ -1154,11 +1154,11 @@ showdown.helper.validateOptions = function (options) {
       options[opt] = defaultOptions[opt].defaultValue;
     }
 
-    // TODO: dirty code. think about this we refactoring options
     switch (opt) {
-      case 'prefixHeaderId':
-        if (typeof options[opt] !== 'boolean' && !showdown.helper.isString(options[opt])) {
-          throw new TypeError('Option prefixHeaderId must be of type boolean or string but ' + typeof options[opt] + ' given');
+      case 'headerIds':
+        // accepts `false` (or any boolean) or a plain object {prefix, raw}
+        if (typeof options[opt] !== 'boolean' && !showdown.helper.isObject(options[opt])) {
+          throw new TypeError('Option headerIds must be `false` or an object but ' + typeof options[opt] + ' given');
         }
         break;
       default:

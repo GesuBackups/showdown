@@ -34,7 +34,7 @@ extras that `vanilla` enables by default, keeping the output faithful to the ori
 |---|:---:|:---:|
 | Fenced code blocks ([`ghCodeBlocks`](options.md#ghcodeblocks)) | off | on |
 | Strikethrough ([`strikethrough`](options.md#strikethrough)) | off | on |
-| Generated header ids ([`noHeaderId`](options.md#noheaderid)) | off (no ids) | on (ids generated) |
+| Generated header ids ([`headerIds`](options.md#headerids)) | off (no ids) | on (ids generated) |
 
 Everything else is the shared [common syntax](syntax-overview.md#the-common-syntax): paragraphs,
 headings, blockquotes, emphasis, indented code blocks, lists, links, images and escaping. The opt-in

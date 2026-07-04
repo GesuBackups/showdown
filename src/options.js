@@ -14,20 +14,10 @@ function getDefaultOpts (simple) {
       describe: 'Omit the default extra whiteline added to code blocks',
       type: 'boolean'
     },
-    noHeaderId: {
-      defaultValue: false,
-      describe: 'Turn on/off generated header id',
-      type: 'boolean'
-    },
-    prefixHeaderId: {
-      defaultValue: false,
-      describe: 'Add a prefix to the generated header ids. Passing a string will prefix that string to the header id. Setting to true will add a generic \'section-\' prefix',
-      type: 'string'
-    },
-    rawHeaderId: {
-      defaultValue: false,
-      describe: 'Remove only spaces, \', ", > and < from generated header ids (including any prefix), replacing them with dashes (-), instead of the default github-compatible sanitization. WARNING: This might result in malformed ids',
-      type: 'boolean'
+    headerIds: {
+      defaultValue: {},
+      describe: 'Controls the id attribute generated on headings. Accepts either `false` (no ids) or an object `{prefix, raw}`. `{}` (the default) generates github-compatible ids with no prefix. `prefix` (string) is prepended to every id. `raw: true` uses minimal sanitization (only spaces, \', ", > and < become dashes, including in any prefix) instead of the default github-compatible sanitization. WARNING: raw ids might be malformed',
+      type: 'object'
     },
     headerLevelStart: {
       defaultValue: 1,

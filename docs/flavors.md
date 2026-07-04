@@ -19,7 +19,7 @@ Legend: ✅ = `on` · ❌ = `off` · _(blank)_ = `off` (default).
 
 | Option                                 | `vanilla` | `original` | `gfm` | `commonmark` |
 |----------------------------------------|:---------:|:----------:|:--------:|:------------:|
-| `noHeaderId`                           |           |     ✅     |          |      ✅      |
+| `headerIds: false` (disable ids)       |           |     ✅     |          |      ✅      |
 | `requireSpaceBeforeHeadingText`        |           |            |    ✅    |      ✅      |
 | `ghCodeBlocks`                         |    ✅     |     ❌     |    ✅    |      ✅      |
 | `strikethrough`                        |    ✅     |     ❌     |    ✅    |      ❌      |
