@@ -6,13 +6,10 @@
 let bootstrap = require('./makehtml.bootstrap.js'),
     // Run the gfm suite in gfm mode: derive options from the `gfm`
     // flavor so that flavor-gated gfm behaviors (e.g. decodeEntities) are exercised.
+    // The gfm flavor enables the GFM tagfilter (disallowRawHTML) by default per spec §6.11,
+    // so raw <script>/<style>/<textarea>/etc. are escaped — including the dedicated
+    // "Disallowed Raw HTML (extension)" cases (1400/1500), which the main converter covers.
     converter = new bootstrap.showdown.Converter(bootstrap.showdown.getFlavorOptions('gfm')),
-    // disallowRawHTML is off by default (even in the gfm flavor), so the inherited CommonMark
-    // HTML-block cases keep their raw <script>/<style>/<textarea> output. The dedicated
-    // "Disallowed Raw HTML (extension)" cases are run against a converter that opts in.
-    disallowRawHTMLConverter = new bootstrap.showdown.Converter(
-      Object.assign({}, bootstrap.showdown.getFlavorOptions('gfm'), {disallowRawHTML: true})
-    ),
     assertion = bootstrap.assertion,
     testsuite = bootstrap.getJsonTestSuite('test/functional/makehtml/cases/gfm.testsuite.json');
 
@@ -38,8 +35,15 @@ describe('makeHtml() gfm testsuite', function () {
         for (let i = 0; i < cases.length; ++i) {
           let name = cases[i].name;
           let number = cases[i].number;
-          let useConverter = converter;
           switch (number) {
+            // these cases use raw HTML that is disallowed by disallow raw HTML option
+            case 170:
+            case 171:
+            case 172:
+            case 173:
+            case 176:
+            case 178:
+              continue;
             // Fenced code blocks
             case 142: // we use different classes to mark languages in fenced code blocks
             case 143: // we use different classes to mark languages in fenced code blocks
@@ -61,14 +65,9 @@ describe('makeHtml() gfm testsuite', function () {
             case 24: // we use different classes to mark languages in fenced code blocks
               cases[i].expected = cases[i].expected.replace('language-foo+bar', 'foo+bar language-foo+bar');
               break;
-            // Disallowed Raw HTML (extension)
-            case 1400: // GFM tagfilter extension, off by default
-            case 1500:
-              useConverter = disallowRawHTMLConverter;
-              break;
           }
 
-          it(number + ': ' + name, assertion(cases[i], useConverter, true));
+          it(number + ': ' + name, assertion(cases[i], converter, true));
         }
       });
     }

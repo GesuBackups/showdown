@@ -32,10 +32,11 @@ let showdown = {},
         emoji:                                true,
         omitExtraWLInCodeBlocks:              true,
 
+        disallowRawHTML:                      true, // GFM tagfilter extension (spec §6.11)
+
         //literalMidWordUnderscores:            true,
         //disableForced4SpacesIndentedSublists: true,
         //backslashEscapesHTMLTags:             true,
-        //disallowRawHTML:                       true, // GFM tagfilter (opt-in, see options)
       },
       original: {
         noHeaderId:                           true,
