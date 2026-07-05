@@ -23,6 +23,14 @@ describe('makeHtml() issues testsuite', function () {
         converter = new bootstrap.showdown.Converter(opts);
         break;
       }
+      case 1043: {
+        if (/gfm/.test(name)) {
+          converter = new bootstrap.showdown.Converter().setFlavor('github');
+        } else if (/commonmark/.test(name)) {
+          converter = new bootstrap.showdown.Converter().setFlavor('commonmark');
+        }
+        break;
+      }
       case 1061: {
         // unused link reference definitions must be stripped in every flavor;
         // the vanilla variant runs on the default converter
