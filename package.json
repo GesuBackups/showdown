@@ -55,6 +55,7 @@
     "build": "node scripts/build.mjs",
     "build:test": "node scripts/build-testbundle.mjs",
     "extract:commonmark": "node scripts/extract-commonmark.mjs",
+    "extract:spec": "node scripts/extract-spec-tests.mjs",
     "clean": "node -e \"require('fs').rmSync('.build',{recursive:true,force:true})\"",
     "lint": "eslint .",
     "changelog": "node scripts/changelog.mjs",
