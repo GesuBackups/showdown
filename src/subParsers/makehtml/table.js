@@ -338,11 +338,17 @@ showdown.subParser('makehtml.table', function (text, options, globals) {
    */
   function parseHeader (headerText, attributes) {
     headerText = headerText.trim();
-    headerText = showdown.subParser('makehtml.spanGamut')(headerText, options, globals);
 
+    // Derive the id from the raw header text *before* spanGamut runs. spanGamut hashes any
+    // inline HTML/code into ¨-prefixed placeholders; lowercasing one for the id (¨C0C -> ¨c0c)
+    // stops unhashHTMLSpans from ever restoring it, so the placeholder would otherwise leak
+    // verbatim into the id (and the derived `_col` cell class). This mirrors the pre-refactor
+    // ordering where the id came off the untouched header text.
     if (options.tablesHeaderId) {
       attributes.id = headerText.replace(/ /g, '_').toLowerCase();
     }
+
+    headerText = showdown.subParser('makehtml.spanGamut')(headerText, options, globals);
     return '<th' + showdown.helper._populateAttributes(attributes) + '>' + headerText + '</th>\n';
   }
 
