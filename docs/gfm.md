@@ -36,7 +36,9 @@ task lists, strikethrough, autolink literals, `@`-mentions, emoji, [footnotes](o
 * **Tables** — pipe tables with per-column alignment.
 * **Task lists** — `- [ ]` / `- [x]` checkboxes.
 * **Strikethrough** — `~~text~~`.
-* **Autolink literals** — bare URLs become links without `<>`.
+* **Autolink literals** — bare URLs become links without `<>`. Showdown additionally links
+  `<www.…>` inside angle brackets (a deviation from the spec and cmark-gfm — see
+  [Known differences](commonmark.md#known-differences)).
 * **`@`-mentions** and **emoji** (`:smile:`).
 * **[Footnotes](options.md#footnotes)** — `[^id]` references and definitions (also reversible via
   [`makeMarkdown`](html-to-markdown.md#feature-options-matching-makehtml)).
@@ -45,7 +47,8 @@ task lists, strikethrough, autolink literals, `@`-mentions, emoji, [footnotes](o
 
 Because the flavor uses the CommonMark base, **every
 [CommonMark known difference](commonmark.md#known-differences) also applies to `gfm`** — empty ATX
-headings, the dual fenced-code language classes, and the malformed thematic-break examples included.
+headings, the dual fenced-code language classes, angle-bracket `<www.…>` autolinks, and the malformed
+thematic-break examples included.
 The items below are the additional, intentional deviations specific to the GFM table extension.
 
 ### Table column alignment
