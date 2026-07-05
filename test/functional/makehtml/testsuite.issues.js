@@ -23,6 +23,16 @@ describe('makeHtml() issues testsuite', function () {
         converter = new bootstrap.showdown.Converter(opts);
         break;
       }
+      case 1061: {
+        // unused link reference definitions must be stripped in every flavor;
+        // the vanilla variant runs on the default converter
+        if (/original flavor/.test(name)) {
+          converter.setFlavor('original');
+        } else if (/commonmark flavor/.test(name)) {
+          converter.setFlavor('commonmark');
+        }
+        break;
+      }
       default:
 
     }

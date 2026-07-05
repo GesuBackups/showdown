@@ -34,8 +34,6 @@ describe('makeHtml() original testsuite', function () {
           //   Indented code blocks_31/32,
           //   Blockquotes_58 .............. showdown encodes `"` to &quot; inside code blocks;
           //                                 original encodes only & < >
-          //   Link reference defs_48 ...... a definition that is the sole content of the
-          //                                 document leaks into the output as a paragraph
           //   List items_70 ............... showdown requires 4 spaces to nest a sub-list;
           //                                 original nests on any additional indentation
           //                                 (the disableForced4SpacesIndentedSublists option
@@ -57,7 +55,6 @@ describe('makeHtml() original testsuite', function () {
             case 'Indented code blocks_31':
             case 'Indented code blocks_32':
             case 'Blockquotes_58':
-            case 'Link reference definitions_48':
             case 'List items_70':
             case 'Lists_72':
             case 'Lists_76':
