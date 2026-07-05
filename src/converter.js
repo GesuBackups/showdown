@@ -611,6 +611,7 @@ showdown.Converter = function (converterOptions) {
         options[option] = preset[option];
       }
     }
+    return this;
   };
 
   /**
