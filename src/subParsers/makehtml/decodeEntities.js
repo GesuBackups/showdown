@@ -25,12 +25,7 @@ showdown.subParser('makehtml.decodeEntities', function (text, options, globals) 
     return text;
   }
 
-  let startEvent = new showdown.Event('makehtml.decodeEntities.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.decodeEntities.onStart', text, options, globals);
   text = startEvent.output;
 
   const entities = showdown.helper.htmlEntities;
@@ -69,11 +64,6 @@ showdown.subParser('makehtml.decodeEntities', function (text, options, globals) 
     return '&amp;' + body + ';';
   });
 
-  let afterEvent = new showdown.Event('makehtml.decodeEntities.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.decodeEntities.onEnd', text, options, globals);
   return afterEvent.output;
 });

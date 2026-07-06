@@ -15,12 +15,7 @@ showdown.subParser('makehtml.blockGamut', function (text, options, globals, skip
 
   skip = skip || false;
 
-  let startEvent = new showdown.Event('makehtml.blockGamut.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.blockGamut.onStart', text, options, globals);
   text = startEvent.output;
 
   if (skip !== 'makehtml.heading.setext') {
@@ -61,11 +56,6 @@ showdown.subParser('makehtml.blockGamut', function (text, options, globals, skip
   // <p> tags around block-level tags.
   text = showdown.subParser('makehtml.hashHTMLBlocks')(text, options, globals);
 
-  let afterEvent = new showdown.Event('makehtml.blockGamut.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.blockGamut.onEnd', text, options, globals);
   return afterEvent.output;
 });

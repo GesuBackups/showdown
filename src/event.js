@@ -223,3 +223,130 @@ showdown.Event = class {
     return this.matches;
   }
 };
+
+// ---------------------------------------------------------------------------
+// Lifecycle dispatch helpers
+//
+// Shared event ceremony for the makehtml subparsers (and the document-level
+// event sites in converter.js). Each helper builds a showdown.Event with the
+// payload shape mandated by the event contract, dispatches it through the
+// converter and returns the dispatched event so callers can read back the
+// (possibly listener-mutated) output, matches and attributes.
+//
+// The contract (see deliverables/duplication-audit.md, "D3 event contract"):
+//   - onStart / onEnd / onHash : input, output (initially === input), options, globals
+//   - onCapture                : output = null, regexp (RegExp|null), matches, attributes
+//   - matches always carries the read-only `_wholeMatch` context key and, for
+//     every construct that has inner content, the main content under `text`;
+//     construct-specific extras use descriptive names (url, title, format, …).
+//
+// dispatchCapture validates the payload cheaply and throws a descriptive Error
+// on a malformed capture (missing matches, absent `_wholeMatch`, or a regexp
+// that is neither a RegExp nor null) so contract violations fail loudly at their
+// source instead of producing a silently broken event.
+// ---------------------------------------------------------------------------
+
+/**
+ * Build, dispatch and return a lifecycle event whose input and output both start
+ * as `text`. Shared by dispatchStart / dispatchEnd / dispatchHash.
+ * @param {string} name
+ * @param {string} text
+ * @param {{}} options
+ * @param {{}} globals
+ * @returns {showdown.Event}
+ */
+showdown.Event._dispatchLifecycle = function (name, text, options, globals) {
+  'use strict';
+  let event = new showdown.Event(name, text);
+  event
+    .setOutput(text)
+    ._setGlobals(globals)
+    ._setOptions(options);
+  return globals.converter.dispatch(event);
+};
+
+/**
+ * Dispatch a subparser's `onStart` event.
+ * @param {string} name
+ * @param {string} text
+ * @param {{}} options
+ * @param {{}} globals
+ * @returns {showdown.Event}
+ */
+showdown.Event.dispatchStart = function (name, text, options, globals) {
+  'use strict';
+  return showdown.Event._dispatchLifecycle(name, text, options, globals);
+};
+
+/**
+ * Dispatch a subparser's `onEnd` event.
+ * @param {string} name
+ * @param {string} text
+ * @param {{}} options
+ * @param {{}} globals
+ * @returns {showdown.Event}
+ */
+showdown.Event.dispatchEnd = function (name, text, options, globals) {
+  'use strict';
+  return showdown.Event._dispatchLifecycle(name, text, options, globals);
+};
+
+/**
+ * Dispatch a construct's `onHash` event, carrying the built output that is about
+ * to be hashed/returned.
+ * @param {string} name
+ * @param {string} output
+ * @param {{}} options
+ * @param {{}} globals
+ * @returns {showdown.Event}
+ */
+showdown.Event.dispatchHash = function (name, output, options, globals) {
+  'use strict';
+  return showdown.Event._dispatchLifecycle(name, output, options, globals);
+};
+
+/**
+ * Dispatch a construct's `onCapture` event. Sets the contract payload
+ * (`output: null`, plus the given regexp / matches / attributes) and returns the
+ * dispatched event so the caller can read back matches, attributes and any
+ * output a listener supplied.
+ * @param {string} name
+ * @param {string} input the captured content
+ * @param {{regexp: (RegExp|null), matches: {}, attributes: ({}|undefined)}} params
+ * @param {{}} options
+ * @param {{}} globals
+ * @returns {showdown.Event}
+ */
+showdown.Event.dispatchCapture = function (name, input, params, options, globals) {
+  'use strict';
+  params = params || {};
+  let regexp = (typeof params.regexp === 'undefined') ? null : params.regexp,
+      matches = params.matches,
+      attributes = (typeof params.attributes === 'undefined') ? {} : params.attributes;
+
+  if (regexp !== null && !(regexp instanceof RegExp)) {
+    throw new Error('Malformed "' + name + '" capture event: regexp must be a RegExp or null, but ' +
+      typeof regexp + ' given');
+  }
+  if (matches === null || typeof matches !== 'object') {
+    throw new Error('Malformed "' + name + '" capture event: matches must be an object, but ' +
+      typeof matches + ' given');
+  }
+  if (!Object.prototype.hasOwnProperty.call(matches, '_wholeMatch')) {
+    throw new Error('Malformed "' + name + '" capture event: matches must include a "_wholeMatch" key');
+  }
+  if (attributes === null || typeof attributes !== 'object') {
+    throw new Error('Malformed "' + name + '" capture event: attributes must be an object, but ' +
+      typeof attributes + ' given');
+  }
+
+  let event = new showdown.Event(name, input);
+  event
+    .setOutput(null)
+    ._setGlobals(globals)
+    ._setOptions(options)
+    .setRegexp(regexp)
+    .setMatches(matches)
+    .setAttributes(attributes);
+  return globals.converter.dispatch(event);
+};

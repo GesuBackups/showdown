@@ -11,12 +11,7 @@
 
 showdown.subParser('makehtml.hashHTMLSpans', function (text, options, globals) {
   'use strict';
-  let startEvent = new showdown.Event('makehtml.hashHTMLSpans.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.hashHTMLSpans.onStart', text, options, globals);
   text = startEvent.output;
 
   // NOTE: the self-closing character classes exclude `<` (`[^<>]` rather than `[^>]`) so a scan
@@ -88,11 +83,6 @@ showdown.subParser('makehtml.hashHTMLSpans', function (text, options, globals) {
     return out;
   }
 
-  let afterEvent = new showdown.Event('makehtml.hashHTMLSpans.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.hashHTMLSpans.onEnd', text, options, globals);
   return afterEvent.output;
 });

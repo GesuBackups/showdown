@@ -9,12 +9,7 @@ showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, glo
   const regex     = /^ {0,3}\[([^\]]+)]:[ \t]*\n?[ \t]*<?([^>\s]+)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*\n?[ \t]*(?:(\n*)["|'(](.+?)["|')][ \t]*)?(?:\n+|(?=¨0))/gm,
       base64Regex = /^ {0,3}\[([^\]]+)]:[ \t]*\n?[ \t]*<?(data:.+?\/.+?;base64,[A-Za-z\d+/=\n]+?)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*\n?[ \t]*(?:(\n*)["|'(](.+?)["|')][ \t]*)?(?:\n\n|(?=¨0)|(?=\n\[))/gm;
 
-  let startEvent = new showdown.Event('makehtml.stripLinkDefinitions.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.stripLinkDefinitions.onStart', text, options, globals);
   text = startEvent.output;
 
   // attacklab: sentinel workarounds for lack of \A and \Z, safari\khtml bug
@@ -25,13 +20,11 @@ showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, glo
     // Link IDs are case-insensitive
     linkId = showdown.helper.caseFold(linkId);
 
-    let captureStartEvent = new showdown.Event('makehtml.stripLinkDefinitions.onCapture', wholeMatch);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(regex)
-      .setMatches({
+    // a link reference definition renders no inline content (it is stored, not emitted),
+    // so it carries no `text` key - only the descriptive captured fields.
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.stripLinkDefinitions.onCapture', wholeMatch, {
+      regexp: regex,
+      matches: {
         _wholeMatch: wholeMatch,
         linkId: linkId,
         url: url,
@@ -39,9 +32,9 @@ showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, glo
         height: height,
         blankLines: blankLines,
         title: title
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+      },
+      attributes: {}
+    }, options, globals);
 
     let otp;
     // if something was passed as output, it takes precedence and will be used as output
@@ -85,12 +78,7 @@ showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, glo
       }
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.stripLinkDefinitions.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.stripLinkDefinitions.onHash', otp, options, globals);
     return beforeHashEvent.output;
   };
 
@@ -106,12 +94,7 @@ showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, glo
   // attacklab: strip sentinel
   text = text.replace(/¨0/, '');
 
-  let afterEvent = new showdown.Event('makehtml.stripLinkDefinitions.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.stripLinkDefinitions.onEnd', text, options, globals);
   return afterEvent.output;
 
   /**
@@ -163,20 +146,16 @@ showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, glo
    * @param {{linkId: string, url: string, title: (string|null), wholeMatch: string}} def
    */
   function commitDefinition (def) {
-    let captureStartEvent = new showdown.Event('makehtml.stripLinkDefinitions.onCapture', def.wholeMatch);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(null)
-      .setMatches({
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.stripLinkDefinitions.onCapture', def.wholeMatch, {
+      regexp: null,
+      matches: {
         _wholeMatch: def.wholeMatch,
         linkId: def.linkId,
         url: def.url,
         title: def.title
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+      },
+      attributes: {}
+    }, options, globals);
     let linkId = captureStartEvent.matches.linkId,
         url = captureStartEvent.matches.url,
         title = captureStartEvent.matches.title;

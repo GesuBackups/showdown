@@ -18,12 +18,7 @@
 showdown.subParser('makehtml.emphasisAndStrong', function (text, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makehtml.emphasisAndStrong.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.emphasisAndStrong.onStart', text, options, globals);
   text = startEvent.output;
 
   /**
@@ -64,24 +59,22 @@ showdown.subParser('makehtml.emphasisAndStrong', function (text, options, global
         break;
     }
 
-    let captureStartEvent = new showdown.Event('makehtml.emphasisAndStrong.' + subEventName + '.onCapture', txt);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches({
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.emphasisAndStrong.' + subEventName + '.onCapture', txt, {
+      regexp: pattern,
+      matches: {
         _wholeMatch: wholeMatch,
         text: txt
-      })
-      .setAttributes(attributes);
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+      },
+      attributes: attributes
+    }, options, globals);
     // if something was passed as output, it takes precedence
     // and will be used as output
     if (captureStartEvent.output && captureStartEvent.output !== '') {
       otp = captureStartEvent.output;
     } else {
       attributes = captureStartEvent.attributes;
+      // honor a listener that rewrote the wrapped text via matches.text
+      txt = captureStartEvent.matches.text;
       if (showdown.helper.isUndefined(attributes.em)) {
         attributes.em = {};
       }
@@ -110,12 +103,7 @@ showdown.subParser('makehtml.emphasisAndStrong', function (text, options, global
       }
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.emphasisAndStrong.' + subEventName + '.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.emphasisAndStrong.' + subEventName + '.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
     otp = showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
     return otp;
@@ -127,12 +115,7 @@ showdown.subParser('makehtml.emphasisAndStrong', function (text, options, global
   if (options.cmSpec) {
     text = parseCommonmarkEmphasis(text);
 
-    let cmAfterEvent = new showdown.Event('makehtml.emphasisAndStrong.onEnd', text);
-    cmAfterEvent
-      .setOutput(text)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    cmAfterEvent = globals.converter.dispatch(cmAfterEvent);
+    let cmAfterEvent = showdown.Event.dispatchEnd('makehtml.emphasisAndStrong.onEnd', text, options, globals);
     return cmAfterEvent.output;
   }
 
@@ -385,11 +368,6 @@ showdown.subParser('makehtml.emphasisAndStrong', function (text, options, global
     return (/\S$/.test(m)) ? parseInside (m, '<em>', wm, asteriskEm) : wm;
   });
   //}
-  let afterEvent = new showdown.Event('makehtml.emphasisAndStrong.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.emphasisAndStrong.onEnd', text, options, globals);
   return afterEvent.output;
 });

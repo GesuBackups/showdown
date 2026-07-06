@@ -17,12 +17,7 @@ showdown.subParser('makehtml.emoji', function (text, options, globals) {
     return text;
   }
 
-  let startEvent = new showdown.Event('makehtml.emoji.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.emoji.onStart', text, options, globals);
   text = startEvent.output;
 
   let pattern = /:(\S+?):/g;
@@ -32,33 +27,24 @@ showdown.subParser('makehtml.emoji', function (text, options, globals) {
       return wholeMatch;
     }
     let otp;
-    let captureStartEvent = new showdown.Event('makehtml.emoji.onCapture', emojiCode);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches({
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.emoji.onCapture', emojiCode, {
+      regexp: pattern,
+      matches: {
         _wholeMatch: wholeMatch,
-        emojiCode: emojiCode
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+        text: emojiCode
+      },
+      attributes: {}
+    }, options, globals);
 
     // if something was passed as output, it takes precedence and will be used as output
     if (captureStartEvent.output && captureStartEvent.output !== '') {
       otp = captureStartEvent.output;
     } else {
-      otp = showdown.helper.emojis[emojiCode];
+      // honor a listener that rewrote the emoji code via matches.text
+      otp = showdown.helper.emojis[captureStartEvent.matches.text];
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.emoji.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.emoji.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
 
     // Image-based emoji (e.g. :octocat:) render as an <img> tag. Hash it so later
@@ -71,11 +57,6 @@ showdown.subParser('makehtml.emoji', function (text, options, globals) {
     return otp;
   });
 
-  let afterEvent = new showdown.Event('makehtml.emoji.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.emoji.onEnd', text, options, globals);
   return afterEvent.output;
 });

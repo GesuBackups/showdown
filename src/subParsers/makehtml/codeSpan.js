@@ -33,13 +33,7 @@
 showdown.subParser('makehtml.codeSpan', function (text, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makehtml.codeSpan.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.codeSpan.onStart', text, options, globals);
 
   text = startEvent.output;
 
@@ -58,45 +52,30 @@ showdown.subParser('makehtml.codeSpan', function (text, options, globals) {
     // remove newlines
     c = c.replace(/\n/g, ' ');
 
-    let captureStartEvent = new showdown.Event('makehtml.codeSpan.onCapture', c);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches({
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.codeSpan.onCapture', c, {
+      regexp: pattern,
+      matches: {
         _wholeMatch: wholeMatch,
-        code: c
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+        text: c
+      },
+      attributes: {}
+    }, options, globals);
 
     // if something was passed as output, it takes precedence
     // and will be used as output
     if (captureStartEvent.output && captureStartEvent.output !== '') {
       otp = m1 + captureStartEvent.output;
     } else {
-      c = captureStartEvent.matches.code;
+      c = captureStartEvent.matches.text;
       c = showdown.subParser('makehtml.encodeCode')(c, options, globals);
       otp = m1 + '<code' + showdown.helper._populateAttributes(attributes) + '>' +  c + '</code>';
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.codeSpan.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.codeSpan.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
     return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
   });
 
-  let afterEvent = new showdown.Event('makehtml.codeSpan.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.codeSpan.onEnd', text, options, globals);
   return afterEvent.output;
 });

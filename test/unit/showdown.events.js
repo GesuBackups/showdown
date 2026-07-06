@@ -503,13 +503,14 @@ describe('showdown.Event', function () {
     // key (underline) or the wrong regexp (YAML-delimited metadata), which the fire-only
     // checks above cannot catch — so assert on the payload contents themselves.
     describe('capture event payloads', function () {
-      it('underline.onCapture should expose the captured text under the `underline` matches key', function () {
+      it('underline.onCapture should expose the captured text under the `text` matches key', function () {
         let matches;
         new showdown.Converter({underline: true})
           .listen('makehtml.underline.onCapture', function (event) { matches = event.matches; return event; })
           .makeHtml('__foo__');
-        expect(matches).toHaveProperty('underline', 'foo');
+        expect(matches).toHaveProperty('text', 'foo');
         expect(matches).not.toHaveProperty('strikethrough');
+        expect(matches).not.toHaveProperty('underline');
       });
 
       it('metadata.onCapture should carry the regexp of the delimiter that actually matched', function () {
@@ -623,6 +624,216 @@ describe('showdown.Event', function () {
       conv.makeMarkdown(richHtml);
       let missing = makeMarkdownSubparsers.filter(function (name) { return !fired[name]; });
       expect(missing).toEqual([]);
+    });
+  });
+
+  // Generic event-contract conformance: drive every makehtml per-match construct over a
+  // feature-rich document and assert the payload shape of every capture/hash event it emits
+  // against the ratified contract (see deliverables/duplication-audit.md, "D3 event contract").
+  // This retroactively guards the whole bug class the audit found (mislabeled matches keys,
+  // wrong regexp) — a subparser cannot drift from the contract without failing here.
+  describe('event contract conformance', function () {
+
+    // Every construct that emits onCapture/onHash, with whether it carries a `text` matches key.
+    // `text` is required wherever the construct has main inner content; the two exceptions
+    // (documented in the contract) produce no inner content: a horizontal rule is a bare
+    // delimiter, and a link reference definition is stored, never rendered inline.
+    let captureConstructs = [
+      { event: 'makehtml.strikethrough', hasText: true },
+      { event: 'makehtml.underline', hasText: true },
+      { event: 'makehtml.ellipsis', hasText: true },
+      { event: 'makehtml.emoji', hasText: true },
+      { event: 'makehtml.codeSpan', hasText: true },
+      { event: 'makehtml.horizontalRule', hasText: false },
+      { event: 'makehtml.heading.atx', hasText: true },
+      { event: 'makehtml.heading.setext', hasText: true },
+      { event: 'makehtml.blockquote', hasText: true },
+      { event: 'makehtml.codeBlock', hasText: true },
+      { event: 'makehtml.githubCodeBlock', hasText: true },
+      { event: 'makehtml.metadata', hasText: true },
+      { event: 'makehtml.table', hasText: true },
+      { event: 'makehtml.table.header', hasText: true },
+      { event: 'makehtml.table.cell', hasText: true },
+      { event: 'makehtml.link.inline', hasText: true },
+      { event: 'makehtml.link.reference', hasText: true },
+      { event: 'makehtml.link.angleBrackets', hasText: true },
+      { event: 'makehtml.link.autoLink', hasText: true },
+      { event: 'makehtml.image.inline', hasText: true },
+      { event: 'makehtml.image.reference', hasText: true },
+      { event: 'makehtml.emphasisAndStrong.emphasis', hasText: true },
+      { event: 'makehtml.emphasisAndStrong.strong', hasText: true },
+      { event: 'makehtml.emphasisAndStrong.emphasisAndStrong', hasText: true },
+      { event: 'makehtml.list', hasText: true },
+      { event: 'makehtml.list.listItem', hasText: true },
+      { event: 'makehtml.list.taskListItem', hasText: true },
+      { event: 'makehtml.list.taskListItem.checkbox', hasText: true },
+      { event: 'makehtml.stripLinkDefinitions', hasText: false }
+    ];
+
+    // A document that, across the two converters below, triggers every construct above.
+    let conformanceMd = [
+      '---', 'title: x', '---', '',
+      '# ATX heading', '',
+      'Setext heading', '==============', '',
+      'Para `codespan` **strong** *em* ***both*** ~~strike~~ __under__ ...ellipsis ',
+      'a [ref][1] an [inline](http://example.com "t") <http://angle.com> http://naked.com ',
+      'an ![img](pic.png) a ![refimg][1] an emoji :smile: <span title="a&b">html</span>.', '',
+      '    indented code', '',
+      '```js', 'fenced', '```', '',
+      '- list item', '', '- [ ] task', '', '- # heading in item', '',
+      '> blockquote', '',
+      '| h1 | h2 |', '|----|----|', '| a  | b  |', '',
+      '- - -', '', '[1]: http://ref.com "rt"', ''
+    ].join('\n');
+
+    function validateCaptureEvent (c, event, errors) {
+      let ev = c.event + '.onCapture';
+      if (event.output !== null) {
+        errors.push(ev + ': output must be null on capture, got ' + JSON.stringify(event.output));
+      }
+      if (event.regexp !== null && !(event.regexp instanceof RegExp)) {
+        errors.push(ev + ': regexp must be a RegExp or null, got ' + typeof event.regexp);
+      }
+      if (event.matches === null || typeof event.matches !== 'object') {
+        errors.push(ev + ': matches must be an object');
+      } else if (!Object.prototype.hasOwnProperty.call(event.matches, '_wholeMatch')) {
+        errors.push(ev + ': matches must include a "_wholeMatch" key');
+      }
+      if (c.hasText && (typeof event.matches.text !== 'string')) {
+        errors.push(ev + ': matches.text must be a string (main captured content)');
+      }
+      if (!c.hasText && Object.prototype.hasOwnProperty.call(event.matches, 'text')) {
+        errors.push(ev + ': should NOT carry a "text" key (no inner content)');
+      }
+      if (event.attributes === null || typeof event.attributes !== 'object') {
+        errors.push(ev + ': attributes must be an object');
+      }
+    }
+
+    function validateHashEvent (c, event, errors) {
+      let ev = c.event + '.onHash';
+      if (!showdown.helper.isString(event.input)) {
+        errors.push(ev + ': input must be a string');
+      }
+      if (!showdown.helper.isString(event.output)) {
+        errors.push(ev + ': output must be a string');
+      }
+    }
+
+    function run (opts, errors, fired) {
+      let conv = new showdown.Converter(opts);
+      /* jshint -W083 */
+      captureConstructs.forEach(function (c) {
+        conv.listen(c.event + '.onCapture', function (event) {
+          fired[c.event] = true;
+          validateCaptureEvent(c, event, errors);
+          return event;
+        });
+        conv.listen(c.event + '.onHash', function (event) {
+          validateHashEvent(c, event, errors);
+          return event;
+        });
+      });
+      /* jshint +W083 */
+      conv.makeHtml(conformanceMd);
+    }
+
+    it('every capture/hash event emitted matches the payload contract', function () {
+      let errors = [],
+          fired = {},
+          kitchen = {
+            strikethrough: true, tables: true, ghCodeBlocks: true, tasklists: true,
+            ghMentions: true, emoji: true, underline: true, ellipsis: true, metadata: true,
+            simplifiedAutoLink: true, parseImgDimensions: true
+          };
+      run(kitchen, errors, fired);
+      run(showdown.getFlavorOptions('commonmark'), errors, fired);
+      expect(errors).toEqual([]);
+    });
+
+    it('the core capture constructs each fire at least once', function () {
+      let errors = [],
+          fired = {},
+          kitchen = {
+            strikethrough: true, tables: true, ghCodeBlocks: true, tasklists: true,
+            ghMentions: true, emoji: true, underline: true, ellipsis: true, metadata: true,
+            simplifiedAutoLink: true, parseImgDimensions: true
+          };
+      run(kitchen, errors, fired);
+      run(showdown.getFlavorOptions('commonmark'), errors, fired);
+      // a representative core set that the document above must exercise across both flavors
+      let core = [
+        'makehtml.strikethrough', 'makehtml.underline', 'makehtml.ellipsis', 'makehtml.emoji',
+        'makehtml.codeSpan', 'makehtml.horizontalRule', 'makehtml.heading.atx',
+        'makehtml.heading.setext', 'makehtml.blockquote', 'makehtml.codeBlock',
+        'makehtml.githubCodeBlock', 'makehtml.metadata', 'makehtml.table', 'makehtml.table.header',
+        'makehtml.table.cell', 'makehtml.link.inline', 'makehtml.link.reference',
+        'makehtml.image.inline', 'makehtml.emphasisAndStrong.emphasis',
+        'makehtml.emphasisAndStrong.strong', 'makehtml.list', 'makehtml.list.listItem',
+        'makehtml.list.taskListItem', 'makehtml.list.taskListItem.checkbox',
+        'makehtml.stripLinkDefinitions'
+      ];
+      let missing = core.filter(function (name) { return !fired[name]; });
+      expect(missing).toEqual([]);
+    });
+  });
+
+  // Mutation honoring: a listener that rewrites matches.text in an onCapture handler must be
+  // reflected in the construct's rendered output. Covers a representative sample of the
+  // constructs the D3 sweep taught to read matches.text back when building their output.
+  describe('matches.text mutation honoring', function () {
+
+    function mutate (opts, event, md, newText) {
+      return new showdown.Converter(opts)
+        .listen(event, function (e) { e.matches.text = newText; return e; })
+        .makeHtml(md);
+    }
+
+    it('strikethrough honors a rewritten matches.text', function () {
+      expect(mutate({strikethrough: true}, 'makehtml.strikethrough.onCapture', '~~foo~~', 'BAR'))
+        .toContain('<del>BAR</del>');
+    });
+
+    it('underline honors a rewritten matches.text', function () {
+      expect(mutate({underline: true}, 'makehtml.underline.onCapture', '__foo__', 'BAR'))
+        .toContain('<u>BAR</u>');
+    });
+
+    it('ellipsis honors a rewritten matches.text', function () {
+      expect(mutate({ellipsis: true}, 'makehtml.ellipsis.onCapture', 'x...y', 'a...b'))
+        .toContain('a…b');
+    });
+
+    it('emoji honors a rewritten matches.text', function () {
+      let heart = new showdown.Converter({emoji: true}).makeHtml(':heart:');
+      expect(mutate({emoji: true}, 'makehtml.emoji.onCapture', ':smile:', 'heart'))
+        .toBe(heart);
+    });
+
+    it('heading honors a rewritten matches.text', function () {
+      expect(mutate({}, 'makehtml.heading.atx.onCapture', '# foo', 'BAR'))
+        .toMatch(/<h1[^>]*>BAR<\/h1>/);
+    });
+
+    it('codeSpan honors a rewritten matches.text', function () {
+      expect(mutate({}, 'makehtml.codeSpan.onCapture', '`foo`', 'BAR'))
+        .toContain('<code>BAR</code>');
+    });
+
+    it('link (inline) honors a rewritten matches.text', function () {
+      expect(mutate({}, 'makehtml.link.inline.onCapture', '[foo](http://x.com)', 'BAR'))
+        .toMatch(/<a href="http:\/\/x\.com">BAR<\/a>/);
+    });
+
+    it('image (inline) honors a rewritten matches.text', function () {
+      expect(mutate({}, 'makehtml.image.inline.onCapture', '![foo](pic.png)', 'BAR'))
+        .toContain('alt="BAR"');
+    });
+
+    it('table cell honors a rewritten matches.text', function () {
+      let out = mutate({tables: true}, 'makehtml.table.cell.onCapture',
+        '| h1 | h2 |\n|----|----|\n| a  | b  |', 'BAR');
+      expect(out).toContain('<td>BAR</td>');
     });
   });
 });

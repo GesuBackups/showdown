@@ -24,12 +24,7 @@ showdown.subParser('makehtml.githubCodeBlock', function (text, options, globals,
     return text;
   }
 
-  let startEvent = new showdown.Event('makehtml.githubCodeBlock.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.githubCodeBlock.onStart', text, options, globals);
   text = startEvent.output + '¨0';
 
   // In CommonMark container mode the converter-level pass restricts the *opening* fence to
@@ -72,12 +67,7 @@ showdown.subParser('makehtml.githubCodeBlock', function (text, options, globals,
   // attacklab: strip sentinel
   text = text.replace(/¨0/, '');
 
-  let afterEvent = new showdown.Event('makehtml.githubCodeBlock.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.githubCodeBlock.onEnd', text, options, globals);
   return afterEvent.output;
 
 
@@ -94,19 +84,15 @@ showdown.subParser('makehtml.githubCodeBlock', function (text, options, globals,
           code: {},
         };
 
-    let captureStartEvent = new showdown.Event('makehtml.githubCodeBlock.onCapture', codeblock);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches({
-        _whoteMatch: wholeMatch,
-        codeblock: codeblock,
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.githubCodeBlock.onCapture', codeblock, {
+      regexp: pattern,
+      matches: {
+        _wholeMatch: wholeMatch,
+        text: codeblock,
         infostring: language
-      })
-      .setAttributes(attributes);
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+      },
+      attributes: attributes
+    }, options, globals);
 
     // if something was passed as output, it takes precedence
     // and will be used as output
@@ -132,7 +118,7 @@ showdown.subParser('makehtml.githubCodeBlock', function (text, options, globals,
         .replace(/"/g, '&quot;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
-      codeblock = captureStartEvent.matches.codeblock;
+      codeblock = captureStartEvent.matches.text;
       codeblock = showdown.subParser('makehtml.encodeCode')(codeblock, options, globals);
       //codeblock = showdown.subParser('makehtml.detab')(codeblock, options, globals);
       codeblock = codeblock
@@ -172,12 +158,7 @@ showdown.subParser('makehtml.githubCodeBlock', function (text, options, globals,
       otp += codeblock + end + '</code></pre>';
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.githubCodeBlock.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.githubCodeBlock.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
     otp = showdown.subParser('makehtml.hashBlock')(otp, options, globals);
 

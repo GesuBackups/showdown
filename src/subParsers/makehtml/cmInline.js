@@ -41,12 +41,7 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
   const reAutoEmail = /<[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*>/y;
   const reRawHtml = new RegExp('(?:' + showdown.helper.regexes.cmHTMLTagSource + ')', 'y');
 
-  let startEvent = new showdown.Event('makehtml.cmInline.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.cmInline.onStart', text, options, globals);
   text = startEvent.output;
 
   text = parseCmInline(text);
@@ -228,12 +223,7 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
     return text;
   }
 
-  let afterEvent = new showdown.Event('makehtml.cmInline.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.cmInline.onEnd', text, options, globals);
   return afterEvent.output;
 
   // ---- shared character helpers (flanking rules) -------------------------------
@@ -855,15 +845,11 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
       attributes.title = title;
     }
 
-    let captureStartEvent = new showdown.Event('makehtml.link.' + subEvtName + '.onCapture', wholeMatch);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches(matches)
-      .setAttributes(attributes);
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.link.' + subEvtName + '.onCapture', wholeMatch, {
+      regexp: pattern,
+      matches: matches,
+      attributes: attributes
+    }, options, globals);
 
     // if something was passed as output, it takes precedence
     // and will be used as output
@@ -883,12 +869,7 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
       otp = '<a' + showdown.helper._populateAttributes(attributes) + '>' + text + '</a>';
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.link.' + subEvtName + '.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.link.' + subEvtName + '.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
     return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
   }

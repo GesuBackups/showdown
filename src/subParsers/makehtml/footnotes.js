@@ -15,15 +15,23 @@ showdown.subParser('makehtml.footnotes', function (text, options, globals, phase
     return text;
   }
 
+  // Lifecycle events (fired for each phase the converter invokes). onStart lets a
+  // listener rewrite the input before footnote processing; onEnd lets it post-process
+  // the result. Per-reference capture events are intentionally not emitted yet (the
+  // footnote reference/definition capture surface is left for a later deliverable).
+  text = showdown.Event.dispatchStart('makehtml.footnotes.onStart', text, options, globals).output;
+
+  let result;
   if (phase === 'strip') {
     text = collectDefinitions(text);
-    text = replaceReferences(text);
-    return text;
+    result = replaceReferences(text);
+  } else if (phase === 'build') {
+    result = buildSection(text);
+  } else {
+    result = text;
   }
-  if (phase === 'build') {
-    return buildSection(text);
-  }
-  return text;
+
+  return showdown.Event.dispatchEnd('makehtml.footnotes.onEnd', result, options, globals).output;
 
   // ---- phase 1a: collect (and remove) `[^label]: body` definitions ----------
 

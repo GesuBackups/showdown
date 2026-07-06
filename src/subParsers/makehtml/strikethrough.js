@@ -4,12 +4,7 @@ showdown.subParser('makehtml.strikethrough', function (text, options, globals) {
     return text;
   }
 
-  let startEvent = new showdown.Event('makehtml.strikethrough.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.strikethrough.onStart', text, options, globals);
   text = startEvent.output;
 
   // GFM strikethrough: a run of one or two tildes, matched in length, with flanking
@@ -20,43 +15,29 @@ showdown.subParser('makehtml.strikethrough', function (text, options, globals) {
   text = text.replace(strikethroughRegex, function (wholeMatch, prefix, run, txt) {
 
     let otp;
-    let captureStartEvent = new showdown.Event('makehtml.strikethrough.onCapture', txt);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(strikethroughRegex)
-      .setMatches({
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.strikethrough.onCapture', txt, {
+      regexp: strikethroughRegex,
+      matches: {
         _wholeMatch: wholeMatch,
-        strikethrough: txt
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+        text: txt
+      },
+      attributes: {}
+    }, options, globals);
     // if something was passed as output, it takes precedence
     // and will be used as output
     if (captureStartEvent.output && captureStartEvent.output !== '') {
       otp = captureStartEvent.output;
     } else {
       otp = '<del' + showdown.helper._populateAttributes(captureStartEvent.attributes) + '>' +
-            showdown.subParser('makehtml.hardLineBreaks')(txt, options, globals) +
+            showdown.subParser('makehtml.hardLineBreaks')(captureStartEvent.matches.text, options, globals) +
             '</del>';
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.strikethrough.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.strikethrough.onHash', otp, options, globals);
     // restore the character that preceded the opening run
     return prefix + beforeHashEvent.output;
   });
 
-  let afterEvent = new showdown.Event('makehtml.strikethrough.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.strikethrough.onEnd', text, options, globals);
   return afterEvent.output;
 });

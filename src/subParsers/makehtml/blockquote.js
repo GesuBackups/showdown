@@ -26,12 +26,7 @@ showdown.subParser('makehtml.blockquote', function (text, options, globals) {
     return text;
   }
 
-  let startEvent = new showdown.Event('makehtml.blockquote.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.blockquote.onStart', text, options, globals);
   text = startEvent.output;
 
   if (options.cmSpec) {
@@ -51,12 +46,7 @@ showdown.subParser('makehtml.blockquote', function (text, options, globals) {
     });
   }
 
-  let afterEvent = new showdown.Event('makehtml.blockquote.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.blockquote.onEnd', text, options, globals);
   return afterEvent.output;
 
   /**
@@ -71,25 +61,21 @@ showdown.subParser('makehtml.blockquote', function (text, options, globals) {
     let otp,
         attributes;
 
-    let captureStartEvent = new showdown.Event('makehtml.blockquote.onCapture', bq);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern || null)
-      .setMatches({
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.blockquote.onCapture', bq, {
+      regexp: pattern || null,
+      matches: {
         _wholeMatch: wholeMatch,
-        blockquote: bq
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+        text: bq
+      },
+      attributes: {}
+    }, options, globals);
     // if something was passed as output, it takes precedence
     // and will be used as output
     if (captureStartEvent.output && captureStartEvent.output !== '') {
       otp = captureStartEvent.output;
 
     } else {
-      bq = captureStartEvent.matches.blockquote;
+      bq = captureStartEvent.matches.text;
       bq = showdown.subParser('makehtml.githubCodeBlock')(bq, options, globals);
       // CommonMark container mode: run the source-level leaf-block passes on the quote's
       // own (marker-stripped) content, mirroring the converter pipeline, so an HTML block
@@ -112,12 +98,7 @@ showdown.subParser('makehtml.blockquote', function (text, options, globals) {
       otp = '<blockquote' + showdown.helper._populateAttributes(attributes) + '>\n' +  bq + '\n</blockquote>';
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.blockquote.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.blockquote.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
     return showdown.subParser('makehtml.hashBlock')(otp, options, globals);
   }

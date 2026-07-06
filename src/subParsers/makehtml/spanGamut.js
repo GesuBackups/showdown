@@ -5,12 +5,7 @@
 showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makehtml.spanGamut.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.spanGamut.onStart', text, options, globals);
   text = startEvent.output;
 
   if (options.cmSpec) {
@@ -40,12 +35,7 @@ showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
     text = showdown.subParser('makehtml.encodeAmpsAndAngles')(text, options, globals);
     text = showdown.subParser('makehtml.hardLineBreaks')(text, options, globals);
 
-    let cmAfterEvent = new showdown.Event('makehtml.spanGamut.onEnd', text);
-    cmAfterEvent
-      .setOutput(text)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    cmAfterEvent = globals.converter.dispatch(cmAfterEvent);
+    let cmAfterEvent = showdown.Event.dispatchEnd('makehtml.spanGamut.onEnd', text, options, globals);
     return cmAfterEvent.output;
   }
 
@@ -87,11 +77,6 @@ showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
 
   text = showdown.subParser('makehtml.hardLineBreaks')(text, options, globals);
 
-  let afterEvent = new showdown.Event('makehtml.spanGamut.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.spanGamut.onEnd', text, options, globals);
   return afterEvent.output;
 });

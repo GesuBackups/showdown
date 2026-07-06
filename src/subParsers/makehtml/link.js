@@ -18,12 +18,7 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
   //
   // Parser starts here
   //
-  let startEvent = new showdown.Event('makehtml.link.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.link.onStart', text, options, globals);
   text = startEvent.output;
 
   // Every markdown link/reference syntax requires a closing ']'. When there is none there is
@@ -247,12 +242,7 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
     });
   }
 
-  let afterEvent = new showdown.Event('makehtml.link.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.link.onEnd', text, options, globals);
   return afterEvent.output;
 
 
@@ -463,15 +453,11 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
       attributes.title = title;
     }
 
-    let captureStartEvent = new showdown.Event('makehtml.link.' + subEvtName + '.onCapture', wholeMatch);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches(matches)
-      .setAttributes(attributes);
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.link.' + subEvtName + '.onCapture', wholeMatch, {
+      regexp: pattern,
+      matches: matches,
+      attributes: attributes
+    }, options, globals);
 
     // if something was passed as output, it takes precedence
     // and will be used as output
@@ -491,12 +477,7 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
       otp = '<a' + showdown.helper._populateAttributes(attributes) + '>' + text + '</a>';
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.link.' + subEvtName + '.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.link.' + subEvtName + '.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
     return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
   }

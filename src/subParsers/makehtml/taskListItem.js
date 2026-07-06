@@ -56,36 +56,29 @@ showdown.subParser('makehtml.list.taskListItem.checkbox', function (text, option
         { checked: true, disabled: true, type: 'checkbox' } :
         { disabled: true, type: 'checkbox' });
 
-    let captureStartEvent = new showdown.Event('makehtml.list.taskListItem.checkbox.onCapture', wm);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(taskItemRgx)
-      .setMatches({
+    // the task line's text (everything after the checkbox) is the main captured content
+    // (`text`, mutable + honored below); the checkbox markers are read-only context.
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.list.taskListItem.checkbox.onCapture', wm, {
+      regexp: taskItemRgx,
+      matches: {
         _wholeMatch: wm,
         _taskListButton: prefix + '[' + checkedRaw + ']',
         _taskListButtonChecked: checkedRaw,
-        _taskListItemText: lineText
-      })
-      .setAttributes(attributes);
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+        text: lineText
+      },
+      attributes: attributes
+    }, options, globals);
 
     let otp;
     if (captureStartEvent.output && captureStartEvent.output !== '') {
       otp = captureStartEvent.output;
     } else {
       attributes = captureStartEvent.attributes;
-      let txt = captureStartEvent.matches._taskListItemText;
+      let txt = captureStartEvent.matches.text;
       otp = prefix + '<input' + showdown.helper._populateAttributes(attributes) + '>' + txt;
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.list.taskListItem.checkbox.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.list.taskListItem.checkbox.onHash', otp, options, globals);
     return beforeHashEvent.output;
   });
 });

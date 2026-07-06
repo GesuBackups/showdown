@@ -12,12 +12,7 @@
 showdown.subParser('makehtml.encodeAmpsAndAngles', function (text, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makehtml.encodeAmpsAndAngles.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.encodeAmpsAndAngles.onStart', text, options, globals);
   text = startEvent.output;
 
   // Ampersand-encoding based entirely on Nat Irons's Amputator MT plugin:
@@ -36,11 +31,6 @@ showdown.subParser('makehtml.encodeAmpsAndAngles', function (text, options, glob
   // encode "
   text = text.replace(/"/g, '&quot;');
 
-  let afterEvent = new showdown.Event('makehtml.encodeAmpsAndAngles.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.encodeAmpsAndAngles.onEnd', text, options, globals);
   return afterEvent.output;
 });

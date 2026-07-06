@@ -21,12 +21,7 @@
 showdown.subParser('makehtml.encodeBackslashEscapes', function (text, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makehtml.encodeBackslashEscapes.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.encodeBackslashEscapes.onStart', text, options, globals);
   text = startEvent.output;
 
   text = text
@@ -38,11 +33,6 @@ showdown.subParser('makehtml.encodeBackslashEscapes', function (text, options, g
     .replace(/\\</g, '&lt;') // escaping <
     .replace(/\\>/g, '&gt;'); // escaping >
 
-  let afterEvent = new showdown.Event('makehtml.encodeBackslashEscapes.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.encodeBackslashEscapes.onEnd', text, options, globals);
   return afterEvent.output;
 });

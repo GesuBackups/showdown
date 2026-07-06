@@ -4,12 +4,7 @@
 showdown.subParser('makehtml.paragraphs', function (text, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makehtml.paragraphs.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.paragraphs.onStart', text, options, globals);
   text = startEvent.output;
 
   // Strip leading and trailing lines:
@@ -75,11 +70,6 @@ showdown.subParser('makehtml.paragraphs', function (text, options, globals) {
   text = text.replace(/^\n+/g, '');
   text = text.replace(/\n+$/g, '');
 
-  let afterEvent = new showdown.Event('makehtml.paragraphs.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.paragraphs.onEnd', text, options, globals);
   return afterEvent.output;
 });

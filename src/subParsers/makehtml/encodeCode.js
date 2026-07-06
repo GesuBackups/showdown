@@ -14,12 +14,7 @@
 showdown.subParser('makehtml.encodeCode', function (text, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makehtml.encodeCode.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.encodeCode.onStart', text, options, globals);
   text = startEvent.output;
 
   // Encode all ampersands; HTML entities are not
@@ -34,11 +29,6 @@ showdown.subParser('makehtml.encodeCode', function (text, options, globals) {
   // Now, escape characters that are magic in Markdown:
     .replace(/([*_{}[\]\\=~-])/g, showdown.helper.escapeCharactersCallback);
 
-  let afterEvent = new showdown.Event('makehtml.encodeCode.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.encodeCode.onEnd', text, options, globals);
   return afterEvent.output;
 });

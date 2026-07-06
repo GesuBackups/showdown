@@ -22,22 +22,12 @@
 showdown.subParser('makehtml.cmList', function (text, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makehtml.list.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.list.onStart', text, options, globals);
   text = startEvent.output;
 
   text = parseCmList(text);
 
-  let afterEvent = new showdown.Event('makehtml.list.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.list.onEnd', text, options, globals);
   return afterEvent.output;
 
   /** @param {string} line @returns {number} count of leading spaces */
@@ -241,7 +231,7 @@ showdown.subParser('makehtml.cmList', function (text, options, globals) {
         checked = !!taskMatch && taskMatch[1].trim() !== '',
         eventName = taskMatch ? 'makehtml.list.taskListItem' : 'makehtml.list.listItem',
         attributes = {},
-        matches = { _wholeMatch: rawItem, listItem: rawItem };
+        matches = { _wholeMatch: rawItem, text: rawItem };
 
     if (taskMatch) {
       matches._taskListButton = '[' + taskMatch[1] + ']';
@@ -257,14 +247,11 @@ showdown.subParser('makehtml.cmList', function (text, options, globals) {
       }
     }
 
-    let captureStartEvent = new showdown.Event(eventName + '.onCapture', rawItem);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setMatches(matches)
-      .setAttributes(attributes);
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+    let captureStartEvent = showdown.Event.dispatchCapture(eventName + '.onCapture', rawItem, {
+      regexp: null,
+      matches: matches,
+      attributes: attributes
+    }, options, globals);
 
     let rendered;
     // A listener may pass output, which takes precedence and is used verbatim as the item
@@ -275,9 +262,9 @@ showdown.subParser('makehtml.cmList', function (text, options, globals) {
       attributes = captureStartEvent.attributes;
       let liAttrs = showdown.helper._populateAttributes(attributes);
 
-      // honor a listener that rewrote the item's raw markdown via matches.listItem
-      if (captureStartEvent.matches.listItem !== rawItem) {
-        str = (captureStartEvent.matches.listItem + '\n').replace(/^\n+/, '');
+      // honor a listener that rewrote the item's raw markdown via matches.text
+      if (captureStartEvent.matches.text !== rawItem) {
+        str = (captureStartEvent.matches.text + '\n').replace(/^\n+/, '');
       }
 
       // Render the checkbox on the raw line, before any block/span parsing, so the
@@ -319,12 +306,7 @@ showdown.subParser('makehtml.cmList', function (text, options, globals) {
       }
     }
 
-    let beforeHashEvent = new showdown.Event(eventName + '.onHash', rendered);
-    beforeHashEvent
-      .setOutput(rendered)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash(eventName + '.onHash', rendered, options, globals);
     return beforeHashEvent.output;
   }
 
@@ -402,14 +384,11 @@ showdown.subParser('makehtml.cmList', function (text, options, globals) {
 
       // the raw source of this whole list block — payload for the list-level capture event
       let rawList = lines.slice(listStart, i).join('\n');
-      let listCapture = new showdown.Event('makehtml.list.onCapture', rawList);
-      listCapture
-        .setOutput(null)
-        ._setGlobals(globals)
-        ._setOptions(options)
-        .setMatches({ _wholeMatch: rawList, list: rawList })
-        .setAttributes({});
-      listCapture = globals.converter.dispatch(listCapture);
+      let listCapture = showdown.Event.dispatchCapture('makehtml.list.onCapture', rawList, {
+        regexp: null,
+        matches: { _wholeMatch: rawList, text: rawList },
+        attributes: {}
+      }, options, globals);
 
       let otp;
       // a listener may pass output, which takes precedence over rendering the items
@@ -427,12 +406,7 @@ showdown.subParser('makehtml.cmList', function (text, options, globals) {
         otp = '\n\n<' + type + showdown.helper._populateAttributes(attrs) + '>\n' + body + '</' + type + '>\n';
       }
 
-      let listHash = new showdown.Event('makehtml.list.onHash', otp);
-      listHash
-        .setOutput(otp)
-        ._setGlobals(globals)
-        ._setOptions(options);
-      listHash = globals.converter.dispatch(listHash);
+      let listHash = showdown.Event.dispatchHash('makehtml.list.onHash', otp, options, globals);
       otp = listHash.output;
 
       out.push(showdown.subParser('makehtml.hashBlock')(otp, options, globals));

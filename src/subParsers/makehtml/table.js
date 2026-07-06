@@ -8,12 +8,7 @@ showdown.subParser('makehtml.table', function (text, options, globals) {
   //
   // parser starts here
   //
-  let startEvent = new showdown.Event('makehtml.table.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.table.onStart', text, options, globals);
   text = startEvent.output;
 
   // GFM §4.10: a table is broken at the first line that begins another
@@ -46,12 +41,7 @@ showdown.subParser('makehtml.table', function (text, options, globals) {
     return parse(singeColTblRgx, table);
   });
 
-  let afterEvent = new showdown.Event('makehtml.table.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.table.onEnd', text, options, globals);
   return afterEvent.output;
 
 
@@ -96,25 +86,21 @@ showdown.subParser('makehtml.table', function (text, options, globals) {
     let cells = tab.rawCells;
 
     let otp;
-    let captureStartEvent = new showdown.Event('makehtml.table.onCapture', wholeMatch);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches({
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.table.onCapture', wholeMatch, {
+      regexp: pattern,
+      matches: {
         _wholeMatch: wholeMatch,
-        table: wholeMatch
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+        text: wholeMatch
+      },
+      attributes: {}
+    }, options, globals);
     if (captureStartEvent.output && captureStartEvent.output !== '') {
       // user provided an otp, so we use it
       otp = captureStartEvent.output;
     } else {
-      // user changed matches.table, so we need to generate headers, styles, and cells again
-      if (captureStartEvent.matches.table !== wholeMatch) {
-        tab = preParse(captureStartEvent.matches.table);
+      // user changed matches.text, so we need to generate headers, styles, and cells again
+      if (captureStartEvent.matches.text !== wholeMatch) {
+        tab = preParse(captureStartEvent.matches.text);
         // user passed a malformed table, so we bail
         if (!tab) {
           return wholeMatch;
@@ -128,12 +114,7 @@ showdown.subParser('makehtml.table', function (text, options, globals) {
       otp = buildTableOtp(parsedTab.headers, parsedTab.cells, attributes);
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.table.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.table.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
     return otp;
   }
@@ -237,30 +218,21 @@ showdown.subParser('makehtml.table', function (text, options, globals) {
 
     for (let i = 0; i < colCount; ++i) {
       let header;
-      let captureStartEvent = new showdown.Event('makehtml.table.header.onCapture', rawHeaders[i]);
-      captureStartEvent
-        .setOutput(null)
-        ._setGlobals(globals)
-        ._setOptions(options)
-        .setRegexp(null)
-        .setMatches({
+      let captureStartEvent = showdown.Event.dispatchCapture('makehtml.table.header.onCapture', rawHeaders[i], {
+        regexp: null,
+        matches: {
           _wholeMatch: rawHeaders[i],
-          header: rawHeaders[i]
-        })
-        .setAttributes(styles[i]);
-      captureStartEvent = globals.converter.dispatch(captureStartEvent);
+          text: rawHeaders[i]
+        },
+        attributes: styles[i]
+      }, options, globals);
       if (captureStartEvent.output && captureStartEvent.output !== '') {
         // user provided an otp, so we use it
         header = captureStartEvent.output;
       } else {
-        header = parseHeader(captureStartEvent.matches.header, styles[i]);
+        header = parseHeader(captureStartEvent.matches.text, styles[i]);
       }
-      let beforeHashEvent = new showdown.Event('makehtml.table.header.onHash', header);
-      beforeHashEvent
-        .setOutput(header)
-        ._setGlobals(globals)
-        ._setOptions(options);
-      beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+      let beforeHashEvent = showdown.Event.dispatchHash('makehtml.table.header.onHash', header, options, globals);
       header = beforeHashEvent.output;
 
       headers.push(header);
@@ -279,31 +251,22 @@ showdown.subParser('makehtml.table', function (text, options, globals) {
         }
 
 
-        let captureStartEvent = new showdown.Event('makehtml.table.cell.onCapture', cell);
-        captureStartEvent
-          .setOutput(null)
-          ._setGlobals(globals)
-          ._setOptions(options)
-          .setRegexp(null)
-          .setMatches({
+        let captureStartEvent = showdown.Event.dispatchCapture('makehtml.table.cell.onCapture', cell, {
+          regexp: null,
+          matches: {
             _wholeMatch: cell,
-            cell: cell
-          })
-          .setAttributes(attributes);
-        captureStartEvent = globals.converter.dispatch(captureStartEvent);
+            text: cell
+          },
+          attributes: attributes
+        }, options, globals);
         if (captureStartEvent.output && captureStartEvent.output !== '') {
           // user provided an otp, so we use it
           cell = captureStartEvent.output;
         } else {
           attributes = captureStartEvent.attributes;
-          cell = parseCell(captureStartEvent.matches.cell, attributes);
+          cell = parseCell(captureStartEvent.matches.text, attributes);
         }
-        let beforeHashEvent = new showdown.Event('makehtml.table.cell.onHash', cell);
-        beforeHashEvent
-          .setOutput(cell)
-          ._setGlobals(globals)
-          ._setOptions(options);
-        beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+        let beforeHashEvent = showdown.Event.dispatchHash('makehtml.table.cell.onHash', cell, options, globals);
         cell = beforeHashEvent.output;
 
         row.push(cell);

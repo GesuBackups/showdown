@@ -12,12 +12,7 @@
 ////
 showdown.subParser('makehtml.horizontalRule', function (text, options, globals) {
   'use strict';
-  let startEvent = new showdown.Event('makehtml.horizontalRule.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.horizontalRule.onStart', text, options, globals);
   text = startEvent.output;
 
 
@@ -79,12 +74,7 @@ showdown.subParser('makehtml.horizontalRule', function (text, options, globals) 
     return parse(rgx9, wholeMatch);
   });
 
-  let afterEvent = new showdown.Event('makehtml.horizontalRule.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.horizontalRule.onEnd', text, options, globals);
   return afterEvent.output;
 
   /**
@@ -108,17 +98,15 @@ showdown.subParser('makehtml.horizontalRule', function (text, options, globals) 
    */
   function parse (pattern, wholeMatch) {
     let otp;
-    let captureStartEvent = new showdown.Event('makehtml.horizontalRule.onCapture', wholeMatch);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches({
-        _whoteMatch: wholeMatch
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+    // a horizontal rule has no inner content, so matches carries only the read-only
+    // `_wholeMatch` context (no `text` key) - see the event contract.
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.horizontalRule.onCapture', wholeMatch, {
+      regexp: pattern,
+      matches: {
+        _wholeMatch: wholeMatch
+      },
+      attributes: {}
+    }, options, globals);
 
     // if something was passed as output, it takes precedence
     // and will be used as output
@@ -128,12 +116,7 @@ showdown.subParser('makehtml.horizontalRule', function (text, options, globals) 
       otp = '<hr' + showdown.helper._populateAttributes(captureStartEvent.attributes) + ' />';
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.horizontalRule.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.horizontalRule.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
     otp = showdown.subParser('makehtml.hashBlock')(otp, options, globals);
     return otp;

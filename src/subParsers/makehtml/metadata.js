@@ -8,12 +8,7 @@ showdown.subParser('makehtml.metadata', function (text, options, globals) {
     return text;
   }
 
-  let startEvent = new showdown.Event('makehtml.metadata.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.metadata.onStart', text, options, globals);
   text = startEvent.output;
 
   /**
@@ -25,22 +20,20 @@ showdown.subParser('makehtml.metadata', function (text, options, globals) {
    */
   function parseMetadataContents (pattern, wholeMatch, format, content) {
     let otp;
-    let captureStartEvent = new showdown.Event('makehtml.metadata.onCapture', content);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches({
+    // the metadata block's body is the main captured content (`text`); the format tag
+    // (`yaml`, `toml`, …) is a descriptive extra.
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.metadata.onCapture', content, {
+      regexp: pattern,
+      matches: {
         _wholeMatch: wholeMatch,
         format: format,
-        content: content
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+        text: content
+      },
+      attributes: {}
+    }, options, globals);
 
     format = captureStartEvent.matches.format;
-    content = captureStartEvent.matches.content;
+    content = captureStartEvent.matches.text;
 
     // if something was passed as output, it will be used as output
     if (captureStartEvent.output && captureStartEvent.output !== '') {
@@ -64,12 +57,7 @@ showdown.subParser('makehtml.metadata', function (text, options, globals) {
       globals.metadata.parsed[key] = value;
       return '';
     });
-    let beforeHashEvent = new showdown.Event('makehtml.metadata.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.metadata.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
     if (!otp) {
       otp = '¨M';
@@ -89,11 +77,6 @@ showdown.subParser('makehtml.metadata', function (text, options, globals) {
     return parseMetadataContents(rgx2, wholeMatch, format, content);
   });
   text = text.replace(/¨M/g, '');
-  let afterEvent = new showdown.Event('makehtml.metadata.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.metadata.onEnd', text, options, globals);
   return afterEvent.output;
 });

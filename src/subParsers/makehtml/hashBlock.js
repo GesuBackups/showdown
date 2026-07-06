@@ -10,22 +10,12 @@
 
 showdown.subParser('makehtml.hashBlock', function (text, options, globals) {
   'use strict';
-  let startEvent = new showdown.Event('makehtml.hashBlock.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.hashBlock.onStart', text, options, globals);
   text = startEvent.output;
 
   text = text.replace(/(^\n+|\n+$)/g, '');
   text = '\n\n¨K' + (globals.gHtmlBlocks.push(text) - 1) + 'K\n\n';
 
-  let afterEvent = new showdown.Event('makehtml.hashBlock.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.hashBlock.onEnd', text, options, globals);
   return afterEvent.output;
 });

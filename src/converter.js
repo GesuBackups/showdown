@@ -309,13 +309,7 @@ showdown.Converter = function (converterOptions) {
     // document level onStart event, emitted with the raw markdown before any escaping or
     // normalization. Listeners here see literal `$`/`¨` (unlike onPreParse, which runs after
     // escaping) and can rewrite the source wholesale.
-    let startEvent = new showdown.Event('makehtml.onStart', text);
-    startEvent
-      .setOutput(text)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    startEvent = this.dispatch(startEvent);
-    text = startEvent.output;
+    text = showdown.Event.dispatchStart('makehtml.onStart', text, options, globals).output;
 
     // Hide literal ¨ and $ behind the ¨T/¨D sentinels: ¨ is showdown's escape marker and
     // a bare $ is special in RegExp replacement strings. Restored at the end of makeHtml.
@@ -350,13 +344,7 @@ showdown.Converter = function (converterOptions) {
     // document level onPreParse event, emitted after escaping/normalization and immediately
     // before the subparsers run. This is where `lang` extensions are invoked (as listeners).
     // Input here contains the `¨D`/`¨T` placeholders for escaped `$`/`¨`.
-    let preParseEvent = new showdown.Event('makehtml.onPreParse', text);
-    preParseEvent
-      .setOutput(text)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    preParseEvent = this.dispatch(preParseEvent);
-    text = preParseEvent.output;
+    text = showdown.Event.dispatchStart('makehtml.onPreParse', text, options, globals).output;
 
     // run the sub parsers
     text = showdown.subParser('makehtml.metadata')(text, options, globals);
@@ -409,13 +397,7 @@ showdown.Converter = function (converterOptions) {
 
     // document level onEnd event, emitted with the final HTML. This is where `output`
     // extensions are invoked (as listeners) and where listeners can post-process the output.
-    let endEvent = new showdown.Event('makehtml.onEnd', text);
-    endEvent
-      .setOutput(text)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    endEvent = this.dispatch(endEvent);
-    text = endEvent.output;
+    text = showdown.Event.dispatchEnd('makehtml.onEnd', text, options, globals).output;
 
     // update metadata
     metadata = globals.metadata;
@@ -433,13 +415,10 @@ showdown.Converter = function (converterOptions) {
     src = src.replace(/\r\n/g, '\n');
     src = src.replace(/\r/g, '\n'); // old macs
 
-    // document level onStart event (lets listeners rewrite the raw html before parsing)
-    let mdStartEvent = new showdown.Event('makeMarkdown.onStart', src);
-    mdStartEvent
-      .setOutput(src)
-      ._setOptions(options);
-    mdStartEvent = this.dispatch(mdStartEvent);
-    src = mdStartEvent.output;
+    // document level onStart event (lets listeners rewrite the raw html before parsing).
+    // The per-document globals are not built yet, so a minimal `{converter: this}` is
+    // passed to the lifecycle helper (it dispatches via globals.converter).
+    src = showdown.Event.dispatchStart('makeMarkdown.onStart', src, options, { converter: this }).output;
 
     // due to an edge case, we need to find this: > <
     // to prevent removing of non silent white spaces
@@ -525,13 +504,7 @@ showdown.Converter = function (converterOptions) {
     }
 
     // document level onEnd event (lets listeners post-process the generated markdown)
-    let mdEndEvent = new showdown.Event('makeMarkdown.onEnd', mdDoc);
-    mdEndEvent
-      .setOutput(mdDoc)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    mdEndEvent = this.dispatch(mdEndEvent);
-    mdDoc = mdEndEvent.output;
+    mdDoc = showdown.Event.dispatchEnd('makeMarkdown.onEnd', mdDoc, options, globals).output;
 
     return mdDoc;
   };

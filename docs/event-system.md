@@ -30,15 +30,19 @@ In short, the event system lifecycle looks as follows:
 
 #### matches
 
-**matches** is an object that holds the text captured by the sub-parser. The properties of this object are different for each sub-parser.
-Some properties can be read-only: their names start with `_` (underscore).
+**matches** is an object that holds the content captured by the sub-parser. The main captured
+content is always exposed under the **`text`** property (for every construct that has inner
+content); construct-specific extras use descriptive names (`url`, `title`, `format`, `level`, …).
+Properties whose names start with `_` (underscore) are read-only context — mutating them has no
+effect. A few constructs with no inner content (e.g. `horizontalRule`, `stripLinkDefinitions`)
+omit `text` entirely.
 
 !!! example "blockquote `onCapture` event"
 
     ```js
     {
       _wholeMatch: "> some awesome quote",
-      blockquote: "some awesome quote"
+      text: "some awesome quote"
     }
     ```
 
@@ -120,14 +124,14 @@ Might not be run if no regex match found.
         function extension_1 (showdownEvent) {
           // Let's imagine you're a bad person who writes to output
           showdownEvent.output = '<blockquote>foo</blockquote>'; // must be a well-formed HTML
-          showdownEvent.matches.blockquote = 'some nice quote'; 
+          showdownEvent.matches.text = 'some nice quote'; 
         }
 
         // Showdown extension 2 that is also listening to makehtml.blockquote.onCapture
         function extension_2 (showdownEvent) {
           // I make blockquotes bold
-          let quote = showdownEvent.matches.blockquote;
-          showdownEvent.matches.blockquote = '<strong>' + quote + '</strong>'; 
+          let quote = showdownEvent.matches.text;
+          showdownEvent.matches.text = '<strong>' + quote + '</strong>'; 
         }
         ```
 
@@ -195,9 +199,9 @@ Might not be run if no regex match found.
     ```js
     {
       _wholeMatch: "[ ] buy milk",   // the matched source line
-      _taskListButton: "[ ]",         // the literal marker
-      _taskListButtonChecked: " ",    // the marker char: " ", "x" or "X"
-      _taskListItemText: " buy milk"  // everything after the marker (write to relabel)
+      _taskListButton: "[ ]",         // the literal marker (read-only)
+      _taskListButtonChecked: " ",    // the marker char: " ", "x" or "X" (read-only)
+      text: " buy milk"               // everything after the marker (write to relabel)
     }
     ```
 

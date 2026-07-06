@@ -3,21 +3,11 @@
  */
 showdown.subParser('makehtml.unescapeSpecialChars', function (text, options, globals) {
   'use strict';
-  let startEvent = new showdown.Event('makehtml.unescapeSpecialChars.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.unescapeSpecialChars.onStart', text, options, globals);
   text = startEvent.output;
 
   text = showdown.helper.unescapePlaceholders(text);
 
-  let afterEvent = new showdown.Event('makehtml.unescapeSpecialChars.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.unescapeSpecialChars.onEnd', text, options, globals);
   return afterEvent.output;
 });

@@ -12,12 +12,7 @@
 showdown.subParser('makehtml.image', function (text, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makehtml.image.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.image.onStart', text, options, globals);
   text = startEvent.output;
 
   let inlineRegExp      = /!\[([^\]]*?)][ \t]*\([ \t]?<?(\S+?(?:\(\S{0,200}?\)\S{0,200}?)?)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*(?:(["'])([^"]*?)\5)?[ \t]?\)/g,
@@ -69,12 +64,7 @@ showdown.subParser('makehtml.image', function (text, options, globals) {
     });
   }
 
-  let afterEvent = new showdown.Event('makehtml.image.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.image.onEnd', text, options, globals);
   return afterEvent.output;
 
 
@@ -98,7 +88,9 @@ showdown.subParser('makehtml.image', function (text, options, globals) {
         gDims    = globals.gDimensions,
         matches = {
           _wholeMatch: wholeMatch,
-          _altText: altText,
+          // the alt text is an image's main captured content, so it lives under `text`
+          // (mutable + honored below); the resolved src/title/etc travel in attributes
+          text: altText,
           _linkId: linkId,
           _url: url,
           _width: width,
@@ -195,37 +187,34 @@ showdown.subParser('makehtml.image', function (text, options, globals) {
       height = null;
     }
 
-    let captureStartEvent = new showdown.Event('makehtml.image.' + subEvtName + '.onCapture', wholeMatch);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches(matches)
-      .setAttributes({
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.image.' + subEvtName + '.onCapture', wholeMatch, {
+      regexp: pattern,
+      matches: matches,
+      attributes: {
         src: url,
         alt: altText,
         title: title,
         width: width,
         height: height
-      });
-
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+      }
+    }, options, globals);
     // if something was passed as output, it takes precedence
     // and will be used as output
     if (captureStartEvent.output && captureStartEvent.output !== '') {
       otp = captureStartEvent.output;
     } else {
       attributes = captureStartEvent.attributes;
+      // honor a listener that rewrote the alt text via matches.text (the default `alt`
+      // attribute was already escaped above; re-escape only the listener's replacement)
+      if (captureStartEvent.matches.text !== matches.text) {
+        attributes.alt = captureStartEvent.matches.text
+          .replace(/"/g, '&quot;')
+          .replace(showdown.helper.regexes.asteriskDashTildeAndColon, showdown.helper.escapeCharactersCallback);
+      }
       otp = '<img' + showdown.helper._populateAttributes(attributes) + ' />';
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.image.' + subEvtName + '.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.image.' + subEvtName + '.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
 
     return otp;

@@ -11,12 +11,7 @@
 
 showdown.subParser('makehtml.hashHTMLBlocks', function (text, options, globals, sourceMode) {
   'use strict';
-  let startEvent = new showdown.Event('makehtml.hashHTMLBlocks.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.hashHTMLBlocks.onStart', text, options, globals);
   text = startEvent.output;
 
   let blockTags = [
@@ -80,12 +75,7 @@ showdown.subParser('makehtml.hashHTMLBlocks', function (text, options, globals, 
   if (options.cmSpec && sourceMode) {
     text = parseCmHTMLBlocks(text);
 
-    let cmAfterEvent = new showdown.Event('makehtml.hashHTMLBlocks.onEnd', text);
-    cmAfterEvent
-      .setOutput(text)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    cmAfterEvent = globals.converter.dispatch(cmAfterEvent);
+    let cmAfterEvent = showdown.Event.dispatchEnd('makehtml.hashHTMLBlocks.onEnd', text, options, globals);
     return cmAfterEvent.output;
   }
 
@@ -130,12 +120,7 @@ showdown.subParser('makehtml.hashHTMLBlocks', function (text, options, globals, 
   text = text.replace(/\n\n( {0,3}<([?%])[^\r]*?\2>[ \t]*(?=\n{2,}))/g,
     showdown.subParser('makehtml.hashElement')(text, options, globals));
 
-  let afterEvent = new showdown.Event('makehtml.hashHTMLBlocks.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.hashHTMLBlocks.onEnd', text, options, globals);
   return afterEvent.output;
 
   /**

@@ -23,12 +23,7 @@ showdown.subParser('makehtml.disallowedHtmlTags', function (text, options, globa
     return text;
   }
 
-  let startEvent = new showdown.Event('makehtml.disallowedHtmlTags.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.disallowedHtmlTags.onStart', text, options, globals);
   text = startEvent.output;
 
   // Run over the (near final) output: Showdown never generates these tags from Markdown
@@ -79,11 +74,6 @@ showdown.subParser('makehtml.disallowedHtmlTags', function (text, options, globa
     });
   }
 
-  let afterEvent = new showdown.Event('makehtml.disallowedHtmlTags.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.disallowedHtmlTags.onEnd', text, options, globals);
   return afterEvent.output;
 });

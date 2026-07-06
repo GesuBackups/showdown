@@ -11,12 +11,7 @@
 showdown.subParser('makehtml.hardLineBreaks', function (text, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makehtml.hardLineBreaks.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.hardLineBreaks.onStart', text, options, globals);
   text = startEvent.output;
 
   // Do hard breaks
@@ -32,12 +27,7 @@ showdown.subParser('makehtml.hardLineBreaks', function (text, options, globals) 
   }
   text = text.replace(/\\\n/g, '<br />\n');
 
-  let afterEvent = new showdown.Event('makehtml.hardLineBreaks.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.hardLineBreaks.onEnd', text, options, globals);
   return afterEvent.output;
 
 });

@@ -11,12 +11,7 @@
 
 showdown.subParser('makehtml.unhashHTMLSpans', function (text, options, globals) {
   'use strict';
-  let startEvent = new showdown.Event('makehtml.unhashHTMLSpans.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.unhashHTMLSpans.onStart', text, options, globals);
   text = startEvent.output;
 
   // Resolve one span placeholder to its stored HTML, expanding any nested placeholders it
@@ -42,11 +37,6 @@ showdown.subParser('makehtml.unhashHTMLSpans', function (text, options, globals)
     return resolveSpan(num);
   });
 
-  let afterEvent = new showdown.Event('makehtml.unhashHTMLSpans.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.unhashHTMLSpans.onEnd', text, options, globals);
   return afterEvent.output;
 });

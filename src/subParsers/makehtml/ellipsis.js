@@ -16,52 +16,35 @@ showdown.subParser('makehtml.ellipsis', function (text, options, globals) {
     return text;
   }
 
-  let startEvent = new showdown.Event('makehtml.ellipsis.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.ellipsis.onStart', text, options, globals);
   text = startEvent.output;
 
   const ellipsisRegex = /\.\.\./g;
   text = text.replace(ellipsisRegex, function (wholeMatch) {
 
     let otp;
-    let captureStartEvent = new showdown.Event('makehtml.ellipsis.onCapture', wholeMatch);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(ellipsisRegex)
-      .setMatches({
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.ellipsis.onCapture', wholeMatch, {
+      regexp: ellipsisRegex,
+      matches: {
         _wholeMatch: wholeMatch,
-        ellipsis: wholeMatch
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+        text: wholeMatch
+      },
+      attributes: {}
+    }, options, globals);
     // if something was passed as output, it takes precedence
     // and will be used as output
     if (captureStartEvent.output && captureStartEvent.output !== '') {
       otp = captureStartEvent.output;
     } else {
-      otp = '…';
+      // honor a listener that rewrote matches.text: the ellipsis substitution is applied
+      // to the (possibly edited) captured text, so the default `...` still yields `…`.
+      otp = captureStartEvent.matches.text.replace(/\.\.\./g, '…');
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.ellipsis.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.ellipsis.onHash', otp, options, globals);
     return beforeHashEvent.output;
   });
 
-  let afterEvent = new showdown.Event('makehtml.ellipsis.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.ellipsis.onEnd', text, options, globals);
   return afterEvent.output;
 });

@@ -9,30 +9,14 @@
 ////
 
 
-showdown.subParser('makehtml.hashPreCodeTags', function (text, options, globals) {
-  'use strict';
-  let startEvent = new showdown.Event('makehtml.hashPreCodeTags.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
-  text = startEvent.output;
-
-  let repFunc = function (wholeMatch, match, left, right) {
-    // encode html entities
-    let codeblock = left + showdown.subParser('makehtml.encodeCode')(match, options, globals) + right;
+// Registered through the shared makeHashCodeTagsSubParser factory (defined in
+// hashCodeTags.js): the <pre><code> variant differs only in the event namespace, the
+// open/close patterns and storing each block in ghCodeBlocks (as githubCodeBlock does).
+showdown.subParser('makehtml.hashPreCodeTags', makeHashCodeTagsSubParser(
+  'hashPreCodeTags',
+  '^ {0,3}<pre\\b[^>]*>\\s*<code\\b[^>]*>',
+  '^ {0,3}</code>\\s*</pre>',
+  function (wholeMatch, codeblock, globals) {
     return '\n\n¨G' + (globals.ghCodeBlocks.push({text: wholeMatch, codeblock: codeblock}) - 1) + 'G\n\n';
-  };
-
-  // Hash <pre><code>
-  text = showdown.helper.replaceRecursiveRegExp(text, repFunc, '^ {0,3}<pre\\b[^>]*>\\s*<code\\b[^>]*>', '^ {0,3}</code>\\s*</pre>', 'gim');
-
-  let afterEvent = new showdown.Event('makehtml.hashPreCodeTags.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
-  return afterEvent.output;
-});
+  }
+));

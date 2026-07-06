@@ -27,12 +27,7 @@ showdown.subParser('makehtml.list', function (text, options, globals) {
     return showdown.subParser('makehtml.cmList')(text, options, globals);
   }
 
-  let startEvent = new showdown.Event('makehtml.list.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.list.onStart', text, options, globals);
   text = startEvent.output;
 
   // add sentinel to hack around khtml/safari bug:
@@ -52,12 +47,7 @@ showdown.subParser('makehtml.list', function (text, options, globals) {
   // strip sentinel
   text = text.replace(/¨0/, '');
 
-  let afterEvent = new showdown.Event('makehtml.list.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.list.onEnd', text, options, globals);
   return afterEvent.output;
 
   /**
@@ -115,7 +105,7 @@ showdown.subParser('makehtml.list', function (text, options, globals) {
           captureStartEvent,
           matches = {
             _wholeMatch: wholeMatch,
-            listItem: item,
+            text: item,
           };
 
 
@@ -139,15 +129,11 @@ showdown.subParser('makehtml.list', function (text, options, globals) {
       }
 
 
-      captureStartEvent = new showdown.Event(eventName + '.onCapture', item);
-      captureStartEvent
-        .setOutput(null)
-        ._setGlobals(globals)
-        ._setOptions(options)
-        .setRegexp(rgx)
-        .setMatches(matches)
-        .setAttributes(attributes);
-      captureStartEvent = globals.converter.dispatch(captureStartEvent);
+      captureStartEvent = showdown.Event.dispatchCapture(eventName + '.onCapture', item, {
+        regexp: rgx,
+        matches: matches,
+        attributes: attributes
+      }, options, globals);
 
       // if something was passed as output, it takes precedence
       // and will be used as output
@@ -156,7 +142,7 @@ showdown.subParser('makehtml.list', function (text, options, globals) {
       } else {
 
         attributes = captureStartEvent.attributes;
-        item = captureStartEvent.matches.listItem;
+        item = captureStartEvent.matches.text;
 
         // even if user there's no tasklist, it's fine because the tasklist handler will bail without raising the event
         if (options.tasklists) {
@@ -257,12 +243,7 @@ showdown.subParser('makehtml.list', function (text, options, globals) {
 
       }
 
-      let beforeHashEvent = new showdown.Event(eventName + '.onHash', item);
-      beforeHashEvent
-        .setOutput(item)
-        ._setGlobals(globals)
-        ._setOptions(options);
-      beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+      let beforeHashEvent = showdown.Event.dispatchHash(eventName + '.onHash', item, options, globals);
       return beforeHashEvent.output;
     });
 
@@ -305,24 +286,22 @@ showdown.subParser('makehtml.list', function (text, options, globals) {
    */
   function parseConsecutiveLists (pattern, list, listType, trimTrailing) {
     let otp = '';
-    let captureStartEvent = new showdown.Event('makehtml.list.onCapture', list);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches({
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.list.onCapture', list, {
+      regexp: pattern,
+      matches: {
         _wholeMatch: list,
-        list: list
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+        text: list
+      },
+      attributes: {}
+    }, options, globals);
     let attributes = captureStartEvent.attributes;
     // if something was passed as output, it takes precedence
     // and will be used as output
     if (captureStartEvent.output && captureStartEvent.output !== '') {
       otp = captureStartEvent.output;
     } else {
+      // honor a listener that rewrote the list's raw markdown via matches.text
+      list = captureStartEvent.matches.text;
 
       // check if we caught 2 or more consecutive lists by mistake
       // we use the counterRgx, meaning if listType is UL we look for OL and vice versa
@@ -358,12 +337,7 @@ showdown.subParser('makehtml.list', function (text, options, globals) {
       }
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.list.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.list.onHash', otp, options, globals);
     return beforeHashEvent.output;
   }
 });

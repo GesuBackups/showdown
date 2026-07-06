@@ -5,12 +5,7 @@ showdown.subParser('makehtml.underline', function (text, options, globals) {
     return text;
   }
 
-  let startEvent = new showdown.Event('makehtml.underline.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.underline.onStart', text, options, globals);
   text = startEvent.output;
 
   // Resolve an escaped underscore (`\_`) to its escape placeholder, consuming the
@@ -52,44 +47,30 @@ showdown.subParser('makehtml.underline', function (text, options, globals) {
   // escape remaining underscores to prevent them being parsed by italic and bold
   text = text.replace(/(_)/g, showdown.helper.escapeCharactersCallback);
 
-  let afterEvent = new showdown.Event('makehtml.underline.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.underline.onEnd', text, options, globals);
   return afterEvent.output;
 
 
   function parse (pattern, wholeMatch, txt) {
     let otp;
-    let captureStartEvent = new showdown.Event('makehtml.underline.onCapture', txt);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches({
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.underline.onCapture', txt, {
+      regexp: pattern,
+      matches: {
         _wholeMatch: wholeMatch,
-        underline: txt
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+        text: txt
+      },
+      attributes: {}
+    }, options, globals);
     // if something was passed as output, it takes precedence
     // and will be used as output
     if (captureStartEvent.output && captureStartEvent.output !== '') {
       otp = captureStartEvent.output;
     } else {
       otp = '<u' + showdown.helper._populateAttributes(captureStartEvent.attributes) + '>' +
-        showdown.subParser('makehtml.hardLineBreaks')(txt, options, globals) +
+        showdown.subParser('makehtml.hardLineBreaks')(captureStartEvent.matches.text, options, globals) +
         '</u>';
     }
-    let beforeHashEvent = new showdown.Event('makehtml.underline.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.underline.onHash', otp, options, globals);
     return beforeHashEvent.output;
   }
 
