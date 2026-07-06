@@ -8,11 +8,10 @@
 // - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
 ////
 
-
-showdown.subParser('makehtml.hashHTMLSpans', function (text, options, globals) {
+// Mechanism (not a construct): hash plumbing. Attached as a showdown.helper
+// (no events) rather than registered as a subparser.
+showdown.helper.hashHTMLSpans = function (text, options, globals) {
   'use strict';
-  let startEvent = showdown.Event.dispatchStart('makehtml.hashHTMLSpans.onStart', text, options, globals);
-  text = startEvent.output;
 
   // NOTE: the self-closing character classes exclude `<` (`[^<>]` rather than `[^>]`) so a scan
   // for a tag's `>` can never run across the start of the *next* `<`. This keeps matching linear
@@ -83,6 +82,5 @@ showdown.subParser('makehtml.hashHTMLSpans', function (text, options, globals) {
     return out;
   }
 
-  let afterEvent = showdown.Event.dispatchEnd('makehtml.hashHTMLSpans.onEnd', text, options, globals);
-  return afterEvent.output;
-});
+  return text;
+};

@@ -9,14 +9,13 @@
 // - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
 ////
 
-
+// Dispatcher (not a construct): it matches nothing itself, only routes text through the
+// block-level subparsers, so it emits no events (the document-level makehtml.onStart /
+// onPreParse / onEnd cover whole-text hooks).
 showdown.subParser('makehtml.blockGamut', function (text, options, globals, skip) {
   'use strict';
 
   skip = skip || false;
-
-  let startEvent = showdown.Event.dispatchStart('makehtml.blockGamut.onStart', text, options, globals);
-  text = startEvent.output;
 
   if (skip !== 'makehtml.heading.setext') {
     text = showdown.subParser('makehtml.heading.setext')(text, options, globals);
@@ -54,8 +53,7 @@ showdown.subParser('makehtml.blockGamut', function (text, options, globals, skip
   // was to escape raw HTML in the original Markdown source. This time,
   // we're escaping the markup we've just created, so that we don't wrap
   // <p> tags around block-level tags.
-  text = showdown.subParser('makehtml.hashHTMLBlocks')(text, options, globals);
+  text = showdown.helper.hashHTMLBlocks(text, options, globals);
 
-  let afterEvent = showdown.Event.dispatchEnd('makehtml.blockGamut.onEnd', text, options, globals);
-  return afterEvent.output;
+  return text;
 });

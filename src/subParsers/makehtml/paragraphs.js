@@ -25,10 +25,28 @@ showdown.subParser('makehtml.paragraphs', function (text, options, globals) {
     // test for presence of characters to prevent empty lines being parsed
     // as paragraphs (resulting in undesired extra empty paragraphs)
     } else if (str.search(/\S/) >= 0) {
-      str = showdown.subParser('makehtml.spanGamut')(str, options, globals);
-      str = str.replace(/^([ \t]*)/g, '<p>');
-      str += '</p>';
-      grafsOut.push(str);
+      // per-paragraph capture: the graf's Markdown is the main content (`text`, mutable +
+      // honored); `attributes` are applied to the generated `<p>`. A line-based split, so
+      // regexp is null (a legal value per the event contract). A listener may override output.
+      let otp;
+      let captureStartEvent = showdown.Event.dispatchCapture('makehtml.paragraphs.onCapture', str, {
+        regexp: null,
+        matches: {
+          _wholeMatch: str,
+          text: str
+        },
+        attributes: {}
+      }, options, globals);
+      if (captureStartEvent.output && captureStartEvent.output !== '') {
+        otp = captureStartEvent.output;
+      } else {
+        let graf = showdown.subParser('makehtml.spanGamut')(captureStartEvent.matches.text, options, globals);
+        graf = graf.replace(/^([ \t]*)/g, '<p' + showdown.helper._populateAttributes(captureStartEvent.attributes) + '>');
+        graf += '</p>';
+        otp = graf;
+      }
+      let beforeHashEvent = showdown.Event.dispatchHash('makehtml.paragraphs.onHash', otp, options, globals);
+      grafsOut.push(beforeHashEvent.output);
     }
   }
 
@@ -50,7 +68,7 @@ showdown.subParser('makehtml.paragraphs', function (text, options, globals) {
         // we need to check if ghBlock is a false positive
         if (codeFlag) {
           // use encoded version of all text
-          blockText = showdown.subParser('makehtml.encodeCode')(globals.ghCodeBlocks[num].text, options, globals);
+          blockText = showdown.helper.encodeCode(globals.ghCodeBlocks[num].text, options, globals);
         } else {
           blockText = globals.ghCodeBlocks[num].codeblock;
         }

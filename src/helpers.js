@@ -204,7 +204,7 @@ showdown.helper.escapeCharactersCallback = escapeCharactersCallback;
 // --- Internal escape-placeholder scheme (single source of truth) ------------------------
 // A protected character X (e.g. a backslash-escaped punctuation mark) is stored as the
 // placeholder `¨E<charCode>E` so later passes don't treat it as markup; it is restored to
-// the literal character at the end of the pipeline (makehtml.unescapeSpecialChars) or
+// the literal character at the end of the pipeline (showdown.helper.unescapePlaceholders) or
 // wherever a bare/backslashed form is needed.
 
 /**

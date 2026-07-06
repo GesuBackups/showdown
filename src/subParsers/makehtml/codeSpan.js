@@ -67,13 +67,13 @@ showdown.subParser('makehtml.codeSpan', function (text, options, globals) {
       otp = m1 + captureStartEvent.output;
     } else {
       c = captureStartEvent.matches.text;
-      c = showdown.subParser('makehtml.encodeCode')(c, options, globals);
+      c = showdown.helper.encodeCode(c, options, globals);
       otp = m1 + '<code' + showdown.helper._populateAttributes(attributes) + '>' +  c + '</code>';
     }
 
     let beforeHashEvent = showdown.Event.dispatchHash('makehtml.codeSpan.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
-    return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
+    return showdown.helper.hashHTMLSpans(otp, options, globals);
   });
 
   let afterEvent = showdown.Event.dispatchEnd('makehtml.codeSpan.onEnd', text, options, globals);

@@ -45,7 +45,7 @@ showdown.subParser('makehtml.codeBlock', function (text, options, globals) {
     } else {
       codeblock = captureStartEvent.matches.text;
       codeblock = showdown.helper.outdent(codeblock);
-      codeblock = showdown.subParser('makehtml.encodeCode')(codeblock, options, globals);
+      codeblock = showdown.helper.encodeCode(codeblock, options, globals);
       //codeblock = showdown.subParser('makehtml.detab')(codeblock, options, globals);
       codeblock = codeblock.replace(/^\n+/g, ''); // trim leading newlines
       codeblock = codeblock.replace(/\n+$/g, ''); // trim trailing newlines
@@ -64,7 +64,7 @@ showdown.subParser('makehtml.codeBlock', function (text, options, globals) {
 
     let beforeHashEvent = showdown.Event.dispatchHash('makehtml.codeBlock.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
-    return showdown.subParser('makehtml.hashBlock')(otp, options, globals) + nextChar;
+    return showdown.helper.hashBlock(otp, options, globals) + nextChar;
   });
 
   // strip sentinel

@@ -32,6 +32,11 @@ showdown.subParser('makehtml.list.taskListItem.checkbox', function (text, option
     return text;
   }
 
+  // Registered subparser ⇒ it emits the lifecycle events (onStart/onEnd) in addition to the
+  // per-checkbox onCapture/onHash below.
+  let startEvent = showdown.Event.dispatchStart('makehtml.list.taskListItem.checkbox.onStart', text, options, globals);
+  text = startEvent.output;
+
   // Match the marker and the remainder of its (first) line. The text is captured so
   // the events expose the full line, not just the checkbox; everything after the line
   // is left untouched for the caller's block/span parsing.
@@ -39,7 +44,7 @@ showdown.subParser('makehtml.list.taskListItem.checkbox', function (text, option
   // Per GFM the marker must be followed by at least one space/tab to be a task: a bare
   // `[ ]` (nothing after) or `[ ]x` (no whitespace) is left literal, matching cmark-gfm.
   const taskItemRgx = /^([ \t]*)\[([xX ])](?=[ \t])([^\n]*)/;
-  return text.replace(taskItemRgx, function (wm, prefix, checkedRaw, lineText) {
+  text = text.replace(taskItemRgx, function (wm, prefix, checkedRaw, lineText) {
     let checked = checkedRaw.trim() !== '';
 
     // GFM spec output is a bare `<input disabled type="checkbox">` (checked items add a
@@ -81,4 +86,7 @@ showdown.subParser('makehtml.list.taskListItem.checkbox', function (text, option
     let beforeHashEvent = showdown.Event.dispatchHash('makehtml.list.taskListItem.checkbox.onHash', otp, options, globals);
     return beforeHashEvent.output;
   });
+
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.list.taskListItem.checkbox.onEnd', text, options, globals);
+  return afterEvent.output;
 });

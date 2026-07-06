@@ -17,12 +17,10 @@
 // - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
 ////
 
-
-showdown.subParser('makehtml.encodeBackslashEscapes', function (text, options, globals) {
+// Mechanism (not a construct): a character-level encoding pass. Attached as a
+// showdown.helper (no events) rather than registered as a subparser.
+showdown.helper.encodeBackslashEscapes = function (text) {
   'use strict';
-
-  let startEvent = showdown.Event.dispatchStart('makehtml.encodeBackslashEscapes.onStart', text, options, globals);
-  text = startEvent.output;
 
   text = text
     .replace(/\\(\\)/g, showdown.helper.escapeCharactersCallback)
@@ -33,6 +31,5 @@ showdown.subParser('makehtml.encodeBackslashEscapes', function (text, options, g
     .replace(/\\</g, '&lt;') // escaping <
     .replace(/\\>/g, '&gt;'); // escaping >
 
-  let afterEvent = showdown.Event.dispatchEnd('makehtml.encodeBackslashEscapes.onEnd', text, options, globals);
-  return afterEvent.output;
-});
+  return text;
+};

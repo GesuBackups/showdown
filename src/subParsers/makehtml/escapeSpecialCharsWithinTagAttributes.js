@@ -9,12 +9,10 @@
 // - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
 ////
 
-
-showdown.subParser('makehtml.escapeSpecialCharsWithinTagAttributes', function (text, options, globals) {
+// Mechanism (not a construct): a character-level escaping pass. Attached as a
+// showdown.helper (no events) rather than registered as a subparser.
+showdown.helper.escapeSpecialCharsWithinTagAttributes = function (text, options) {
   'use strict';
-
-  let startEvent = showdown.Event.dispatchStart('makehtml.escapeSpecialCharsWithinTagAttributes.onStart', text, options, globals);
-  text = startEvent.output;
 
   // In CommonMark raw-HTML mode this escaping is skipped: inline raw HTML is instead
   // recognized with the strict grammar and hashed in spanGamut (makehtml.hashCmRawHTML),
@@ -37,6 +35,5 @@ showdown.subParser('makehtml.escapeSpecialCharsWithinTagAttributes', function (t
     });
   }
 
-  let afterEvent = showdown.Event.dispatchEnd('makehtml.escapeSpecialCharsWithinTagAttributes.onEnd', text, options, globals);
-  return afterEvent.output;
-});
+  return text;
+};

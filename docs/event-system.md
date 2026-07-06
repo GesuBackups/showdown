@@ -24,6 +24,34 @@ In short, the event system lifecycle looks as follows:
 5. The converter passes the received event object to the next extension in the chain.
 
 
+## Sub-parser taxonomy: constructs vs. mechanisms
+
+Not every function in the conversion pipeline emits events. The registry distinguishes two
+kinds of pass:
+
+* **Constructs** — a pass that recognizes a piece of Markdown syntax and produces output
+  (headings, lists, links, emphasis, code, tables, footnotes, …). Constructs are registered
+  sub-parsers and emit the full event set: `onStart`/`onEnd` always, plus `onCapture`/`onHash`
+  per match (for constructs that match discrete pieces). These are the events listener
+  extensions hook.
+* **Mechanisms** — internal plumbing that has no syntax of its own: the character-level
+  encoders (`encodeCode`, `encodeAmpsAndAngles`, `encodeBackslashEscapes`,
+  `escapeSpecialCharsWithinTagAttributes`), the hash/unhash helpers (`hashBlock`,
+  `hashHTMLBlocks`, `hashHTMLSpans`, `hashCodeTags`, `hashPreCodeTags`, `unhashHTMLSpans`,
+  `unescapeSpecialChars`) and the heading-id generator. These are plain `showdown.helper.*`
+  functions and emit **no events**.
+
+Two further passes emit no events even though they are registered sub-parsers:
+
+* the inline/block **dispatchers** `spanGamut` and `blockGamut` — they only route text through
+  the constructs above and match nothing themselves (the document-level events below cover
+  whole-text hooks);
+* **`decodeEntities`** — its output is bare characters, so per-entity events would be noise.
+
+The one deliberate exception to "mechanisms have no events": **`heading.id`** is a helper, but
+it still emits a single `makehtml.heading.id.onCapture` event so extensions can implement
+custom slug generation (see below).
+
 ## Event Object
 
 ### Properties
@@ -279,6 +307,80 @@ Emitted when the sub-parser has finished its work and is about to exit.
 | `output`  | `string` | `write` | The text that will be passed to other subparsers            |
 | `regexp`  | `null`   |         |                                                             |
 | `matches` | `null`   |         |                                                             |
+
+## Construct capture events reference
+
+Every construct emits `onStart`/`onEnd`; the ones that match discrete pieces additionally emit
+`onCapture`/`onHash`. The `matches.text` key carries the main captured content for constructs
+that have inner content; a handful with no inner content (`horizontalRule`, `hardLineBreaks`,
+`stripLinkDefinitions`, `footnotes.reference`) omit `text` and expose only read-only `_`-context
+plus `attributes`/output-override.
+
+### Complete event-family list (makehtml)
+
+| Family | Lifecycle (`onStart`/`onEnd`) | Capture (`onCapture`/`onHash`) |
+|---|---|---|
+| `makehtml.blockquote` | ✓ | ✓ |
+| `makehtml.codeBlock` | ✓ | ✓ |
+| `makehtml.codeSpan` | ✓ | ✓ |
+| `makehtml.disallowedHtmlTags` | ✓ | ✓ (per neutralized tag) |
+| `makehtml.ellipsis` | ✓ | ✓ |
+| `makehtml.emoji` | ✓ | ✓ |
+| `makehtml.emphasisAndStrong` | ✓ | at `.emphasis` / `.strong` / `.emphasisAndStrong` |
+| `makehtml.footnotes` | ✓ | at `.definition` / `.reference` |
+| `makehtml.githubCodeBlock` | ✓ | ✓ |
+| `makehtml.hardLineBreaks` | ✓ | ✓ (per break, no `text`) |
+| `makehtml.heading` | ✓ (also `.atx` / `.setext` own lifecycle) | at `.atx` / `.setext`; plus the capture-only `.id` hook |
+| `makehtml.horizontalRule` | ✓ | ✓ (no `text`) |
+| `makehtml.image` | ✓ | at `.inline` / `.reference` |
+| `makehtml.link` | ✓ | at `.inline` / `.reference` / `.angleBrackets` / `.autoLink` |
+| `makehtml.list` | ✓ | ✓; plus `.listItem`, `.taskListItem`, `.taskListItem.checkbox` (checkbox also has its own lifecycle) |
+| `makehtml.metadata` | ✓ | ✓ |
+| `makehtml.paragraphs` | ✓ | ✓ (per paragraph, `regexp` is `null`) |
+| `makehtml.strikethrough` | ✓ | ✓ |
+| `makehtml.stripLinkDefinitions` | ✓ | ✓ (per definition, no `text`) |
+| `makehtml.table` | ✓ | ✓; plus `.header` / `.cell` capture |
+| `makehtml.underline` | ✓ | ✓ |
+| `makehtml.completeHTMLDocument` | ✓ | — (document wrapper, lifecycle only) |
+| `makehtml.cmInline` | ✓ | — (the `commonmark`/`github`-flavor inline engine; lifecycle only — its links currently re-emit `makehtml.link.reference`/`.autoLink` capture events) |
+| *(document level)* `makehtml.onStart` / `.onPreParse` / `.onEnd` | — | — (see [below](#makehtml-document-level-events)) |
+
+`decodeEntities`, the dispatchers (`blockGamut`, `spanGamut`) and every `showdown.helper.*`
+mechanism emit **no events** — see the [taxonomy](#sub-parser-taxonomy-constructs-vs-mechanisms).
+
+Notable per-construct events:
+
+* **`makehtml.paragraphs.onCapture` / `.onHash`** — one event per paragraph. `matches.text` is
+  the paragraph's Markdown (mutable and honored); `attributes` are applied to the generated
+  `<p>`. `regexp` is `null` (paragraphs are found by a blank-line split, not a regex).
+* **`makehtml.hardLineBreaks.onCapture` / `.onHash`** — one event per hard break. No `text`
+  key; `attributes` are applied to the emitted `<br>`, and a listener may override `output`.
+* **`makehtml.disallowedHtmlTags.onCapture` / `.onHash`** — one event per neutralized tag
+  (only runs under the `disallowRawHTML`/`safeMode` options). `matches.text` is the matched tag
+  opening (`<script`, `</iframe`, …); a listener can **whitelist** a tag by setting `output` to
+  the original tag so it is left unescaped.
+* **`makehtml.footnotes.definition.onCapture` / `.onHash`** — one event per collected footnote
+  definition (`[^id]: body`). `matches.text` is the footnote body (mutable and honored — it is
+  later rendered via a nested conversion); `_label`/`_rawLabel` are read-only context.
+* **`makehtml.footnotes.reference.onCapture` / `.onHash`** — one event per footnote reference
+  (`[^id]`). No `text` key (the reference renders as a generated `<sup>`); `_label`,
+  `_rawLabel` and `_number` are read-only context and a listener may override `output`.
+* **`makehtml.heading.id.onCapture`** — capture-only (a helper, no lifecycle/hash). Fired with
+  the generated heading id under `matches.text` (mutable and honored), so a listener can supply
+  a custom slug; `_headingText` is read-only context. Deduplication of duplicate ids runs after
+  the hook, so a custom slug is still made unique within the document.
+
+    ```js
+    // Custom-slugify: replace showdown's id generation
+    converter.listen('makehtml.heading.id.onCapture', function (evt) {
+      evt.matches.text = evt.matches._headingText.trim().toLowerCase().replace(/\s+/g, '_');
+      return evt;
+    });
+    ```
+
+The GFM task-list checkbox sub-parser (`makehtml.list.taskListItem.checkbox`) is a registered
+sub-parser, so it now also emits the lifecycle `onStart`/`onEnd` events in addition to its
+`onCapture`/`onHash` (documented under [onCapture](#oncapture) above).
 
 ## makeHtml document-level events
 

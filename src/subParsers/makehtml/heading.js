@@ -62,7 +62,7 @@
     let beforeHashEvent = showdown.Event.dispatchHash('makehtml.heading.' + subEvtName + '.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
 
-    return showdown.subParser('makehtml.hashBlock')(otp, options, globals);
+    return showdown.helper.hashBlock(otp, options, globals);
   }
 
   showdown.subParser('makehtml.heading', function (text, options, globals) {
@@ -96,7 +96,13 @@
     return { enabled: true, prefix: '', raw: false };
   }
 
-  showdown.subParser('makehtml.heading.id', function (m, options, globals) {
+  // Generate a heading's `id` attribute from its text. A mechanism, not a construct, so it
+  // is a showdown.helper rather than a registered subparser — but it keeps one event:
+  // `makehtml.heading.id.onCapture`, whose `matches.text` is the generated id (mutable and
+  // honored, so a listener can implement custom slug generation). It returns an id string
+  // (or null when the headerIds option disables ids), not HTML, so there is no lifecycle or
+  // onHash phase.
+  showdown.helper.headingId = function (m, options, globals) {
     let title;
 
     let cfg = resolveHeaderIds(options.headerIds);
@@ -134,13 +140,28 @@
         .toLowerCase();
     }
 
+    // capture hook: the generated id is exposed under matches.text (mutable + honored), so a
+    // listener can supply a custom slug. The heading text is read-only context. No regexp and
+    // no attributes apply (an id is a bare string, not an HTML fragment). Deduplication runs
+    // after the hook so a listener-supplied slug is still made unique within the document.
+    let captureEvent = showdown.Event.dispatchCapture('makehtml.heading.id.onCapture', title, {
+      regexp: null,
+      matches: {
+        _wholeMatch: m,
+        _headingText: m,
+        text: title
+      },
+      attributes: {}
+    }, options, globals);
+    title = captureEvent.matches.text;
+
     if (globals.hashLinkCounts[title]) {
       title = title + '-' + (globals.hashLinkCounts[title]++);
     } else {
       globals.hashLinkCounts[title] = 1;
     }
     return title;
-  });
+  };
 
   showdown.subParser('makehtml.heading.setext', function (text, options, globals) {
 
@@ -184,7 +205,7 @@
 
     let afterEvent = showdown.Event.dispatchEnd('makehtml.heading.setext.onEnd', text, options, globals);
 
-    return showdown.subParser('makehtml.hashHTMLBlocks')(afterEvent.output, options, globals);
+    return showdown.helper.hashHTMLBlocks(afterEvent.output, options, globals);
 
 
     function parseSetextHeading (pattern, headingLevel, wholeMatch, headingText, line1, line2, line3, line4) {
@@ -326,8 +347,8 @@
       }
 
       // after this, we're pretty sure it's a heading so let's proceed
-      // (the id subparser returns null when the headerIds option disables ids)
-      let id = showdown.subParser('makehtml.heading.id')(headingText, options, globals);
+      // (the id helper returns null when the headerIds option disables ids)
+      let id = showdown.helper.headingId(headingText, options, globals);
       return prepend + parseHeader('setext', pattern, wholeMatch, headingText, headingLevel, id, options, globals);
     }
 
@@ -363,14 +384,14 @@
     text = text.replace(atxRegex, function (wholeMatch, m1, m2) {
       let headingText = stripClosing ? stripAtxClosingSequence(m2) : m2,
           headingLevel = options.headerLevelStart - 1 + m1.length,
-          // the id subparser returns null when the headerIds option disables ids
-          id = showdown.subParser('makehtml.heading.id')(headingText, options, globals);
+          // the id helper returns null when the headerIds option disables ids
+          id = showdown.helper.headingId(headingText, options, globals);
       return parseHeader('atx', atxRegex, wholeMatch, headingText, headingLevel, id, options, globals);
     });
 
     let afterEvent = showdown.Event.dispatchEnd('makehtml.heading.atx.onEnd', text, options, globals);
 
-    return showdown.subParser('makehtml.hashHTMLBlocks')(afterEvent.output, options, globals);
+    return showdown.helper.hashHTMLBlocks(afterEvent.output, options, globals);
 
   });
 

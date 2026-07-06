@@ -311,7 +311,7 @@ showdown.subParser('makehtml.image', function (text, options, globals) {
     t = showdown.subParser('makehtml.strikethrough')(t, options, globals);
     t = showdown.subParser('makehtml.ellipsis')(t, options, globals);
     // restore hashed spans (e.g. produced by nested images/links) so we can read them
-    t = showdown.subParser('makehtml.unhashHTMLSpans')(t, options, globals);
+    t = showdown.helper.unhashHTMLSpans(t, options, globals);
     // a nested image contributes its alt text; every other tag contributes its
     // text content, so replace images by their alt then strip the remaining tags
     t = t.replace(/<img\b[^>]*?\salt="([^"]*)"[^>]*?\/?>/g, '$1');

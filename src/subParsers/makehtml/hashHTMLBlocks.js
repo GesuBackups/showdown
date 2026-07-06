@@ -8,11 +8,10 @@
 // - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
 ////
 
-
-showdown.subParser('makehtml.hashHTMLBlocks', function (text, options, globals, sourceMode) {
+// Mechanism (not a construct): hash plumbing. Attached as a showdown.helper
+// (no events) rather than registered as a subparser.
+showdown.helper.hashHTMLBlocks = function (text, options, globals, sourceMode) {
   'use strict';
-  let startEvent = showdown.Event.dispatchStart('makehtml.hashHTMLBlocks.onStart', text, options, globals);
-  text = startEvent.output;
 
   let blockTags = [
         'pre',
@@ -61,6 +60,26 @@ showdown.subParser('makehtml.hashHTMLBlocks', function (text, options, globals, 
         return '\n\n¨K' + (globals.gHtmlBlocks.push(txt) - 1) + 'K\n\n';
       };
 
+  // Replace a matched element (captured in group 1) with a `¨KxK` placeholder. Folded in
+  // from the former makehtml.hashElement subparser (its only consumer was this file); this
+  // is also the single remaining copy of the `¨K` placeholder builder used for standalone
+  // HR / processor-instruction blocks below.
+  function hashElement (wholeMatch, m1) {
+    let blockText = m1;
+
+    // Undo double lines
+    blockText = blockText.replace(/\n\n/g, '\n');
+    blockText = blockText.replace(/^\n/, '');
+
+    // strip trailing blank lines
+    blockText = blockText.replace(/\n+$/g, '');
+
+    // Replace the element text with a marker ("¨KxK" where x is its key)
+    blockText = '\n\n¨K' + (globals.gHtmlBlocks.push(blockText) - 1) + 'K\n\n';
+
+    return blockText;
+  }
+
   if (options.backslashEscapesHTMLTags) {
     // encode backslash escaped HTML tags
     text = text.replace(/\\<(\/?[^>]+?)>/g, function (wm, inside) {
@@ -75,8 +94,7 @@ showdown.subParser('makehtml.hashHTMLBlocks', function (text, options, globals, 
   if (options.cmSpec && sourceMode) {
     text = parseCmHTMLBlocks(text);
 
-    let cmAfterEvent = showdown.Event.dispatchEnd('makehtml.hashHTMLBlocks.onEnd', text, options, globals);
-    return cmAfterEvent.output;
+    return text;
   }
 
   // hash HTML Blocks
@@ -105,8 +123,7 @@ showdown.subParser('makehtml.hashHTMLBlocks', function (text, options, globals, 
     }
   }
   // HR SPECIAL CASE
-  text = text.replace(/(\n {0,3}(<(hr)\b([^<>])*?\/?>)[ \t]*(?=\n{2,}))/g,
-    showdown.subParser('makehtml.hashElement')(text, options, globals));
+  text = text.replace(/(\n {0,3}(<(hr)\b([^<>])*?\/?>)[ \t]*(?=\n{2,}))/g, hashElement);
 
   // Special case for standalone HTML comments
   // A comment is terminated by either `-->` or `--!>` (the HTML "comment end
@@ -117,11 +134,9 @@ showdown.subParser('makehtml.hashHTMLBlocks', function (text, options, globals, 
   }, '^ {0,3}<!--', '--!?>', 'gm');
 
   // PHP and ASP-style processor instructions (<?...?> and <%...%>)
-  text = text.replace(/\n\n( {0,3}<([?%])[^\r]*?\2>[ \t]*(?=\n{2,}))/g,
-    showdown.subParser('makehtml.hashElement')(text, options, globals));
+  text = text.replace(/\n\n( {0,3}<([?%])[^\r]*?\2>[ \t]*(?=\n{2,}))/g, hashElement);
 
-  let afterEvent = showdown.Event.dispatchEnd('makehtml.hashHTMLBlocks.onEnd', text, options, globals);
-  return afterEvent.output;
+  return text;
 
   /**
    * CommonMark HTML blocks (spec section 4.6): a line-based scanner implementing the
@@ -230,4 +245,4 @@ showdown.subParser('makehtml.hashHTMLBlocks', function (text, options, globals, 
 
     return out.join('\n');
   }
-});
+};

@@ -9,10 +9,10 @@
 ////
 
 
-showdown.subParser('makehtml.unhashHTMLSpans', function (text, options, globals) {
+// Mechanism (not a construct): hash plumbing. Attached as a showdown.helper
+// (no events) rather than registered as a subparser.
+showdown.helper.unhashHTMLSpans = function (text, options, globals) {
   'use strict';
-  let startEvent = showdown.Event.dispatchStart('makehtml.unhashHTMLSpans.onStart', text, options, globals);
-  text = startEvent.output;
 
   // Resolve one span placeholder to its stored HTML, expanding any nested placeholders it
   // contains (bounded depth, mirrors the historical "assume 20 as limit for recurse").
@@ -37,6 +37,5 @@ showdown.subParser('makehtml.unhashHTMLSpans', function (text, options, globals)
     return resolveSpan(num);
   });
 
-  let afterEvent = showdown.Event.dispatchEnd('makehtml.unhashHTMLSpans.onEnd', text, options, globals);
-  return afterEvent.output;
-});
+  return text;
+};

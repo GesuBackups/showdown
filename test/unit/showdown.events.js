@@ -117,7 +117,11 @@ describe('showdown.Event', function () {
       ],
       hardLineBreaks: [
         { event: 'onStart', text: 'foo', result: true },
-        { event: 'onEnd', text: 'foo', result: true }
+        { event: 'onEnd', text: 'foo', result: true },
+        { event: 'onCapture', text: 'foo  \nbar', result: true },
+        { event: 'onCapture', text: 'foo', result: false },
+        { event: 'onHash', text: 'foo  \nbar', result: true },
+        { event: 'onHash', text: 'foo', result: false }
       ],
       'heading.atx': [
         { event: 'onStart', text: '# foo', result: true },
@@ -224,6 +228,13 @@ describe('showdown.Event', function () {
         { event: 'onHash', text: 'foo', result: false }
       ],
       'list.taskListItem.checkbox': [
+        // a registered subparser, so it now emits lifecycle events too — but only when the
+        // list parser actually invokes it (i.e. there is a list item); a plain 'foo' is not
+        // a list, so the checkbox subparser is never called and none of its events fire.
+        { event: 'onStart', text: '1. [X] foo\n2. [x] bar\n', result: true },
+        { event: 'onStart', text: 'foo', result: false },
+        { event: 'onEnd', text: '1. [X] foo\n2. [x] bar\n', result: true },
+        { event: 'onEnd', text: 'foo', result: false },
         { event: 'onCapture', text: '1. [X] foo\n2. [x] bar\n', result: true },
         { event: 'onCapture', text: 'foo', result: false },
         { event: 'onHash', text: '1. [X] foo\n2. [x] bar\n', result: true },
@@ -245,7 +256,13 @@ describe('showdown.Event', function () {
         { event: 'onStart', text: 'foo\n\nbar', result: true },
         { event: 'onStart', text: 'foo', result: true },
         { event: 'onEnd', text: 'foo\n\nbar', result: true },
-        { event: 'onEnd', text: 'foo', result: true }
+        { event: 'onEnd', text: 'foo', result: true },
+        { event: 'onCapture', text: 'foo\n\nbar', result: true },
+        // '# foo' is hashed as a heading block, so the paragraphs pass sees only a placeholder
+        // and wraps nothing — no per-graf capture fires.
+        { event: 'onCapture', text: '# foo', result: false },
+        { event: 'onHash', text: 'foo\n\nbar', result: true },
+        { event: 'onHash', text: '# foo', result: false }
       ],
       strikethrough: [
         { event: 'onStart', text: '~~foo~~', result: true },
@@ -550,15 +567,16 @@ describe('showdown.Event', function () {
   // subparser names whose onStart never fired.
   describe('event coverage sweep', function () {
 
+    // Only registered subparsers that emit lifecycle events remain here. The 13 demoted
+    // mechanism passes (encode*/escape*/hash*/unhash*) are now showdown.helper.* functions
+    // with no events; the two dispatchers (blockGamut/spanGamut) and decodeEntities were
+    // stripped of their events in D10 — so none of them appear below.
     let makehtmlSubparsers = [
-      'blockGamut', 'blockquote', 'cmInline', 'codeBlock', 'codeSpan', 'completeHTMLDocument',
-      'decodeEntities', 'ellipsis', 'emoji', 'emphasisAndStrong', 'encodeAmpsAndAngles',
-      'encodeBackslashEscapes', 'encodeCode', 'escapeSpecialCharsWithinTagAttributes',
-      'githubCodeBlock', 'hardLineBreaks', 'hashBlock', 'hashCodeTags', 'hashHTMLBlocks',
-      'hashHTMLSpans', 'hashPreCodeTags', 'heading', 'heading.atx', 'heading.setext',
-      'horizontalRule', 'image', 'link', 'list', 'metadata', 'paragraphs', 'spanGamut',
-      'strikethrough', 'stripLinkDefinitions', 'table', 'underline', 'unescapeSpecialChars',
-      'unhashHTMLSpans'
+      'blockquote', 'cmInline', 'codeBlock', 'codeSpan', 'completeHTMLDocument',
+      'ellipsis', 'emoji', 'emphasisAndStrong', 'githubCodeBlock', 'hardLineBreaks',
+      'heading', 'heading.atx', 'heading.setext', 'horizontalRule', 'image', 'link',
+      'list', 'list.taskListItem.checkbox', 'metadata', 'paragraphs', 'strikethrough',
+      'stripLinkDefinitions', 'table', 'underline'
     ];
 
     let makeMarkdownSubparsers = [
@@ -667,7 +685,11 @@ describe('showdown.Event', function () {
       { event: 'makehtml.list.listItem', hasText: true },
       { event: 'makehtml.list.taskListItem', hasText: true },
       { event: 'makehtml.list.taskListItem.checkbox', hasText: true },
-      { event: 'makehtml.stripLinkDefinitions', hasText: false }
+      { event: 'makehtml.stripLinkDefinitions', hasText: false },
+      // D10 additions: paragraphs carry their graf text; a hard break has no inner content
+      // (like a horizontal rule), so it carries no `text` key.
+      { event: 'makehtml.paragraphs', hasText: true },
+      { event: 'makehtml.hardLineBreaks', hasText: false }
     ];
 
     // A document that, across the two converters below, triggers every construct above.
@@ -771,7 +793,7 @@ describe('showdown.Event', function () {
         'makehtml.image.inline', 'makehtml.emphasisAndStrong.emphasis',
         'makehtml.emphasisAndStrong.strong', 'makehtml.list', 'makehtml.list.listItem',
         'makehtml.list.taskListItem', 'makehtml.list.taskListItem.checkbox',
-        'makehtml.stripLinkDefinitions'
+        'makehtml.stripLinkDefinitions', 'makehtml.paragraphs'
       ];
       let missing = core.filter(function (name) { return !fired[name]; });
       expect(missing).toEqual([]);
@@ -834,6 +856,143 @@ describe('showdown.Event', function () {
       let out = mutate({tables: true}, 'makehtml.table.cell.onCapture',
         '| h1 | h2 |\n|----|----|\n| a  | b  |', 'BAR');
       expect(out).toContain('<td>BAR</td>');
+    });
+
+    it('paragraphs honors a rewritten matches.text', function () {
+      expect(mutate({}, 'makehtml.paragraphs.onCapture', 'foo', '**BAR**'))
+        .toContain('<p><strong>BAR</strong></p>');
+    });
+  });
+
+  // D10 taxonomy: assert the complete expected phase set per class. Constructs emit all four
+  // phases (checked elsewhere); here we lock down the two other classes and the deliberate
+  // exceptions so a future change can't silently re-add (or drop) an event.
+  describe('taxonomy phase coverage', function () {
+
+    // Register listeners for all four phases of `name` and return which fired after converting
+    // `md` with the given options.
+    function firedPhases (name, opts, md) {
+      let fired = {},
+          conv = new showdown.Converter(opts);
+      /* jshint -W083 */
+      ['onStart', 'onEnd', 'onCapture', 'onHash'].forEach(function (phase) {
+        conv.listen('makehtml.' + name + '.' + phase, function (e) { fired[phase] = true; return e; });
+      });
+      /* jshint +W083 */
+      conv.makeHtml(md);
+      return fired;
+    }
+
+    // A feature-rich document that exercises the demoted mechanisms and the dispatchers.
+    let richMd = [
+      '# heading', '', 'para with `code`, **bold**, a <span>tag</span> and \\* an escape.', '',
+      '    indented code', '', '<div>raw block</div>', '', '> quote', '', '- item', ''
+    ].join('\n');
+
+    // The 13 demoted mechanism passes + the two dispatchers + decodeEntities + the deleted
+    // hashElement/runExtension: none of these may emit ANY of the four events, in any flavor.
+    let noEventNames = [
+      'blockGamut', 'spanGamut', 'decodeEntities',
+      'encodeAmpsAndAngles', 'encodeBackslashEscapes', 'encodeCode',
+      'escapeSpecialCharsWithinTagAttributes', 'unescapeSpecialChars',
+      'hashBlock', 'hashCodeTags', 'hashPreCodeTags', 'hashHTMLBlocks',
+      'hashHTMLSpans', 'unhashHTMLSpans', 'hashElement', 'runExtension'
+    ];
+
+    /* jshint -W083 */
+    noEventNames.forEach(function (name) {
+      it(name + ' emits no events (demoted to a helper / dispatcher / deleted)', function () {
+        let def = firedPhases(name, {tables: true, ghCodeBlocks: true, completeHTMLDocument: true}, richMd),
+            cm = firedPhases(name, showdown.getFlavorOptions('commonmark'), richMd);
+        expect(Object.keys(def)).toEqual([]);
+        expect(Object.keys(cm)).toEqual([]);
+      });
+    });
+    /* jshint +W083 */
+
+    it('completeHTMLDocument is lifecycle-only (onStart/onEnd, no capture/hash)', function () {
+      let fired = firedPhases('completeHTMLDocument', {completeHTMLDocument: true}, richMd);
+      expect(fired.onStart).toBe(true);
+      expect(fired.onEnd).toBe(true);
+      expect(fired.onCapture).toBeUndefined();
+      expect(fired.onHash).toBeUndefined();
+    });
+
+    it('cmInline is lifecycle-only (onStart/onEnd, no capture/hash)', function () {
+      let fired = firedPhases('cmInline', showdown.getFlavorOptions('commonmark'), richMd);
+      expect(fired.onStart).toBe(true);
+      expect(fired.onEnd).toBe(true);
+      expect(fired.onCapture).toBeUndefined();
+      expect(fired.onHash).toBeUndefined();
+    });
+
+    it('heading.id is capture-only (onCapture, no lifecycle/hash)', function () {
+      let fired = firedPhases('heading.id', {headerIds: true}, '# a heading');
+      expect(fired.onCapture).toBe(true);
+      expect(fired.onStart).toBeUndefined();
+      expect(fired.onEnd).toBeUndefined();
+      expect(fired.onHash).toBeUndefined();
+    });
+  });
+
+  // D10 new capture events: the per-match constructs that gained a capture surface, plus the
+  // heading.id custom-slug hook. Each needs its own converter (special options).
+  describe('new capture events', function () {
+
+    it('disallowedHtmlTags fires per-tag capture/hash and a listener can whitelist a tag', function () {
+      let captured = [];
+      let out = new showdown.Converter({disallowRawHTML: true})
+        .listen('makehtml.disallowedHtmlTags.onCapture', function (e) {
+          captured.push(e.matches.text);
+          // whitelist <script> by returning it unescaped (output precedence)
+          if (/^<script/i.test(e.matches.text)) { e.output = e.matches.text; }
+          return e;
+        })
+        .makeHtml('<script>a</script> and <iframe></iframe>');
+      // both the opening <script and the <iframe were seen
+      expect(captured).toContain('<script');
+      expect(captured).toContain('<iframe');
+      // the whitelisted <script survived unescaped, the iframe was neutralized
+      expect(out).toContain('<script>');
+      expect(out).toContain('&lt;iframe');
+    });
+
+    it('footnotes fire per-definition and per-reference capture events', function () {
+      let defBodies = [], refLabels = [];
+      new showdown.Converter({footnotes: true})
+        .listen('makehtml.footnotes.definition.onCapture', function (e) { defBodies.push(e.matches.text); return e; })
+        .listen('makehtml.footnotes.reference.onCapture', function (e) { refLabels.push(e.matches._rawLabel); return e; })
+        .makeHtml('A note.[^a]\n\n[^a]: the body\n');
+      expect(defBodies).toContain('the body');
+      expect(refLabels).toContain('a');
+    });
+
+    it('footnotes definition honors a rewritten body via matches.text', function () {
+      let out = new showdown.Converter({footnotes: true})
+        .listen('makehtml.footnotes.definition.onCapture', function (e) { e.matches.text = 'REPLACED'; return e; })
+        .makeHtml('A note.[^a]\n\n[^a]: original\n');
+      expect(out).toContain('REPLACED');
+      expect(out).not.toContain('original');
+    });
+
+    it('footnotes reference output can be overridden by a listener', function () {
+      let out = new showdown.Converter({footnotes: true})
+        .listen('makehtml.footnotes.reference.onCapture', function (e) { e.output = '<b>REF</b>'; return e; })
+        .makeHtml('A note.[^a]\n\n[^a]: body\n');
+      expect(out).toContain('<b>REF</b>');
+    });
+
+    it('heading.id capture exposes the generated id and honors a custom slug', function () {
+      let seen;
+      let out = new showdown.Converter({headerIds: true})
+        .listen('makehtml.heading.id.onCapture', function (e) {
+          seen = e.matches.text;            // the generated slug
+          e.matches.text = 'custom-slug';    // custom-slugify
+          return e;
+        })
+        .makeHtml('# My Heading');
+      expect(seen).toBe('my-heading');
+      expect(out).toMatch(/<h1 id="custom-slug">/);
     });
   });
 });

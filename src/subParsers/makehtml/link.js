@@ -101,19 +101,19 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
     let cmUriAutolinkRegex = /<([A-Za-z][A-Za-z0-9+.-]{1,31}:[^<>\x00-\x20]*)>/g;
     text = text.replace(cmUriAutolinkRegex, function (wholeMatch, uri) {
       // backslash escapes do not work inside autolinks, so restore them to literal backslash + char
-      let raw = showdown.subParser('makehtml.unescapeSpecialChars')(showdown.helper.backslashEscapePlaceholders(uri), options, globals);
+      let raw = showdown.helper.unescapePlaceholders(showdown.helper.backslashEscapePlaceholders(uri));
       // safeMode: neutralize dangerous autolink schemes but keep the visible text
       let href = (options.safeMode && !showdown.helper.isSafeUrl(raw)) ? '' : showdown.helper.escapeHTMLEntities(showdown.helper.cmEncodeURI(raw));
       let otp = '<a href="' + href + '">' + showdown.helper.escapeHTMLEntities(raw) + '</a>';
-      return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
+      return showdown.helper.hashHTMLSpans(otp, options, globals);
     });
 
     // 4.2. Email autolinks: <foo@bar.example.com>
     let cmEmailAutolinkRegex = /<([a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)>/g;
     text = text.replace(cmEmailAutolinkRegex, function (wholeMatch, email) {
-      let raw = showdown.subParser('makehtml.unescapeSpecialChars')(showdown.helper.backslashEscapePlaceholders(email), options, globals);
+      let raw = showdown.helper.unescapePlaceholders(showdown.helper.backslashEscapePlaceholders(email));
       let otp = '<a href="' + showdown.helper.escapeHTMLEntities('mailto:' + raw) + '">' + showdown.helper.escapeHTMLEntities(raw) + '</a>';
-      return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
+      return showdown.helper.hashHTMLSpans(otp, options, globals);
     });
 
   } else {
@@ -124,7 +124,7 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
       // backslash escaped characters do not work inside autolinks (according to commonmark spec... sure)
       // so let's unescape them (and add a backslash html entity before)
       url = showdown.helper.backslashEscapePlaceholders(url);
-      url = showdown.subParser('makehtml.unescapeSpecialChars')(url, options, globals);
+      url = showdown.helper.unescapePlaceholders(url);
       let text = url;
 
       // now let's replace some entities which should be properly url encoded
@@ -473,13 +473,13 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
       text = showdown.subParser('makehtml.emphasisAndStrong')(text, options, globals);
       text = showdown.subParser('makehtml.strikethrough')(text, options, globals);
       text = showdown.subParser('makehtml.ellipsis')(text, options, globals);
-      text = showdown.subParser('makehtml.hashHTMLSpans')(text, options, globals);
+      text = showdown.helper.hashHTMLSpans(text, options, globals);
       otp = '<a' + showdown.helper._populateAttributes(attributes) + '>' + text + '</a>';
     }
 
     let beforeHashEvent = showdown.Event.dispatchHash('makehtml.link.' + subEvtName + '.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
-    return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
+    return showdown.helper.hashHTMLSpans(otp, options, globals);
   }
 
   /**
@@ -488,7 +488,7 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
    */
   function parseMail (mail) {
     let url = 'mailto:';
-    mail = showdown.subParser('makehtml.unescapeSpecialChars')(mail, options, globals);
+    mail = showdown.helper.unescapePlaceholders(mail);
     if (options.encodeEmails) {
       url = showdown.helper.encodeEmailAddress(url + mail);
       mail = showdown.helper.encodeEmailAddress(mail);

@@ -82,7 +82,7 @@ showdown.subParser('makehtml.blockquote', function (text, options, globals) {
       // or a link reference definition nested inside the block quote is recognized in the
       // quote's context instead of only at the top level.
       if (options.cmSpec) {
-        bq = showdown.subParser('makehtml.hashHTMLBlocks')(bq, options, globals, true);
+        bq = showdown.helper.hashHTMLBlocks(bq, options, globals, true);
         bq = showdown.subParser('makehtml.stripLinkDefinitions')(bq, options, globals);
       }
       globals.blockquoteDepth = (globals.blockquoteDepth || 0) + 1;
@@ -100,7 +100,7 @@ showdown.subParser('makehtml.blockquote', function (text, options, globals) {
 
     let beforeHashEvent = showdown.Event.dispatchHash('makehtml.blockquote.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
-    return showdown.subParser('makehtml.hashBlock')(otp, options, globals);
+    return showdown.helper.hashBlock(otp, options, globals);
   }
 
   /**

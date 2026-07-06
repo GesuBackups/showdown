@@ -182,7 +182,7 @@ showdown.subParser('makehtml.list', function (text, options, globals) {
           item = showdown.subParser('makehtml.list')(item, options, globals);
           item = showdown.subParser('makehtml.codeBlock')(item, options, globals);
           item = showdown.subParser('makehtml.table')(item, options, globals);
-          item = showdown.subParser('makehtml.hashHTMLBlocks')(item, options, globals);
+          item = showdown.helper.hashHTMLBlocks(item, options, globals);
           //item = showdown.subParser('makehtml.paragraphs')(item, options, globals);
 
           // TODO: This is a copy of the paragraph parser
@@ -223,7 +223,7 @@ showdown.subParser('makehtml.list', function (text, options, globals) {
           // Recursion for sub-lists:
           item = showdown.subParser('makehtml.list')(item, options, globals);
           item = item.replace(/\n$/, ''); // chomp(item)
-          item = showdown.subParser('makehtml.hashHTMLBlocks')(item, options, globals);
+          item = showdown.helper.hashHTMLBlocks(item, options, globals);
 
           // Colapse double linebreaks
           item = item.replace(/\n\n+/g, '\n\n');

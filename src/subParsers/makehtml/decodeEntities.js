@@ -18,15 +18,15 @@
 // - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
 ////
 
+// Deliberate exception to the "spec-chapter chapter ⇒ construct with events" rule: this pass
+// decodes character references to bare characters, so per-entity capture events would be noise.
+// It stays a registered subparser (flavor-gated conversion logic) but emits NO events.
 showdown.subParser('makehtml.decodeEntities', function (text, options, globals) {
   'use strict';
 
   if (!options.decodeEntities) {
     return text;
   }
-
-  let startEvent = showdown.Event.dispatchStart('makehtml.decodeEntities.onStart', text, options, globals);
-  text = startEvent.output;
 
   const entities = showdown.helper.htmlEntities;
 
@@ -64,6 +64,5 @@ showdown.subParser('makehtml.decodeEntities', function (text, options, globals) 
     return '&amp;' + body + ';';
   });
 
-  let afterEvent = showdown.Event.dispatchEnd('makehtml.decodeEntities.onEnd', text, options, globals);
-  return afterEvent.output;
+  return text;
 });

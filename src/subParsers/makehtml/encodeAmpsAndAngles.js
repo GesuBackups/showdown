@@ -8,12 +8,10 @@
 // - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
 ////
 
-
-showdown.subParser('makehtml.encodeAmpsAndAngles', function (text, options, globals) {
+// Mechanism (not a construct): a character-level encoding pass. Attached as a
+// showdown.helper (no events) rather than registered as a subparser.
+showdown.helper.encodeAmpsAndAngles = function (text) {
   'use strict';
-
-  let startEvent = showdown.Event.dispatchStart('makehtml.encodeAmpsAndAngles.onStart', text, options, globals);
-  text = startEvent.output;
 
   // Ampersand-encoding based entirely on Nat Irons's Amputator MT plugin:
   // http://bumppo.net/projects/amputator/
@@ -31,6 +29,5 @@ showdown.subParser('makehtml.encodeAmpsAndAngles', function (text, options, glob
   // encode "
   text = text.replace(/"/g, '&quot;');
 
-  let afterEvent = showdown.Event.dispatchEnd('makehtml.encodeAmpsAndAngles.onEnd', text, options, globals);
-  return afterEvent.output;
-});
+  return text;
+};

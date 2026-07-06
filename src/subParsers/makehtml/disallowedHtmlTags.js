@@ -29,10 +29,29 @@ showdown.subParser('makehtml.disallowedHtmlTags', function (text, options, globa
   // Run over the (near final) output: Showdown never generates these tags from Markdown
   // and code blocks/spans already entity-escape `<`, so only genuine raw-HTML passthrough
   // is touched. Both opening and closing forms are filtered, case-insensitively.
-  text = text.replace(
-    /<(\/?(?:title|textarea|style|xmp|iframe|noembed|noframes|script|plaintext))/gi,
-    '&lt;$1'
-  );
+  //
+  // Per-tag capture: `matches.text` is the matched tag opening (`<script`, `</iframe`, …). A
+  // listener may rewrite it or, by setting `output` to the original tag, whitelist that tag
+  // (i.e. leave it unescaped). Default output neutralizes the tag by escaping its leading `<`.
+  const tagFilterRgx = /<(\/?(?:title|textarea|style|xmp|iframe|noembed|noframes|script|plaintext))/gi;
+  text = text.replace(tagFilterRgx, function (wholeMatch) {
+    let otp;
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.disallowedHtmlTags.onCapture', wholeMatch, {
+      regexp: tagFilterRgx,
+      matches: {
+        _wholeMatch: wholeMatch,
+        text: wholeMatch
+      },
+      attributes: {}
+    }, options, globals);
+    if (captureStartEvent.output && captureStartEvent.output !== '') {
+      otp = captureStartEvent.output;
+    } else {
+      otp = '&lt;' + captureStartEvent.matches.text.replace(/^</, '');
+    }
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.disallowedHtmlTags.onHash', otp, options, globals);
+    return beforeHashEvent.output;
+  });
 
   if (options.safeMode) {
     // Additional dangerous tags Showdown never emits from Markdown (svg/math/form/

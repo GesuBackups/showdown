@@ -44,7 +44,7 @@ function runTests () {
   new performance.Suite('subParsers')
     .setOption('cycles', 20)
     .add('hashHTMLBlocks', function () {
-      showdown.subParser('makehtml.hashHTMLBlocks')(testMDFile, options, globals);
+      showdown.helper.hashHTMLBlocks(testMDFile, options, globals);
     })
     .add('anchors', function () {
       showdown.subParser('makehtml.link')(testMDFile, options, globals);
@@ -59,31 +59,28 @@ function runTests () {
       showdown.subParser('makehtml.codeSpan')(testMDFile, options, globals);
     })
     .add('encodeAmpsAndAngles', function () {
-      showdown.subParser('makehtml.encodeAmpsAndAngles')(testMDFile, options, globals);
+      showdown.helper.encodeAmpsAndAngles(testMDFile);
     })
     .add('encodeBackslashEscapes', function () {
-      showdown.subParser('makehtml.encodeBackslashEscapes')(testMDFile, options, globals);
+      showdown.helper.encodeBackslashEscapes(testMDFile);
     })
     .add('encodeCode', function () {
-      showdown.subParser('makehtml.encodeCode')(testMDFile, options, globals);
+      showdown.helper.encodeCode(testMDFile);
     })
     .add('escapeSpecialCharsWithinTagAttributes', function () {
-      showdown.subParser('makehtml.escapeSpecialCharsWithinTagAttributes')(testMDFile, options, globals);
+      showdown.helper.escapeSpecialCharsWithinTagAttributes(testMDFile, options);
     })
     .add('githubCodeBlocks', function () {
       showdown.subParser('makehtml.githubCodeBlock')(testMDFile, options, globals);
     })
     .add('hashBlock', function () {
-      showdown.subParser('makehtml.hashBlock')(testMDFile, options, globals);
-    })
-    .add('hashElement', function () {
-      showdown.subParser('makehtml.hashElement')(testMDFile, options, globals);
+      showdown.helper.hashBlock(testMDFile, options, globals);
     })
     .add('hashHTMLSpans', function () {
-      showdown.subParser('makehtml.hashHTMLSpans')(testMDFile, options, globals);
+      showdown.helper.hashHTMLSpans(testMDFile, options, globals);
     })
     .add('hashPreCodeTags', function () {
-      showdown.subParser('makehtml.hashPreCodeTags')(testMDFile, options, globals);
+      showdown.helper.hashPreCodeTags(testMDFile, options, globals);
     })
     .add('headers', function () {
       showdown.subParser('makehtml.heading')(testMDFile, options, globals);
@@ -116,7 +113,7 @@ function runTests () {
       showdown.subParser('makehtml.table')(testMDFile, options, globals);
     })
     .add('unescapeSpecialChars', function () {
-      showdown.subParser('makehtml.unescapeSpecialChars')(testMDFile, options, globals);
+      showdown.helper.unescapePlaceholders(testMDFile);
     });
 }
 

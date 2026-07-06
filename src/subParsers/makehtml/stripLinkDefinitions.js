@@ -55,7 +55,7 @@ showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, glo
       } else {
         url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
 
-        globals.gUrls[linkId] = showdown.subParser('makehtml.encodeAmpsAndAngles')(url, options, globals);
+        globals.gUrls[linkId] = showdown.helper.encodeAmpsAndAngles(url, options, globals);
       }
 
       if (blankLines) {

@@ -119,7 +119,7 @@ showdown.subParser('makehtml.githubCodeBlock', function (text, options, globals,
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
       codeblock = captureStartEvent.matches.text;
-      codeblock = showdown.subParser('makehtml.encodeCode')(codeblock, options, globals);
+      codeblock = showdown.helper.encodeCode(codeblock, options, globals);
       //codeblock = showdown.subParser('makehtml.detab')(codeblock, options, globals);
       codeblock = codeblock
         .replace(/^\n+/g, '')  // trim leading newlines
@@ -160,7 +160,7 @@ showdown.subParser('makehtml.githubCodeBlock', function (text, options, globals,
 
     let beforeHashEvent = showdown.Event.dispatchHash('makehtml.githubCodeBlock.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
-    otp = showdown.subParser('makehtml.hashBlock')(otp, options, globals);
+    otp = showdown.helper.hashBlock(otp, options, globals);
 
     // Since GHCodeblocks can be false positives, we need to
     // store the primitive text and the parsed text in a global var,

@@ -2,11 +2,12 @@
  * These are all the transformations that occur *within* block-level
  * tags like paragraphs, headers, and list items.
  */
+
+// Dispatcher (not a construct): it matches nothing itself, only routes text through the
+// inline subparsers, so it emits no events (the document-level makehtml.onStart /
+// onPreParse / onEnd cover whole-text hooks).
 showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
   'use strict';
-
-  let startEvent = showdown.Event.dispatchStart('makehtml.spanGamut.onStart', text, options, globals);
-  text = startEvent.output;
 
   if (options.cmSpec) {
     // underline runs BEFORE cmInline (mirroring the legacy order, where underline runs
@@ -30,18 +31,17 @@ showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
     // hash the raw HTML these extras produce (e.g. strikethrough's `<del>`, image-based
     // emoji's `<img>`) before encodeAmpsAndAngles, otherwise their `<`/`>` get escaped to
     // `&lt;`/`&gt;`. Mirrors the legacy branch, which hashes spans before encoding.
-    text = showdown.subParser('makehtml.hashHTMLSpans')(text, options, globals);
+    text = showdown.helper.hashHTMLSpans(text, options, globals);
 
-    text = showdown.subParser('makehtml.encodeAmpsAndAngles')(text, options, globals);
+    text = showdown.helper.encodeAmpsAndAngles(text, options, globals);
     text = showdown.subParser('makehtml.hardLineBreaks')(text, options, globals);
 
-    let cmAfterEvent = showdown.Event.dispatchEnd('makehtml.spanGamut.onEnd', text, options, globals);
-    return cmAfterEvent.output;
+    return text;
   }
 
   text = showdown.subParser('makehtml.codeSpan')(text, options, globals);
-  text = showdown.subParser('makehtml.escapeSpecialCharsWithinTagAttributes')(text, options, globals);
-  text = showdown.subParser('makehtml.encodeBackslashEscapes')(text, options, globals);
+  text = showdown.helper.escapeSpecialCharsWithinTagAttributes(text, options, globals);
+  text = showdown.helper.encodeBackslashEscapes(text, options, globals);
 
   // Process link and image tags. Images must come first,
   // because ![foo][f] looks like a link.
@@ -70,13 +70,12 @@ showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
   text = showdown.subParser('makehtml.ellipsis')(text, options, globals);
 
   // we need to hash HTML tags inside spans
-  text = showdown.subParser('makehtml.hashHTMLSpans')(text, options, globals);
+  text = showdown.helper.hashHTMLSpans(text, options, globals);
 
   // now we encode amps and angles
-  text = showdown.subParser('makehtml.encodeAmpsAndAngles')(text, options, globals);
+  text = showdown.helper.encodeAmpsAndAngles(text, options, globals);
 
   text = showdown.subParser('makehtml.hardLineBreaks')(text, options, globals);
 
-  let afterEvent = showdown.Event.dispatchEnd('makehtml.spanGamut.onEnd', text, options, globals);
-  return afterEvent.output;
+  return text;
 });

@@ -588,7 +588,7 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
     function buildImage (innerHTML, dest, title, width, height) {
       // alt text is the plain-text rendering of the label (markup stripped); the inner
       // spans are hashed, so restore them before flattening
-      let alt = showdown.subParser('makehtml.unhashHTMLSpans')(innerHTML, options, globals)
+      let alt = showdown.helper.unhashHTMLSpans(innerHTML, options, globals)
         .replace(/<img\b[^>]*?\salt="([^"]*)"[^>]*?\/?>/g, '$1')
         .replace(/<[^>]*>/g, '');
       // safeMode: neutralize dangerous URL schemes; data:image/* stays allowed
@@ -724,7 +724,7 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
           if (content.length >= 2 && content.charAt(0) === ' ' && content.charAt(content.length - 1) === ' ' && /[^ ]/.test(content)) {
             content = content.slice(1, -1);
           }
-          let encoded = showdown.subParser('makehtml.encodeCode')(content, options, globals);
+          let encoded = showdown.helper.encodeCode(content, options, globals);
           return {html: showdown.helper._hashHTMLSpan('<code>' + encoded + '</code>', globals), end: runEnd};
         }
         j = runEnd;
@@ -865,18 +865,18 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
       text = showdown.subParser('makehtml.emphasisAndStrong')(text, options, globals);
       text = showdown.subParser('makehtml.strikethrough')(text, options, globals);
       text = showdown.subParser('makehtml.ellipsis')(text, options, globals);
-      text = showdown.subParser('makehtml.hashHTMLSpans')(text, options, globals);
+      text = showdown.helper.hashHTMLSpans(text, options, globals);
       otp = '<a' + showdown.helper._populateAttributes(attributes) + '>' + text + '</a>';
     }
 
     let beforeHashEvent = showdown.Event.dispatchHash('makehtml.link.' + subEvtName + '.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
-    return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
+    return showdown.helper.hashHTMLSpans(otp, options, globals);
   }
 
   function parseMail (mail) {
     let url = 'mailto:';
-    mail = showdown.subParser('makehtml.unescapeSpecialChars')(mail, options, globals);
+    mail = showdown.helper.unescapePlaceholders(mail);
     if (options.encodeEmails) {
       url = showdown.helper.encodeEmailAddress(url + mail);
       mail = showdown.helper.encodeEmailAddress(mail);

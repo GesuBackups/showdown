@@ -409,7 +409,7 @@ showdown.subParser('makehtml.cmList', function (text, options, globals) {
       let listHash = showdown.Event.dispatchHash('makehtml.list.onHash', otp, options, globals);
       otp = listHash.output;
 
-      out.push(showdown.subParser('makehtml.hashBlock')(otp, options, globals));
+      out.push(showdown.helper.hashBlock(otp, options, globals));
       prevParagraph = false;
     }
 

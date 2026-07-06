@@ -169,7 +169,21 @@ showdown.Converter = function (converterOptions) {
    */
   function _wrapLegacyExtension (ext) {
     return function (event) {
-      return showdown.subParser('makehtml.runExtension')(ext, event.input, event.options, { converter: event.converter });
+      // Inlined former makehtml.runExtension: apply a legacy lang/output extension's
+      // filter (or regex/replace) to the event's text.
+      let text = event.input;
+      if (ext.filter) {
+        text = ext.filter(text, event.converter, event.options);
+
+      } else if (ext.regex) {
+        // TODO remove this when old extension loading mechanism is deprecated
+        let re = ext.regex;
+        if (!(re instanceof RegExp)) {
+          re = new RegExp(re, 'g');
+        }
+        text = text.replace(re, ext.replace);
+      }
+      return text;
     };
   }
 
@@ -348,7 +362,7 @@ showdown.Converter = function (converterOptions) {
 
     // run the sub parsers
     text = showdown.subParser('makehtml.metadata')(text, options, globals);
-    text = showdown.subParser('makehtml.hashPreCodeTags')(text, options, globals);
+    text = showdown.helper.hashPreCodeTags(text, options, globals);
     if (options.cmSpec) {
       // Container mode parses leaf blocks in document order: an open HTML block (e.g. a
       // `<div>` with no following blank line) absorbs a fence that follows it, so the
@@ -357,13 +371,13 @@ showdown.Converter = function (converterOptions) {
       // quotes are handled by the container parsers (and a later blockGamut pass for
       // genuinely top-level indented fences).
       text = showdown.helper.expandCmTabs(text);
-      text = showdown.subParser('makehtml.hashHTMLBlocks')(text, options, globals, true);
+      text = showdown.helper.hashHTMLBlocks(text, options, globals, true);
       text = showdown.subParser('makehtml.githubCodeBlock')(text, options, globals, true);
     } else {
       text = showdown.subParser('makehtml.githubCodeBlock')(text, options, globals);
-      text = showdown.subParser('makehtml.hashHTMLBlocks')(text, options, globals, true);
+      text = showdown.helper.hashHTMLBlocks(text, options, globals, true);
     }
-    text = showdown.subParser('makehtml.hashCodeTags')(text, options, globals);
+    text = showdown.helper.hashCodeTags(text, options, globals);
     // Footnotes (GFM): collect `[^id]: ...` definitions and replace `[^id]` references
     // before stripLinkDefinitions (whose scanner would otherwise claim `[^id]:` lines).
     text = showdown.subParser('makehtml.footnotes')(text, options, globals, 'strip');
@@ -383,8 +397,8 @@ showdown.Converter = function (converterOptions) {
         return globals.gHtmlRawBlocks[n];
       });
     }
-    text = showdown.subParser('makehtml.unhashHTMLSpans')(text, options, globals);
-    text = showdown.subParser('makehtml.unescapeSpecialChars')(text, options, globals);
+    text = showdown.helper.unhashHTMLSpans(text, options, globals);
+    text = showdown.helper.unescapePlaceholders(text);
     // GFM disallowed-raw-html tagfilter (opt-in): neutralize a small HTML tag blacklist in
     // the now-restored raw HTML. Runs late so it sees the final tags, not placeholders.
     text = showdown.subParser('makehtml.disallowedHtmlTags')(text, options, globals);

@@ -118,7 +118,7 @@ showdown.subParser('makehtml.horizontalRule', function (text, options, globals) 
 
     let beforeHashEvent = showdown.Event.dispatchHash('makehtml.horizontalRule.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
-    otp = showdown.subParser('makehtml.hashBlock')(otp, options, globals);
+    otp = showdown.helper.hashBlock(otp, options, globals);
     return otp;
   }
 

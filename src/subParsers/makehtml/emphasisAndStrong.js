@@ -105,7 +105,7 @@ showdown.subParser('makehtml.emphasisAndStrong', function (text, options, global
 
     let beforeHashEvent = showdown.Event.dispatchHash('makehtml.emphasisAndStrong.' + subEventName + '.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
-    otp = showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
+    otp = showdown.helper.hashHTMLSpans(otp, options, globals);
     return otp;
   }
 
@@ -277,7 +277,7 @@ showdown.subParser('makehtml.emphasisAndStrong', function (text, options, global
           // hard line breaks and encode double quotes now (CommonMark renders quotes as &quot;)
           inner = showdown.subParser('makehtml.hardLineBreaks')(inner, options, globals);
           inner = inner.replace(/"/g, '&quot;');
-          let wrapped = showdown.subParser('makehtml.hashHTMLSpans')(tagOpen + inner + tagClose, options, globals);
+          let wrapped = showdown.helper.hashHTMLSpans(tagOpen + inner + tagClose, options, globals);
 
           // remove inner nodes and their delimiters from the lists
           let n2 = opener.next;
