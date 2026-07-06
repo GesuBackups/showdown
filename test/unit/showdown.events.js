@@ -499,6 +499,29 @@ describe('showdown.Event', function () {
       });
     });
 
+    // Payload regression guards: these capture events once carried a mislabeled matches
+    // key (underline) or the wrong regexp (YAML-delimited metadata), which the fire-only
+    // checks above cannot catch — so assert on the payload contents themselves.
+    describe('capture event payloads', function () {
+      it('underline.onCapture should expose the captured text under the `underline` matches key', function () {
+        let matches;
+        new showdown.Converter({underline: true})
+          .listen('makehtml.underline.onCapture', function (event) { matches = event.matches; return event; })
+          .makeHtml('__foo__');
+        expect(matches).toHaveProperty('underline', 'foo');
+        expect(matches).not.toHaveProperty('strikethrough');
+      });
+
+      it('metadata.onCapture should carry the regexp of the delimiter that actually matched', function () {
+        let source;
+        new showdown.Converter({metadata: true})
+          .listen('makehtml.metadata.onCapture', function (event) { source = event.regexp.source; return event; })
+          .makeHtml('---\ntitle: x\n---\n\nfoo');
+        expect(source).toContain('---');
+        expect(source).not.toContain('«««');
+      });
+    });
+
     describe('makeMarkdown (document level)', function () {
       it('should trigger "makeMarkdown.onStart" event', function () {
         let actual = false;

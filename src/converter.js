@@ -374,18 +374,11 @@ showdown.Converter = function (converterOptions) {
       // only claims fences at indent 0; indent 1-3 fences nested in list items / block
       // quotes are handled by the container parsers (and a later blockGamut pass for
       // genuinely top-level indented fences).
-      if (options.cmSpec) {
-        text = showdown.helper.expandCmTabs(text);
-      }
+      text = showdown.helper.expandCmTabs(text);
       text = showdown.subParser('makehtml.hashHTMLBlocks')(text, options, globals, true);
       text = showdown.subParser('makehtml.githubCodeBlock')(text, options, globals, true);
     } else {
       text = showdown.subParser('makehtml.githubCodeBlock')(text, options, globals);
-      // CommonMark tab expansion runs after fenced/pre code is hashed (so their content
-      // tabs are protected) and before the block parsers, which key off indentation.
-      if (options.cmSpec) {
-        text = showdown.helper.expandCmTabs(text);
-      }
       text = showdown.subParser('makehtml.hashHTMLBlocks')(text, options, globals, true);
     }
     text = showdown.subParser('makehtml.hashCodeTags')(text, options, globals);

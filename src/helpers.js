@@ -873,17 +873,20 @@ showdown.helper.cmEscapeTitle = function (title) {
 };
 
 /**
- * Normalize a CommonMark link label for reference matching: resolve backslash
- * escapes (both raw `\x` and showdown's `¨E<code>E` placeholders), collapse
- * internal whitespace runs to a single space, trim and case-fold. The same
- * normalization must be applied to both the definition label and the use label
- * so that they compare equal.
+ * Normalize a CommonMark link label for reference matching: restore showdown's
+ * `¨E<code>E` escape placeholders to their literal character, collapse internal
+ * whitespace runs to a single space, trim and case-fold. The same normalization
+ * must be applied to both the definition label and the use label so that they
+ * compare equal.
  * @param {string} label
  * @returns {string}
  */
 showdown.helper.cmNormalizeLabel = function (label) {
-  // CommonMark matches labels by case-fold + whitespace collapse only; backslash
-  // escapes are NOT resolved (so `[foo\!]` does not match a `[foo!]` definition).
+  // CommonMark matches labels by case-fold + whitespace collapse only; raw backslash
+  // escapes are NOT resolved (`[foo\!]` does not match a `[foo!]` definition), which is
+  // why cmInline passes the raw source label. The `¨E<code>E` replace below only restores
+  // placeholders produced earlier in the pipeline, so definition and use labels that went
+  // through the same escaping normalize identically.
   return showdown.helper.caseFold(label
     .replace(/¨E(\d+)E/g, function (wholeMatch, code) {
       return String.fromCharCode(parseInt(code, 10));

@@ -1,5 +1,5 @@
 ////
-// makehtml/githubCodeBlock.js
+// makehtml/hashPreCodeTags.js
 // Copyright (c) 2018 ShowdownJS
 //
 // Hash and escape <pre><code> elements that should not be parsed as markdown

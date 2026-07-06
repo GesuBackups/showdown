@@ -89,7 +89,7 @@ showdown.subParser('makehtml.metadata', function (text, options, globals) {
   // 2. Metadata with YAML delimiters
   const rgx2 = /^\s*---+\s*(\S*?)\n([\s\S]+?)\n---+\s*\n/;
   text = text.replace(rgx2, function (wholeMatch, format, content) {
-    return parseMetadataContents(rgx1, wholeMatch, format, content);
+    return parseMetadataContents(rgx2, wholeMatch, format, content);
   });
   text = text.replace(/¨M/g, '');
   let afterEvent = new showdown.Event('makehtml.metadata.onEnd', text);

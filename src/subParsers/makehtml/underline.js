@@ -71,7 +71,7 @@ showdown.subParser('makehtml.underline', function (text, options, globals) {
       .setRegexp(pattern)
       .setMatches({
         _wholeMatch: wholeMatch,
-        strikethrough: txt
+        underline: txt
       })
       .setAttributes({});
     captureStartEvent = globals.converter.dispatch(captureStartEvent);
