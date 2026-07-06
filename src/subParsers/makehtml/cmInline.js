@@ -681,6 +681,12 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
 
           let inner = renderNodes(opener.next, closer);
           inner = applyGfmInlineLinks(inner);
+          // The wrapped emphasis span is hashed below, so the Showdown-only extras that
+          // run after cmInline in spanGamut (emoji, strikethrough, ellipsis) never see its
+          // inner content. Apply them here so e.g. `**~~x~~**` still strikes through.
+          inner = showdown.subParser('makehtml.emoji')(inner, options, globals);
+          inner = showdown.subParser('makehtml.strikethrough')(inner, options, globals);
+          inner = showdown.subParser('makehtml.ellipsis')(inner, options, globals);
           inner = showdown.subParser('makehtml.hardLineBreaks')(inner, options, globals);
           let wrapped = hashSpan(tagOpen + inner + tagClose);
 
