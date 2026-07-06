@@ -11,10 +11,7 @@ showdown.subParser('makehtml.unescapeSpecialChars', function (text, options, glo
   startEvent = globals.converter.dispatch(startEvent);
   text = startEvent.output;
 
-  text = text.replace(/¨E(\d+)E/g, function (wholeMatch, m1) {
-    let charCodeToReplace = parseInt(m1);
-    return String.fromCharCode(charCodeToReplace);
-  });
+  text = showdown.helper.unescapePlaceholders(text);
 
   let afterEvent = new showdown.Event('makehtml.unescapeSpecialChars.onEnd', text);
   afterEvent

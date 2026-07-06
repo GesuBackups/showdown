@@ -56,11 +56,8 @@ showdown.subParser('makehtml.metadata', function (text, options, globals) {
     // escape chars significant in html element and attribute contexts so metadata
     // values/keys can't break out of <title>, <meta ...> or the doctype when
     // completeHTMLDocument concatenates them into the document head
-    content = showdown.helper.escapeHTMLEntities(content)
-    // Restore dollar signs and tremas
-      .replace(/¨D/g, '$$')
-      .replace(/¨T/g, '¨')
-      // replace multiple spaces
+    // restore dollar signs and tremas, then collapse the indent that yaml wrapping adds
+    content = showdown.helper.restoreDollarsAndTremas(showdown.helper.escapeHTMLEntities(content))
       .replace(/\n {4}/g, ' ');
 
     content.replace(/^([\S ]+): +([\s\S]+?)$/gm, function (wm, key, value) {

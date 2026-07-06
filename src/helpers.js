@@ -189,8 +189,7 @@ showdown.helper.stdExtName = function (s) {
 
 function escapeCharactersCallback (wholeMatch, m1) {
   'use strict';
-  let charCodeToEscape = m1.charCodeAt(0);
-  return '¨E' + charCodeToEscape + 'E';
+  return showdown.helper.escapePlaceholder(m1);
 }
 
 /**
@@ -201,6 +200,71 @@ function escapeCharactersCallback (wholeMatch, m1) {
  * @returns {string}
  */
 showdown.helper.escapeCharactersCallback = escapeCharactersCallback;
+
+// --- Internal escape-placeholder scheme (single source of truth) ------------------------
+// A protected character X (e.g. a backslash-escaped punctuation mark) is stored as the
+// placeholder `¨E<charCode>E` so later passes don't treat it as markup; it is restored to
+// the literal character at the end of the pipeline (makehtml.unescapeSpecialChars) or
+// wherever a bare/backslashed form is needed.
+
+/**
+ * Produce the escape placeholder for a single character.
+ * @param {string} chr
+ * @returns {string}
+ */
+showdown.helper.escapePlaceholder = function (chr) {
+  return '¨E' + chr.charCodeAt(0) + 'E';
+};
+
+/**
+ * Restore every `¨E<code>E` placeholder in a string. Without `transform` each placeholder
+ * becomes its literal character; `transform` (given that character) can customize the
+ * replacement (e.g. re-adding a leading backslash inside raw HTML).
+ * @param {string} text
+ * @param {function(string):string} [transform]
+ * @returns {string}
+ */
+showdown.helper.unescapePlaceholders = function (text, transform) {
+  return text.replace(/¨E(\d+)E/g, function (wholeMatch, code) {
+    let chr = String.fromCharCode(parseInt(code, 10));
+    return transform ? transform(chr) : chr;
+  });
+};
+
+/**
+ * Prefix each `¨E<code>E` placeholder with a backslash while keeping the placeholder
+ * itself, so a value can be re-parsed as backslash-escaped before final restoration.
+ * @param {string} text
+ * @returns {string}
+ */
+showdown.helper.backslashEscapePlaceholders = function (text) {
+  return text.replace(/(¨E\d+E)/g, '\\$1');
+};
+
+// `$` and `¨` are swapped for the two-char sentinels `¨D`/`¨T` at the very start of
+// makeHtml so they survive the pipeline without being read as regex-replacement
+// metacharacters or as showdown's `¨` escape marker; they are restored verbatim at the
+// end. The producer replaces `¨` first (so it doesn't double-hit the `¨` introduced for
+// `$`); the restorer reverses in the opposite order.
+
+/**
+ * Hide literal `$` and `¨` behind the `¨D`/`¨T` sentinels.
+ * @param {string} text
+ * @returns {string}
+ */
+showdown.helper.hashDollarsAndTremas = function (text) {
+  return text.replace(/¨/g, '¨T').replace(/\$/g, '¨D');
+};
+
+/**
+ * Restore the `¨D`/`¨T` sentinels back to literal `$` and `¨`.
+ * @param {string} text
+ * @returns {string}
+ */
+showdown.helper.restoreDollarsAndTremas = function (text) {
+  return text.replace(/¨D/g, function () { return '$'; })
+    .replace(/¨T/g, function () { return '¨'; });
+};
 
 /**
  * Escape characters in a string
@@ -612,9 +676,7 @@ showdown.helper.isSafeUrl = function (url, opts) {
   // resolve character references (numeric + named) that could hide the scheme
   let decoded = showdown.helper.cmDecodeEntities(String(url));
   // restore showdown's internal escape placeholders (¨E<code>E) to their chars
-  decoded = decoded.replace(/¨E(\d+)E/g, function (wm, code) {
-    return String.fromCharCode(+code);
-  });
+  decoded = showdown.helper.unescapePlaceholders(decoded);
   // remove whitespace/control chars browsers ignore while resolving the scheme
   // eslint-disable-next-line no-control-regex -- intentionally stripping ASCII control chars used to obfuscate schemes
   let stripped = decoded.replace(/[\u0000-\u0020\u00a0]+/g, '');
@@ -809,9 +871,7 @@ showdown.helper.cmEncodeURI = function (uri) {
  * @returns {string}
  */
 showdown.helper.cmNormalizeURL = function (url) {
-  url = url.replace(/¨E(\d+)E/g, function (wholeMatch, code) {
-    return String.fromCharCode(parseInt(code, 10));
-  });
+  url = showdown.helper.unescapePlaceholders(url);
   url = url.replace(/\\([!-/:-@[-`{-~])/g, '$1');
   url = showdown.helper.cmDecodeEntities(url);
   url = showdown.helper.cmEncodeURI(url);
@@ -887,10 +947,7 @@ showdown.helper.cmNormalizeLabel = function (label) {
   // why cmInline passes the raw source label. The `¨E<code>E` replace below only restores
   // placeholders produced earlier in the pipeline, so definition and use labels that went
   // through the same escaping normalize identically.
-  return showdown.helper.caseFold(label
-    .replace(/¨E(\d+)E/g, function (wholeMatch, code) {
-      return String.fromCharCode(parseInt(code, 10));
-    })
+  return showdown.helper.caseFold(showdown.helper.unescapePlaceholders(label)
     .replace(/\s+/g, ' ')
     .trim());
 };

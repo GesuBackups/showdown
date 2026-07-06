@@ -317,15 +317,9 @@ showdown.Converter = function (converterOptions) {
     startEvent = this.dispatch(startEvent);
     text = startEvent.output;
 
-    // This lets us use ¨ trema as an escape char to avoid md5 hashes
-    // The choice of character is arbitrary; anything that isn't
-    // magic in Markdown will work.
-    text = text.replace(/¨/g, '¨T');
-
-    // Replace $ with ¨D
-    // RegExp interprets $ as a special character
-    // when it's in a replacement string
-    text = text.replace(/\$/g, '¨D');
+    // Hide literal ¨ and $ behind the ¨T/¨D sentinels: ¨ is showdown's escape marker and
+    // a bare $ is special in RegExp replacement strings. Restored at the end of makeHtml.
+    text = showdown.helper.hashDollarsAndTremas(text);
 
     // Standardize line endings
     text = text.replace(/\r\n/g, '\n'); // DOS to Unix
@@ -407,11 +401,8 @@ showdown.Converter = function (converterOptions) {
     // the now-restored raw HTML. Runs late so it sees the final tags, not placeholders.
     text = showdown.subParser('makehtml.disallowedHtmlTags')(text, options, globals);
 
-    // attacklab: Restore dollar signs
-    text = text.replace(/¨D/g, '$$');
-
-    // attacklab: Restore tremas
-    text = text.replace(/¨T/g, '¨');
+    // Restore the ¨D/¨T sentinels back to literal $ and ¨
+    text = showdown.helper.restoreDollarsAndTremas(text);
 
     // render a complete html document instead of a partial if the option is enabled
     text = showdown.subParser('makehtml.completeHTMLDocument')(text, options, globals);

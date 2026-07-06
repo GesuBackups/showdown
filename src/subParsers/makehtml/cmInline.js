@@ -327,7 +327,7 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
           if (next === '&' || next === '<' || next === '>' || next === '"') {
             appendText(next);
           } else {
-            appendText('¨E' + next.charCodeAt(0) + 'E');
+            appendText(showdown.helper.escapePlaceholder(next));
           }
           i += 2;
         } else {

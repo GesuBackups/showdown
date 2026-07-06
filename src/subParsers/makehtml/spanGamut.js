@@ -68,9 +68,7 @@ showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
     text = text.replace(new RegExp(showdown.helper.regexes.cmHTMLTagSource, 'g'), function (wm) {
       // Backslash escapes are not processed inside raw HTML, so restore any escape
       // placeholders that encodeBackslashEscapes produced back to literal `\<char>`.
-      wm = wm.replace(/¨E(\d+)E/g, function (m, code) {
-        return '\\' + String.fromCharCode(parseInt(code, 10));
-      });
+      wm = showdown.helper.unescapePlaceholders(wm, function (c) { return '\\' + c; });
       return showdown.helper._hashHTMLSpan(wm, globals);
     });
   }
