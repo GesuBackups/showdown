@@ -104,17 +104,13 @@ showdown.resetOptions = function () {
  */
 showdown.setFlavor = function (name) {
   'use strict';
-  if (!Object.prototype.hasOwnProperty.call(flavor, name)) {
+  let preset = showdown.getFlavorOptions(name);
+  if (!preset) {
     throw Error(name + ' flavor was not found');
   }
   showdown.resetOptions();
-  let preset = flavor[name];
   setFlavor = name;
-  for (let option in preset) {
-    if (Object.prototype.hasOwnProperty.call(preset, option)) {
-      globalOptions[option] = preset[option];
-    }
-  }
+  showdown.helper.applyFlavor(preset, globalOptions); // fresh globalOptions after reset
 };
 
 /**

@@ -585,16 +585,12 @@ showdown.Converter = function (converterOptions) {
    * @param {string} name
    */
   this.setFlavor = function (name) {
-    if (!Object.prototype.hasOwnProperty.call(flavor, name)) {
+    let preset = showdown.getFlavorOptions(name);
+    if (!preset) {
       throw Error(name + ' flavor was not found');
     }
-    let preset = flavor[name];
     setConvFlavor = name;
-    for (let option in preset) {
-      if (Object.prototype.hasOwnProperty.call(preset, option)) {
-        options[option] = preset[option];
-      }
-    }
+    showdown.helper.applyFlavor(preset, options);
     return this;
   };
 

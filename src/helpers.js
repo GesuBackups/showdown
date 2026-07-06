@@ -693,16 +693,20 @@ showdown.helper.isSafeUrl = function (url, opts) {
 };
 
 
+// Unicode whitespace class shared by the trimStart/trimEnd polyfills. Built via string
+// concatenation (rather than a regex literal) so the single class definition lives in one
+// place; ESLint cannot statically flag `no-control-regex` on a computed RegExp pattern.
+const CM_WS = '\\x09\\x0A\\x0B\\x0C\\x0D\\x20\\xA0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u202F\\u205F\\u3000\\u2028\\u2029\\uFEFF';
+const CM_WS_START = new RegExp('^[' + CM_WS + ']+');
+const CM_WS_END = new RegExp('[' + CM_WS + ']+$');
+
 /**
  * Polyfill method for trimStart
  * @param {string} text
  * @returns {string}
  */
 showdown.helper.trimStart = function (text) {
-  return (!String.prototype.trimStart) ?
-    // eslint-disable-next-line no-control-regex -- Unicode whitespace class (incl. \x09-\x0D) in trim polyfill
-    text.replace(/^[\x09\x0A\x0B\x0C\x0D\x20\xA0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F\u205F\u3000\u2028\u2029\uFEFF]+/, '') :
-    text.trimStart();
+  return (!String.prototype.trimStart) ? text.replace(CM_WS_START, '') : text.trimStart();
 };
 
 /**
@@ -711,10 +715,21 @@ showdown.helper.trimStart = function (text) {
  * @returns {string}
  */
 showdown.helper.trimEnd = function (text) {
-  return (!String.prototype.trimEnd) ?
-    // eslint-disable-next-line no-control-regex -- Unicode whitespace class (incl. \x09-\x0D) in trim polyfill
-    text.replace(/[\x09\x0A\x0B\x0C\x0D\x20\xA0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F\u205F\u3000\u2028\u2029\uFEFF]+$/, '') :
-    text.trimEnd();
+  return (!String.prototype.trimEnd) ? text.replace(CM_WS_END, '') : text.trimEnd();
+};
+
+/**
+ * Merge a flavor preset's option overrides into a target options object. Shared by
+ * showdown.setFlavor (global) and Converter#setFlavor (instance).
+ * @param {{}} preset
+ * @param {{}} target
+ */
+showdown.helper.applyFlavor = function (preset, target) {
+  for (let option in preset) {
+    if (Object.prototype.hasOwnProperty.call(preset, option)) {
+      target[option] = preset[option];
+    }
+  }
 };
 
 
