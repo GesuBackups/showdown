@@ -785,7 +785,7 @@ showdown.helper.URLUtils = function (url, baseURL) {
       protocol = base.protocol;
     }
   }
-  this.origin = protocol + (protocol !== '' || host !== '' ? '//' : '') + host;
+  //this.origin = protocol + (protocol !== '' || host !== '' ? '//' : '') + host;
   this.href = protocol + (protocol !== '' || host !== '' ? '//' : '') + (username !== '' ? username + (password !== '' ? ':' + password : '') + '@' : '') + host + pathname + search + hash;
   this.protocol = protocol;
   this.username = username;
@@ -1251,7 +1251,6 @@ showdown.helper.validateOptions = function (options) {
  */
 // use this instead of builtin is undefined for IE8 compatibility
 if (typeof (console) === 'undefined') {
-  // noinspection JSValidateTypes
   // eslint-disable-next-line no-global-assign -- deliberate polyfill for environments without console
   console = {
     warn: function (msg) {
@@ -3142,17 +3141,17 @@ showdown.helper.emojis = {
  */
 showdown.helper.emojiReverse = (function () {
   'use strict';
-  var cache = null;
+  let cache = null;
   return function () {
     if (cache) { return cache; }
-    var images = {},
+    let images = {},
         unicode = {},
         values = [];
-    for (var code in showdown.helper.emojis) {
+    for (let code in showdown.helper.emojis) {
       if (!Object.prototype.hasOwnProperty.call(showdown.helper.emojis, code)) { continue; }
-      var val = showdown.helper.emojis[code];
+      let val = showdown.helper.emojis[code];
       if (/^\s*<img/.test(val)) {
-        var srcMatch = val.match(/src="([^"]*)"/);
+        let srcMatch = val.match(/src="([^"]*)"/);
         if (srcMatch && !Object.prototype.hasOwnProperty.call(images, srcMatch[1])) {
           images[srcMatch[1]] = code;
         }
@@ -3163,7 +3162,7 @@ showdown.helper.emojiReverse = (function () {
     }
     // longest first so e.g. `zombie_woman` (🧟‍♀️) matches before `zombie` (🧟)
     values.sort(function (a, b) { return b.length - a.length; });
-    var escaped = values.map(function (v) {
+    const escaped = values.map(function (v) {
       return v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     });
     cache = {

@@ -1,41 +1,34 @@
 showdown.subParser('makeMarkdown.header', function (node, options, globals, headerLevel) {
   'use strict';
 
-  let startEvent = new showdown.Event('makeMarkdown.header.onStart', node.outerHTML);
-  startEvent
-    .setOutput(null)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  startEvent = globals.converter.dispatch(startEvent);
+  let input = node.outerHTML;
+  showdown.Event.dispatchStart('makeMarkdown.header.onStart', input, options, globals, {_node: node});
 
-  let result;
-  if (startEvent.output && startEvent.output !== '') {
-    result = startEvent.output;
-  } else {
-    result = (function () {
-      let headerMark = new Array(headerLevel + 1).join('#'),
-          txt = '';
-
-      if (node.hasChildNodes()) {
-        txt = headerMark + ' ';
-        let children = node.childNodes,
-            childrenLength = children.length;
-
-        for (let i = 0; i < childrenLength; ++i) {
-          txt += showdown.subParser('makeMarkdown.node')(children[i], options, globals);
-        }
-      }
-      return txt;
-    })();
+  // render the header's inner content (the `#` marker is assembled below from `level`)
+  let hasChildren = node.hasChildNodes(),
+      text = '';
+  if (hasChildren) {
+    let children = node.childNodes,
+        childrenLength = children.length;
+    for (let i = 0; i < childrenLength; ++i) {
+      text += showdown.subParser('makeMarkdown.node')(children[i], options, globals);
+    }
   }
 
-  let endEvent = new showdown.Event('makeMarkdown.header.onEnd', result);
-  endEvent
-    .setOutput(result)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  endEvent = globals.converter.dispatch(endEvent);
-  return endEvent.output;
+  let captureEvent = showdown.Event.dispatchCapture('makeMarkdown.header.onCapture', input, {
+    regexp: null,
+    matches: {_wholeMatch: input, _node: node, text: text, level: headerLevel},
+    attributes: null
+  }, options, globals);
+
+  let result;
+  if (captureEvent.output && captureEvent.output !== '') {
+    result = captureEvent.output;
+  } else {
+    text = captureEvent.matches.text;
+    let level = captureEvent.matches.level;
+    result = hasChildren ? new Array(level + 1).join('#') + ' ' + text : '';
+  }
+
+  return showdown.Event.dispatchEnd('makeMarkdown.header.onEnd', result, options, globals, {_node: node}).output;
 });

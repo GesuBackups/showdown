@@ -1,19 +1,22 @@
 showdown.subParser('makeMarkdown.codeSpan', function (node, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makeMarkdown.codeSpan.onStart', node.outerHTML);
-  startEvent
-    .setOutput(null)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  startEvent = globals.converter.dispatch(startEvent);
+  let input = node.outerHTML;
+  showdown.Event.dispatchStart('makeMarkdown.codeSpan.onStart', input, options, globals, {_node: node});
+
+  let code = showdown.helper.unescapeHTMLEntities(node.innerHTML);
+
+  let captureEvent = showdown.Event.dispatchCapture('makeMarkdown.codeSpan.onCapture', input, {
+    regexp: null,
+    matches: {_wholeMatch: input, _node: node, text: code},
+    attributes: null
+  }, options, globals);
 
   let result;
-  if (startEvent.output && startEvent.output !== '') {
-    result = startEvent.output;
+  if (captureEvent.output && captureEvent.output !== '') {
+    result = captureEvent.output;
   } else {
-    let code = showdown.helper.unescapeHTMLEntities(node.innerHTML);
+    code = captureEvent.matches.text;
     // pick a backtick fence longer than the longest run of backticks inside the content
     let backtickRuns = code.match(/`+/g),
         longestRun = 0;
@@ -29,12 +32,5 @@ showdown.subParser('makeMarkdown.codeSpan', function (node, options, globals) {
     result = fence + pad + code + pad + fence;
   }
 
-  let endEvent = new showdown.Event('makeMarkdown.codeSpan.onEnd', result);
-  endEvent
-    .setOutput(result)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  endEvent = globals.converter.dispatch(endEvent);
-  return endEvent.output;
+  return showdown.Event.dispatchEnd('makeMarkdown.codeSpan.onEnd', result, options, globals, {_node: node}).output;
 });

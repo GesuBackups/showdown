@@ -411,43 +411,69 @@ Besides the per-sub-parser events above, `makeHtml()` emits three **document-lev
 
 ## makeMarkdown (HTML to Markdown) events
 
-The reverse converter — `<converter>.makeMarkdown()`, which turns HTML back into Markdown — also emits namespaced events. Because its sub-parsers operate on **DOM nodes** (one construct at a time) rather than running regular expressions over text, they emit only two of the lifecycle events: [`onStart`](#onstart) and [`onEnd`](#onend). There is no `onCapture`/`onHash` phase, since there is no regex capture step.
+The reverse converter — `<converter>.makeMarkdown()`, which turns HTML back into Markdown — also emits namespaced events. Its sub-parsers operate on **DOM nodes** (one construct at a time) rather than running regular expressions over text, but each construct still runs the same three-phase lifecycle as a makehtml construct, minus the hash phase (nothing is hashed on this side): [`onStart`](#onstart) → [`onCapture`](#oncapture) → [`onEnd`](#onend). **There is no `onHash` phase.**
 
 Event names follow the same `<converter>.<subparser>.<event>` convention, with `makeMarkdown` as the converter prefix:
 
-* **`makeMarkdown.<subparser>.onStart`**
-* **`makeMarkdown.<subparser>.onEnd`**
+* **`makeMarkdown.<subparser>.onStart`** — pure lifecycle. Emitted before the node is rendered.
+* **`makeMarkdown.<subparser>.onCapture`** — emitted after the sub-parser has extracted its pieces / rendered its child content but **before** the Markdown string is assembled. This is where the mutable `matches` values and the output-override live (see below).
+* **`makeMarkdown.<subparser>.onEnd`** — emitted with the generated Markdown for the node.
 
-emitted by each of these sub-parsers: `blockquote`, `break`, `codeBlock`, `codeSpan`, `emphasis`, `header`, `hr`, `image`, `input`, `links`, `list`, `listItem`, `paragraph`, `pre`, `strikethrough`, `strong`, `table`, `tableCell`, `txt`, `underline`.
+The full lifecycle (all three phases) is emitted by each construct sub-parser: `blockquote`, `break`, `codeBlock`, `codeSpan`, `emphasis`, `footnotes`, `header`, `hr`, `image`, `input`, `links`, `list`, `listItem`, `paragraph`, `pre`, `strikethrough`, `strong`, `table`, `tableCell`, `txt`, `underline`.
 
-The recursive `node` dispatcher (the analogue of makehtml's `blockGamut`/`spanGamut`) also emits **`makeMarkdown.node.onStart`** / **`makeMarkdown.node.onEnd`** for every node it processes. Because every node passes through it, this is the one place to observe (or override) content that has no dedicated sub-parser — HTML comments and unknown/raw elements.
+The recursive `node` dispatcher (the analogue of makehtml's `blockGamut`/`spanGamut`) is a **documented exception**: it has no syntax of its own, but because every node passes through it, it is the one place to observe (or override) content that has no dedicated sub-parser — HTML comments and unknown/raw elements. It therefore keeps the same three-phase treatment — **`makeMarkdown.node.onStart`** / **`makeMarkdown.node.onCapture`** / **`makeMarkdown.node.onEnd`** — where the capture's output-override replaces the default node dispatch. Like `break`/`hr`/`input`, it carries no `text` key (it renders no inner content of its own).
 
-In addition, two **document-level** events wrap the whole conversion:
+In addition, two **document-level** events wrap the whole conversion (unchanged):
 
 * **`makeMarkdown.onStart`** — emitted once with the raw HTML source, before it is parsed into a DOM. Listeners can rewrite the source.
 * **`makeMarkdown.onEnd`** — emitted once with the final generated Markdown. Listeners can post-process it.
 
 ### Properties
 
-Unlike the makehtml events, the `input` of a makeMarkdown event is a single node/fragment, **not** the full document text:
+Unlike the makehtml events, a makeMarkdown event operates on a single DOM node, **not** the full document text. Every lifecycle and capture event exposes the source node (read-only) under **`matches._node`**, and captures are always node-based, so **`regexp` and `attributes` are always `null`** (Markdown output has no HTML attributes).
+
+**`onStart` / `onEnd`**
 
 | property     | type     | access  | description                                                                                             |
 |--------------|----------|---------|---------------------------------------------------------------------------------------------------------|
 | `input`      | `string` | `read`  | `onStart`: the serialized HTML (or text value) of the node being processed. `onEnd`: the generated Markdown. |
-| `output`     | `string` | `write` | The Markdown string that will be used / passed along (see the override note below).                     |
-| `matches`    | `object` | `read`  | Holds `{ node }` — the source DOM node currently being converted.                                       |
+| `output`     | `string` | `write` | `onEnd`: the Markdown string that will be passed along. (On `onStart` this is pure lifecycle — see the note below.) |
+| `matches`    | `object` | `read`  | Holds `{ _node }` — the source DOM node currently being converted (read-only).                          |
 | `regexp`     | `null`   |         |                                                                                                         |
 | `attributes` | `null`   |         |                                                                                                         |
 
-!!! hint "Overriding a node's rendering with `onStart`"
-    The `onStart` event's `output` starts as `null`. If a listener sets it to a non-empty string, that string is used as the sub-parser's result and the **default rendering of the node is skipped** (the matching `onEnd` event still runs). This is the makeMarkdown equivalent of the `onCapture` output-precedence behavior.
+**`onCapture`**
+
+| property     | type     | access       | description                                                                                       |
+|--------------|----------|--------------|---------------------------------------------------------------------------------------------------|
+| `input`      | `string` | `readonly`   | The node's serialized HTML (or text value).                                                       |
+| `output`     | `string` | `write`      | `null`, or the Markdown to use for this node (takes precedence — see the [onCapture note](#oncapture)). |
+| `regexp`     | `null`   |              | Always `null` (node-based, no regex capture).                                                      |
+| `matches`    | `object` | `read/write` | `_wholeMatch` (the node's outer HTML) and `_node` are read-only context; the main content is the mutable, **honored** `text` key, plus construct-specific extras (`url`, `title`, `level`, `language`, `checked`, …). |
+| `attributes` | `null`   |              | Always `null` (Markdown output has no HTML attributes).                                            |
+
+The `matches.text` key carries the main captured content for every construct that has inner content; the ones that render no inner content (`break`, `hr`, `input`, and the `node` dispatcher) omit it. Mutating `matches.text` (or a descriptive extra) is honored: the sub-parser reassembles its Markdown from the mutated values after the capture. For example, `makeMarkdown.header.onCapture` exposes `text` (the heading's inner Markdown) and `level`; `makeMarkdown.links.onCapture` exposes `text`, `url` and `title`.
+
+!!! hint "Changing the input on `onStart`"
+    `onStart` is now **pure lifecycle** — setting its `output` no longer overrides anything. To rewrite the *input* to a sub-parser, mutate the live DOM node reachable through `matches._node`; the sub-parser reads the (mutated) node when it renders.
+
+    ```js
+    // Uppercase every heading's text before it is converted
+    converter.listen('makeMarkdown.header.onStart', function (evt) {
+      evt.matches._node.textContent = evt.matches._node.textContent.toUpperCase();
+      return evt;
+    });
+    ```
+
+!!! warning "The output override moved from `onStart` to `onCapture`"
+    In earlier release candidates, setting `output` on a makeMarkdown **`onStart`** event replaced the node's rendering. That override now lives on **`onCapture`** (mirroring the makehtml `onCapture` precedence). Update any listener that relied on the old `onStart` behavior.
 
     !!! example ""
 
         ```js
         // Render every <a> as bare text instead of a Markdown link
-        converter.listen('makeMarkdown.links.onStart', function (evt) {
-          evt.output = evt.matches.node.textContent;
+        converter.listen('makeMarkdown.links.onCapture', function (evt) {
+          evt.output = evt.matches._node.textContent;
           return evt;
         });
         ```

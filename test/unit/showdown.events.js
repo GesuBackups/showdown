@@ -1,3 +1,5 @@
+// noinspection HtmlUnknownTarget
+
 /**
  * Created by Tivie on 04/03/2022.
  */
@@ -9,6 +11,7 @@ describe('showdown.Event', function () {
   'use strict';
   //const subparserList = showdown.getSubParserList();
 
+  // noinspection HtmlUnknownTarget
   const testSpec = {
     makehtml: {
       doesNotExist: [
@@ -188,9 +191,9 @@ describe('showdown.Event', function () {
         { event: 'onEnd', text: 'foo', result: true }
       ],
       'link.angleBrackets': [
-        { event: 'onCapture', text: '<http://foo.com>', result: true },
+        { event: 'onCapture', text: '<https://foo.com>', result: true },
         { event: 'onCapture', text: 'foo', result: false },
-        { event: 'onHash', text: '<http://foo.com>', result: true },
+        { event: 'onHash', text: '<https://foo.com>', result: true },
         { event: 'onHash', text: 'foo', result: false }
       ],
       'link.inline': [
@@ -316,51 +319,71 @@ describe('showdown.Event', function () {
       ]
     },
     makeMarkdown: {
+      // node is the recursive dispatcher: it emits onStart/onEnd for every node plus a
+      // per-node onCapture (the override hook for comments / unknown elements). It has no
+      // onHash (nothing is hashed on this side).
       node: [
         { event: 'onStart', text: '<p>foo</p>', result: true },
-        { event: 'onEnd', text: '<p>foo</p>', result: true }
+        { event: 'onCapture', text: '<p>foo</p>', result: true },
+        { event: 'onEnd', text: '<p>foo</p>', result: true },
+        { event: 'onHash', text: '<p>foo</p>', result: false }
       ],
       header: [
         { event: 'onStart', text: '<h1>foo</h1>', result: true },
         { event: 'onStart', text: '<p>foo</p>', result: false },
-        { event: 'onEnd', text: '<h2>foo</h2>', result: true }
+        { event: 'onCapture', text: '<h1>foo</h1>', result: true },
+        { event: 'onCapture', text: '<p>foo</p>', result: false },
+        { event: 'onEnd', text: '<h2>foo</h2>', result: true },
+        { event: 'onHash', text: '<h1>foo</h1>', result: false }
       ],
       paragraph: [
         { event: 'onStart', text: '<p>foo</p>', result: true },
         { event: 'onStart', text: '<h1>foo</h1>', result: false },
-        { event: 'onEnd', text: '<p>foo</p>', result: true }
+        { event: 'onCapture', text: '<p>foo</p>', result: true },
+        { event: 'onCapture', text: '<h1>foo</h1>', result: false },
+        { event: 'onEnd', text: '<p>foo</p>', result: true },
+        { event: 'onHash', text: '<p>foo</p>', result: false }
       ],
       blockquote: [
         { event: 'onStart', text: '<blockquote>foo</blockquote>', result: true },
+        { event: 'onCapture', text: '<blockquote>foo</blockquote>', result: true },
         { event: 'onEnd', text: '<blockquote>foo</blockquote>', result: true }
       ],
       emphasis: [
         { event: 'onStart', text: '<p><em>foo</em></p>', result: true },
         { event: 'onStart', text: '<p>foo</p>', result: false },
+        { event: 'onCapture', text: '<p><em>foo</em></p>', result: true },
+        { event: 'onCapture', text: '<p>foo</p>', result: false },
         { event: 'onEnd', text: '<p><em>foo</em></p>', result: true }
       ],
       strong: [
         { event: 'onStart', text: '<p><strong>foo</strong></p>', result: true },
+        { event: 'onCapture', text: '<p><strong>foo</strong></p>', result: true },
         { event: 'onEnd', text: '<p><strong>foo</strong></p>', result: true }
       ],
       links: [
         { event: 'onStart', text: '<p><a href="bar.jpg">foo</a></p>', result: true },
+        { event: 'onCapture', text: '<p><a href="bar.jpg">foo</a></p>', result: true },
         { event: 'onEnd', text: '<p><a href="bar.jpg">foo</a></p>', result: true }
       ],
       image: [
         { event: 'onStart', text: '<p><img src="bar.jpg" alt="foo"></p>', result: true },
+        { event: 'onCapture', text: '<p><img src="bar.jpg" alt="foo"></p>', result: true },
         { event: 'onEnd', text: '<p><img src="bar.jpg" alt="foo"></p>', result: true }
       ],
       codeSpan: [
         { event: 'onStart', text: '<p><code>foo</code></p>', result: true },
+        { event: 'onCapture', text: '<p><code>foo</code></p>', result: true },
         { event: 'onEnd', text: '<p><code>foo</code></p>', result: true }
       ],
       list: [
         { event: 'onStart', text: '<ul><li>foo</li></ul>', result: true },
+        { event: 'onCapture', text: '<ul><li>foo</li></ul>', result: true },
         { event: 'onEnd', text: '<ul><li>foo</li></ul>', result: true }
       ],
       table: [
         { event: 'onStart', text: '<table><thead><tr><th>foo</th></tr></thead><tbody><tr><td>bar</td></tr></tbody></table>', result: true },
+        { event: 'onCapture', text: '<table><thead><tr><th>foo</th></tr></thead><tbody><tr><td>bar</td></tr></tbody></table>', result: true },
         { event: 'onEnd', text: '<table><thead><tr><th>foo</th></tr></thead><tbody><tr><td>bar</td></tr></tbody></table>', result: true }
       ]
     }
@@ -510,7 +533,7 @@ describe('showdown.Event', function () {
           let fired = false;
           new showdown.Converter({simplifiedAutoLink: true})
             .listen('makehtml.link.autoLink.' + evt, function (e) { fired = true; return e; })
-            .makeHtml('http://foo.com');
+            .makeHtml('https://foo.com');
           expect(fired).toBe(true);
         });
       });
@@ -573,16 +596,17 @@ describe('showdown.Event', function () {
     // stripped of their events in D10 — so none of them appear below.
     let makehtmlSubparsers = [
       'blockquote', 'cmInline', 'codeBlock', 'codeSpan', 'completeHTMLDocument',
-      'ellipsis', 'emoji', 'emphasisAndStrong', 'githubCodeBlock', 'hardLineBreaks',
+      'disallowedHtmlTags', 'ellipsis', 'emoji', 'emphasisAndStrong', 'footnotes',
+      'githubCodeBlock', 'hardLineBreaks',
       'heading', 'heading.atx', 'heading.setext', 'horizontalRule', 'image', 'link',
       'list', 'list.taskListItem.checkbox', 'metadata', 'paragraphs', 'strikethrough',
       'stripLinkDefinitions', 'table', 'underline'
     ];
 
     let makeMarkdownSubparsers = [
-      'blockquote', 'break', 'codeBlock', 'codeSpan', 'emphasis', 'header', 'hr', 'image',
-      'input', 'links', 'list', 'listItem', 'node', 'paragraph', 'pre', 'strikethrough',
-      'strong', 'table', 'tableCell', 'txt', 'underline'
+      'blockquote', 'break', 'codeBlock', 'codeSpan', 'emphasis', 'footnotes', 'header',
+      'hr', 'image', 'input', 'links', 'list', 'listItem', 'node', 'paragraph', 'pre',
+      'strikethrough', 'strong', 'table', 'tableCell', 'txt', 'underline'
     ];
 
     // a feature-rich document that, across the two converters below, exercises every makehtml
@@ -593,55 +617,74 @@ describe('showdown.Event', function () {
       '# ATX heading', '',
       'Setext heading', '==============', '',
       'Para with `codespan`, **strong**, *em*, ~~strike~~, __under__, ...ellipsis, ',
-      'a [ref][1], an [inline](http://example.com "t"), <http://angle.com>, http://naked.com, ',
+      'a [ref][1], an [inline](https://example.com "t"), <https://angle.com>, https://naked.com, ',
       'an ![img](pic.png), an emoji :smile:, a @mention, and <span title="a&b">html</span>.', '',
       '    indented code', '',
       '```', 'fenced', '```', '',
       '- list item', '', '- [ ] task', '', '- # heading in item', '',
       '> blockquote', '',
       '| h1 | h2 |', '|----|----|', '| a  | b  |', '',
-      '---', '', '[1]: http://ref.com', ''
+      'A note.[^fn] and a disallowed <iframe></iframe> tag.', '',
+      '---', '', '[1]: https://ref.com', '', '[^fn]: footnote body', ''
     ].join('\n');
 
     let richHtml = '<h1>h</h1><p>para <em>em</em> <strong>s</strong> <code>c</code> ' +
-      '<a href="x">l</a> <img src="y" alt="z"> <u>u</u> <del>d</del> <br> text</p>' +
+      '<a href="x">l</a> <img src="y" alt="z"> <u>u</u> <del>d</del> <br> text' +
+      ' a note<sup class="footnote-ref"><a href="#fn-a">1</a></sup></p>' +
       '<blockquote>bq</blockquote><pre><code>block</code></pre><pre>raw pre</pre><hr>' +
       '<ul><li>item</li><li><input type="checkbox" checked> task</li></ul>' +
-      '<table><thead><tr><th>h</th></tr></thead><tbody><tr><td>c</td></tr></tbody></table>';
+      '<table><thead><tr><th>h</th></tr></thead><tbody><tr><td>c</td></tr></tbody></table>' +
+      '<section class="footnotes"><ol><li id="fn-a">the body<a class="footnote-backref" href="#">back</a></li></ol></section>';
 
+    // tracks BOTH lifecycle phases so a subparser cannot silently lose its onEnd either
     function collectMakehtml (opts) {
-      let fired = {},
+      let started = {},
+          ended = {},
           conv = new showdown.Converter(opts);
+      /* jshint -W083 */
       makehtmlSubparsers.forEach(function (name) {
-        conv.listen('makehtml.' + name + '.onStart', function (e) { fired[name] = true; return e; });
+        conv.listen('makehtml.' + name + '.onStart', function (e) { started[name] = true; return e; });
+        conv.listen('makehtml.' + name + '.onEnd', function (e) { ended[name] = true; return e; });
       });
+      /* jshint +W083 */
       conv.makeHtml(richMd);
-      return fired;
+      return {started: started, ended: ended};
     }
 
-    it('every makehtml subparser should emit its onStart event', function () {
+    it('every makehtml subparser should emit its onStart and onEnd events', function () {
       let kitchen = {
             strikethrough: true, tables: true, ghCodeBlocks: true, tasklists: true,
             ghMentions: true, emoji: true, underline: true, ellipsis: true, metadata: true,
-            simplifiedAutoLink: true, completeHTMLDocument: true
+            simplifiedAutoLink: true, completeHTMLDocument: true, footnotes: true,
+            disallowRawHTML: true
           },
           firedDefault = collectMakehtml(kitchen),
           firedCm = collectMakehtml(showdown.getFlavorOptions('commonmark')),
-          missing = makehtmlSubparsers.filter(function (name) {
-            return !firedDefault[name] && !firedCm[name];
+          missingStart = makehtmlSubparsers.filter(function (name) {
+            return !firedDefault.started[name] && !firedCm.started[name];
+          }),
+          missingEnd = makehtmlSubparsers.filter(function (name) {
+            return !firedDefault.ended[name] && !firedCm.ended[name];
           });
-      expect(missing).toEqual([]);
+      expect(missingStart).toEqual([]);
+      expect(missingEnd).toEqual([]);
     });
 
-    it('every makeMarkdown subparser should emit its onStart event', function () {
-      let fired = {},
-          conv = new showdown.Converter({tables: true, tasklists: true, strikethrough: true, underline: true});
+    it('every makeMarkdown subparser should emit its onStart and onEnd events', function () {
+      let started = {},
+          ended = {},
+          conv = new showdown.Converter({tables: true, tasklists: true, strikethrough: true, underline: true, footnotes: true});
+      /* jshint -W083 */
       makeMarkdownSubparsers.forEach(function (name) {
-        conv.listen('makeMarkdown.' + name + '.onStart', function (e) { fired[name] = true; return e; });
+        conv.listen('makeMarkdown.' + name + '.onStart', function (e) { started[name] = true; return e; });
+        conv.listen('makeMarkdown.' + name + '.onEnd', function (e) { ended[name] = true; return e; });
       });
+      /* jshint +W083 */
       conv.makeMarkdown(richHtml);
-      let missing = makeMarkdownSubparsers.filter(function (name) { return !fired[name]; });
-      expect(missing).toEqual([]);
+      let missingStart = makeMarkdownSubparsers.filter(function (name) { return !started[name]; }),
+          missingEnd = makeMarkdownSubparsers.filter(function (name) { return !ended[name]; });
+      expect(missingStart).toEqual([]);
+      expect(missingEnd).toEqual([]);
     });
   });
 
@@ -689,7 +732,14 @@ describe('showdown.Event', function () {
       // D10 additions: paragraphs carry their graf text; a hard break has no inner content
       // (like a horizontal rule), so it carries no `text` key.
       { event: 'makehtml.paragraphs', hasText: true },
-      { event: 'makehtml.hardLineBreaks', hasText: false }
+      { event: 'makehtml.hardLineBreaks', hasText: false },
+      // remaining capture families: footnote definitions carry the body, references render a
+      // generated <sup> (no inner content); disallowedHtmlTags carries the matched tag opening;
+      // heading.id is the capture-only slug hook (its onHash never fires).
+      { event: 'makehtml.footnotes.definition', hasText: true },
+      { event: 'makehtml.footnotes.reference', hasText: false },
+      { event: 'makehtml.disallowedHtmlTags', hasText: true },
+      { event: 'makehtml.heading.id', hasText: true }
     ];
 
     // A document that, across the two converters below, triggers every construct above.
@@ -698,14 +748,15 @@ describe('showdown.Event', function () {
       '# ATX heading', '',
       'Setext heading', '==============', '',
       'Para `codespan` **strong** *em* ***both*** ~~strike~~ __under__ ...ellipsis ',
-      'a [ref][1] an [inline](http://example.com "t") <http://angle.com> http://naked.com ',
+      'a [ref][1] an [inline](https://example.com "t") <https://angle.com> https://naked.com ',
       'an ![img](pic.png) a ![refimg][1] an emoji :smile: <span title="a&b">html</span>.', '',
       '    indented code', '',
       '```js', 'fenced', '```', '',
       '- list item', '', '- [ ] task', '', '- # heading in item', '',
       '> blockquote', '',
       '| h1 | h2 |', '|----|----|', '| a  | b  |', '',
-      '- - -', '', '[1]: http://ref.com "rt"', ''
+      'A note.[^fn] and a disallowed <iframe></iframe> tag.', '',
+      '- - -', '', '[1]: https://ref.com "rt"', '', '[^fn]: footnote body', ''
     ].join('\n');
 
     function validateCaptureEvent (c, event, errors) {
@@ -766,7 +817,8 @@ describe('showdown.Event', function () {
           kitchen = {
             strikethrough: true, tables: true, ghCodeBlocks: true, tasklists: true,
             ghMentions: true, emoji: true, underline: true, ellipsis: true, metadata: true,
-            simplifiedAutoLink: true, parseImgDimensions: true
+            simplifiedAutoLink: true, parseImgDimensions: true, footnotes: true,
+            disallowRawHTML: true
           };
       run(kitchen, errors, fired);
       run(showdown.getFlavorOptions('commonmark'), errors, fired);
@@ -779,7 +831,8 @@ describe('showdown.Event', function () {
           kitchen = {
             strikethrough: true, tables: true, ghCodeBlocks: true, tasklists: true,
             ghMentions: true, emoji: true, underline: true, ellipsis: true, metadata: true,
-            simplifiedAutoLink: true, parseImgDimensions: true
+            simplifiedAutoLink: true, parseImgDimensions: true, footnotes: true,
+            disallowRawHTML: true
           };
       run(kitchen, errors, fired);
       run(showdown.getFlavorOptions('commonmark'), errors, fired);
@@ -793,7 +846,9 @@ describe('showdown.Event', function () {
         'makehtml.image.inline', 'makehtml.emphasisAndStrong.emphasis',
         'makehtml.emphasisAndStrong.strong', 'makehtml.list', 'makehtml.list.listItem',
         'makehtml.list.taskListItem', 'makehtml.list.taskListItem.checkbox',
-        'makehtml.stripLinkDefinitions', 'makehtml.paragraphs'
+        'makehtml.stripLinkDefinitions', 'makehtml.paragraphs',
+        'makehtml.footnotes.definition', 'makehtml.footnotes.reference',
+        'makehtml.disallowedHtmlTags', 'makehtml.heading.id'
       ];
       let missing = core.filter(function (name) { return !fired[name]; });
       expect(missing).toEqual([]);
@@ -843,8 +898,8 @@ describe('showdown.Event', function () {
     });
 
     it('link (inline) honors a rewritten matches.text', function () {
-      expect(mutate({}, 'makehtml.link.inline.onCapture', '[foo](http://x.com)', 'BAR'))
-        .toMatch(/<a href="http:\/\/x\.com">BAR<\/a>/);
+      expect(mutate({}, 'makehtml.link.inline.onCapture', '[foo](https://x.com)', 'BAR'))
+        .toMatch(/<a href="https:\/\/x\.com">BAR<\/a>/);
     });
 
     it('image (inline) honors a rewritten matches.text', function () {
@@ -993,6 +1048,226 @@ describe('showdown.Event', function () {
         .makeHtml('# My Heading');
       expect(seen).toBe('my-heading');
       expect(out).toMatch(/<h1 id="custom-slug">/);
+    });
+  });
+
+  // makeMarkdown event-contract conformance: drive makeMarkdown() over a feature-rich HTML
+  // document and assert the payload shape of every capture event against the D11 contract —
+  // regexp is ALWAYS null, attributes is ALWAYS null (markdown output has no HTML attributes),
+  // matches carries the read-only `_wholeMatch`/`_node` context, and `text` is present iff the
+  // construct has inner content. The recursive `node` dispatcher is the documented exception:
+  // it emits a capture (the override hook for comments / unknown elements) but carries no text.
+  describe('makeMarkdown event contract conformance', function () {
+
+    let captureConstructs = [
+      { event: 'makeMarkdown.blockquote', hasText: true },
+      { event: 'makeMarkdown.break', hasText: false },
+      { event: 'makeMarkdown.codeBlock', hasText: true },
+      { event: 'makeMarkdown.codeSpan', hasText: true },
+      { event: 'makeMarkdown.emphasis', hasText: true },
+      { event: 'makeMarkdown.footnotes', hasText: true },
+      { event: 'makeMarkdown.header', hasText: true },
+      { event: 'makeMarkdown.hr', hasText: false },
+      { event: 'makeMarkdown.image', hasText: true },
+      { event: 'makeMarkdown.input', hasText: false },
+      { event: 'makeMarkdown.links', hasText: true },
+      { event: 'makeMarkdown.list', hasText: true },
+      { event: 'makeMarkdown.listItem', hasText: true },
+      { event: 'makeMarkdown.node', hasText: false },
+      { event: 'makeMarkdown.paragraph', hasText: true },
+      { event: 'makeMarkdown.pre', hasText: true },
+      { event: 'makeMarkdown.strikethrough', hasText: true },
+      { event: 'makeMarkdown.strong', hasText: true },
+      { event: 'makeMarkdown.table', hasText: true },
+      { event: 'makeMarkdown.tableCell', hasText: true },
+      { event: 'makeMarkdown.txt', hasText: true },
+      { event: 'makeMarkdown.underline', hasText: true }
+    ];
+
+    // an HTML document that, converted below, exercises every construct above
+    let conformanceHtml =
+      '<h1>heading</h1>' +
+      '<p>para <em>em</em> <strong>s</strong> <code>c</code> <del>d</del> <u>u</u> ' +
+      '<a href="https://x.com" title="t">l</a> <img src="pic.png" alt="a" title="ti"> line<br>break ' +
+      'a note<sup class="footnote-ref"><a href="#fn-a">1</a></sup>.</p>' +
+      '<blockquote><p>quote</p></blockquote>' +
+      '<pre><code class="language-js">var a = 1;</code></pre>' +
+      '<pre>raw pre</pre>' +
+      '<hr>' +
+      '<ul><li>item</li><li><input type="checkbox" checked> task</li></ul>' +
+      '<table><thead><tr><th>h</th></tr></thead><tbody><tr><td>cell</td></tr></tbody></table>' +
+      '<section class="footnotes"><ol><li id="fn-a">the body<a class="footnote-backref" href="#">back</a></li></ol></section>';
+
+    let opts = {
+      tables: true, tasklists: true, strikethrough: true, underline: true, emoji: true,
+      ghMentions: true, ghCodeBlocks: true, parseImgDimensions: true, footnotes: true, ellipsis: true
+    };
+
+    function validateCapture (c, event, errors) {
+      let ev = c.event + '.onCapture';
+      if (event.output !== null) {
+        errors.push(ev + ': output must be null on capture, got ' + JSON.stringify(event.output));
+      }
+      if (event.regexp !== null) {
+        errors.push(ev + ': regexp must be null (makeMarkdown captures are node-based)');
+      }
+      if (event.attributes !== null) {
+        errors.push(ev + ': attributes must be null (markdown output has no attributes)');
+      }
+      if (event.matches === null || typeof event.matches !== 'object') {
+        errors.push(ev + ': matches must be an object');
+      } else {
+        if (!Object.prototype.hasOwnProperty.call(event.matches, '_wholeMatch')) {
+          errors.push(ev + ': matches must include a "_wholeMatch" key');
+        }
+        if (!Object.prototype.hasOwnProperty.call(event.matches, '_node')) {
+          errors.push(ev + ': matches must include a read-only "_node" key');
+        }
+      }
+      if (c.hasText && typeof event.matches.text !== 'string') {
+        errors.push(ev + ': matches.text must be a string (main captured content)');
+      }
+      if (!c.hasText && Object.prototype.hasOwnProperty.call(event.matches, 'text')) {
+        errors.push(ev + ': should NOT carry a "text" key (no inner content)');
+      }
+    }
+
+    it('every makeMarkdown capture event matches the payload contract', function () {
+      let errors = [],
+          fired = {},
+          conv = new showdown.Converter(opts);
+      /* jshint -W083 */
+      captureConstructs.forEach(function (c) {
+        conv.listen(c.event + '.onCapture', function (event) {
+          fired[c.event] = true;
+          validateCapture(c, event, errors);
+          return event;
+        });
+      });
+      /* jshint +W083 */
+      conv.makeMarkdown(conformanceHtml);
+      expect(errors).toEqual([]);
+      let missing = captureConstructs.filter(function (c) { return !fired[c.event]; })
+        .map(function (c) { return c.event; });
+      expect(missing).toEqual([]);
+    });
+
+    it('makeMarkdown constructs are three-phase (onStart/onCapture/onEnd, never onHash)', function () {
+      let phases = {},
+          conv = new showdown.Converter(opts);
+      /* jshint -W083 */
+      ['onStart', 'onCapture', 'onEnd', 'onHash'].forEach(function (phase) {
+        conv.listen('makeMarkdown.header.' + phase, function (e) { phases[phase] = true; return e; });
+      });
+      /* jshint +W083 */
+      conv.makeMarkdown('<h1>foo</h1>');
+      expect(phases.onStart).toBe(true);
+      expect(phases.onCapture).toBe(true);
+      expect(phases.onEnd).toBe(true);
+      expect(phases.onHash).toBeUndefined();
+    });
+
+    it('the node dispatcher exception is three-phase with a capture but no text/hash', function () {
+      let phases = {},
+          hadText = false,
+          conv = new showdown.Converter(opts);
+      /* jshint -W083 */
+      ['onStart', 'onCapture', 'onEnd', 'onHash'].forEach(function (phase) {
+        conv.listen('makeMarkdown.node.' + phase, function (e) { phases[phase] = true; return e; });
+      });
+      /* jshint +W083 */
+      conv.listen('makeMarkdown.node.onCapture', function (e) {
+        if (Object.prototype.hasOwnProperty.call(e.matches, 'text')) { hadText = true; }
+        return e;
+      });
+      conv.makeMarkdown('<p>foo</p><!-- a comment -->');
+      expect(phases.onStart).toBe(true);
+      expect(phases.onCapture).toBe(true);
+      expect(phases.onEnd).toBe(true);
+      expect(phases.onHash).toBeUndefined();
+      expect(hadText).toBe(false);
+    });
+
+    it('a makeMarkdown capture with a RegExp or an attributes object throws (validator shape)', function () {
+      let globals = { converter: new showdown.Converter() };
+      expect(function () {
+        showdown.Event.dispatchCapture('makeMarkdown.header.onCapture', 'x',
+          { regexp: /x/, matches: { _wholeMatch: 'x' } }, {}, globals);
+      }).toThrow();
+      expect(function () {
+        showdown.Event.dispatchCapture('makeMarkdown.header.onCapture', 'x',
+          { matches: { _wholeMatch: 'x' }, attributes: {} }, {}, globals);
+      }).toThrow();
+    });
+  });
+
+  // makeMarkdown mutation honoring: a listener that rewrites matches.text (or a descriptive
+  // extra like `url`) on an onCapture handler must be reflected in the rendered markdown.
+  describe('makeMarkdown matches mutation honoring', function () {
+
+    function mutateMd (opts, event, html, mutator) {
+      return new showdown.Converter(opts)
+        .listen(event, function (e) { mutator(e); return e; })
+        .makeMarkdown(html);
+    }
+
+    it('links honors a rewritten matches.url', function () {
+      let out = mutateMd({}, 'makeMarkdown.links.onCapture', '<p><a href="https://x.com">link</a></p>',
+        function (e) { e.matches.url = 'https://y.com'; });
+      expect(out).toContain('https://y.com');
+      expect(out).not.toContain('https://x.com');
+    });
+
+    it('header honors a rewritten matches.text', function () {
+      let out = mutateMd({}, 'makeMarkdown.header.onCapture', '<h1>foo</h1>',
+        function (e) { e.matches.text = 'BAR'; });
+      expect(out).toContain('# BAR');
+    });
+
+    it('emphasis honors a rewritten matches.text', function () {
+      let out = mutateMd({}, 'makeMarkdown.emphasis.onCapture', '<p><em>foo</em></p>',
+        function (e) { e.matches.text = 'BAR'; });
+      expect(out).toContain('*BAR*');
+    });
+
+    it('txt honors a rewritten matches.text', function () {
+      let out = mutateMd({}, 'makeMarkdown.txt.onCapture', '<p>foo</p>',
+        function (e) { e.matches.text = 'BAR'; });
+      expect(out).toContain('BAR');
+    });
+
+    it('image honors a rewritten alt via matches.text', function () {
+      let out = mutateMd({}, 'makeMarkdown.image.onCapture', '<p><img src="pic.png" alt="foo"></p>',
+        function (e) { e.matches.text = 'BAR'; });
+      expect(out).toContain('![BAR]');
+    });
+  });
+
+  // makeMarkdown output-precedence: the override that used to live on onStart now lives on
+  // onCapture (a breaking change for RC listeners). onStart is pure lifecycle again.
+  describe('makeMarkdown onCapture output override', function () {
+
+    it('setting output on onCapture replaces the default rendering', function () {
+      let out = new showdown.Converter()
+        .listen('makeMarkdown.header.onCapture', function (e) { e.output = 'OVERRIDDEN'; return e; })
+        .makeMarkdown('<h1>foo</h1>');
+      expect(out).toContain('OVERRIDDEN');
+      expect(out).not.toContain('# foo');
+    });
+
+    it('setting output on onStart NO LONGER overrides the rendering (moved to onCapture)', function () {
+      let out = new showdown.Converter()
+        .listen('makeMarkdown.header.onStart', function (e) { e.output = 'SHOULD NOT APPLY'; return e; })
+        .makeMarkdown('<h1>foo</h1>');
+      expect(out).toContain('# foo');
+      expect(out).not.toContain('SHOULD NOT APPLY');
+    });
+
+    it('onStart can still rewrite the input by mutating the live node via matches._node', function () {
+      let out = new showdown.Converter()
+        .listen('makeMarkdown.header.onStart', function (e) { e.matches._node.textContent = 'MUTATED'; return e; })
+        .makeMarkdown('<h1>foo</h1>');
+      expect(out).toContain('# MUTATED');
     });
   });
 });

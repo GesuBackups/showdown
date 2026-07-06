@@ -1,27 +1,22 @@
 showdown.subParser('makeMarkdown.break', function (node, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makeMarkdown.break.onStart', node.outerHTML);
-  startEvent
-    .setOutput(null)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  startEvent = globals.converter.dispatch(startEvent);
+  let input = node.outerHTML;
+  showdown.Event.dispatchStart('makeMarkdown.break.onStart', input, options, globals, {_node: node});
+
+  // a hard break has no inner content, so its capture carries no `text` key
+  let captureEvent = showdown.Event.dispatchCapture('makeMarkdown.break.onCapture', input, {
+    regexp: null,
+    matches: {_wholeMatch: input, _node: node},
+    attributes: null
+  }, options, globals);
 
   let result;
-  if (startEvent.output && startEvent.output !== '') {
-    result = startEvent.output;
+  if (captureEvent.output && captureEvent.output !== '') {
+    result = captureEvent.output;
   } else {
     result = '  \n';
   }
 
-  let endEvent = new showdown.Event('makeMarkdown.break.onEnd', result);
-  endEvent
-    .setOutput(result)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  endEvent = globals.converter.dispatch(endEvent);
-  return endEvent.output;
+  return showdown.Event.dispatchEnd('makeMarkdown.break.onEnd', result, options, globals, {_node: node}).output;
 });
