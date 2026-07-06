@@ -108,8 +108,8 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
       // backslash escapes do not work inside autolinks, so restore them to literal backslash + char
       let raw = showdown.subParser('makehtml.unescapeSpecialChars')(uri.replace(/(¨E\d+E)/g, '\\$1'), options, globals);
       // safeMode: neutralize dangerous autolink schemes but keep the visible text
-      let href = (options.safeMode && !showdown.helper.isSafeUrl(raw)) ? '' : cmEscapeHref(showdown.helper.cmEncodeURI(raw));
-      let otp = '<a href="' + href + '">' + cmEscapeText(raw) + '</a>';
+      let href = (options.safeMode && !showdown.helper.isSafeUrl(raw)) ? '' : showdown.helper.escapeHTMLEntities(showdown.helper.cmEncodeURI(raw));
+      let otp = '<a href="' + href + '">' + showdown.helper.escapeHTMLEntities(raw) + '</a>';
       return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
     });
 
@@ -117,7 +117,7 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
     let cmEmailAutolinkRegex = /<([a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)>/g;
     text = text.replace(cmEmailAutolinkRegex, function (wholeMatch, email) {
       let raw = showdown.subParser('makehtml.unescapeSpecialChars')(email.replace(/(¨E\d+E)/g, '\\$1'), options, globals);
-      let otp = '<a href="' + cmEscapeHref('mailto:' + raw) + '">' + cmEscapeText(raw) + '</a>';
+      let otp = '<a href="' + showdown.helper.escapeHTMLEntities('mailto:' + raw) + '">' + showdown.helper.escapeHTMLEntities(raw) + '</a>';
       return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
     });
 
@@ -518,23 +518,5 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
       mail: mail,
       url: url
     };
-  }
-
-  // HTML-escape an autolink href (the URL is already percent-encoded)
-  function cmEscapeHref (url) {
-    return url
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  // HTML-escape the visible autolink text (no percent-encoding)
-  function cmEscapeText (txt) {
-    return txt
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
   }
 });

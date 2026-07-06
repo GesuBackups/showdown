@@ -35,16 +35,6 @@ showdown.subParser('makehtml.decodeEntities', function (text, options, globals) 
 
   const entities = showdown.helper.htmlEntities;
 
-  // Re-escape HTML-significant characters so a decoded char (e.g. `&lt;` -> `<`) stays
-  // a literal in the HTML output rather than being read as markup.
-  function escapeOutput (str) {
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   // Map a code point to its character, replacing disallowed values with U+FFFD.
   function fromCodePoint (cp) {
     if (cp === 0 || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) {
@@ -59,19 +49,21 @@ showdown.subParser('makehtml.decodeEntities', function (text, options, globals) 
 
   // Match any `&…;` candidate that survived encodeAmpsAndAngles (which already escaped
   // bare ampersands and `&name`/`&name?;` non-references). We classify each candidate here.
+  // Decoded characters are re-escaped (escapeHTMLEntities) so a decoded char (e.g.
+  // `&lt;` -> `<`) stays a literal in the HTML output rather than being read as markup.
   text = text.replace(/&([#0-9a-zA-Z]+);/g, function (wholeMatch, body) {
     let m;
     // decimal numeric reference: 1-7 digits
     if ((m = /^#([0-9]{1,7})$/.exec(body))) {
-      return escapeOutput(fromCodePoint(parseInt(m[1], 10)));
+      return showdown.helper.escapeHTMLEntities(fromCodePoint(parseInt(m[1], 10)));
     }
     // hexadecimal numeric reference: 1-6 hex digits
     if ((m = /^#[xX]([0-9a-fA-F]{1,6})$/.exec(body))) {
-      return escapeOutput(fromCodePoint(parseInt(m[1], 16)));
+      return showdown.helper.escapeHTMLEntities(fromCodePoint(parseInt(m[1], 16)));
     }
     // named reference (must be a known HTML5 entity name)
     if (/^[a-zA-Z][a-zA-Z0-9]*$/.test(body) && Object.prototype.hasOwnProperty.call(entities, body)) {
-      return escapeOutput(entities[body]);
+      return showdown.helper.escapeHTMLEntities(entities[body]);
     }
     // not a valid reference - escape the ampersand and leave the rest intact
     return '&amp;' + body + ';';

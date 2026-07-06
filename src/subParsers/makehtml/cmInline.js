@@ -248,15 +248,6 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
     return ch !== undefined && asciiPunct.test(ch);
   }
 
-  // HTML-escape a run of plain text (entities already resolved to characters)
-  function escapeText (str) {
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   function hashSpan (html) {
     return showdown.helper._hashHTMLSpan(html, globals);
   }
@@ -330,7 +321,8 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
           // so the later passes (ghMentions, simplifiedAutoLink, emoji, strikethrough,
           // ellipsis, ...) don't treat the char as markup - e.g. `\@user` must not become a
           // mention. unescapeSpecialChars restores the literal char at the end of the
-          // pipeline. HTML-special chars stay literal so escapeText turns them into entities
+          // pipeline. HTML-special chars stay literal so the render-time escape
+          // (showdown.helper.escapeHTMLEntities) turns them into entities
           // (&amp; &lt; &gt; &quot;); placeholders would otherwise round-trip to raw `<`/`&`.
           if (next === '&' || next === '<' || next === '>' || next === '"') {
             appendText(next);
@@ -445,7 +437,7 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
     // render the node list
     let out = '';
     for (let n = head; n !== null; n = n.next) {
-      out += n.raw ? n.literal : escapeText(n.literal);
+      out += n.raw ? n.literal : showdown.helper.escapeHTMLEntities(n.literal);
     }
     return out;
 
@@ -576,7 +568,7 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
     function renderNodes (from, to) {
       let out = '';
       for (let n = from; n !== null && n !== to; n = n.next) {
-        out += n.raw ? n.literal : escapeText(n.literal);
+        out += n.raw ? n.literal : showdown.helper.escapeHTMLEntities(n.literal);
       }
       return out;
     }
@@ -763,7 +755,7 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
           href = showdown.helper.cmEncodeURI(raw).replace(/&/g, '&amp;');
       // safeMode: neutralize dangerous autolink schemes but keep the visible text
       if (options.safeMode && !showdown.helper.isSafeUrl(raw)) { href = ''; }
-      return {html: showdown.helper._hashHTMLSpan('<a href="' + href + '">' + escapeAngles(raw) + '</a>', globals), end: i + uri[0].length};
+      return {html: showdown.helper._hashHTMLSpan('<a href="' + href + '">' + showdown.helper.escapeHTMLEntities(raw) + '</a>', globals), end: i + uri[0].length};
     }
     reAutoEmail.lastIndex = i;
     let email = reAutoEmail.exec(str);
@@ -776,8 +768,8 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
         href = showdown.helper.encodeEmailAddress('mailto:' + raw);
         txt = showdown.helper.encodeEmailAddress(raw);
       } else {
-        href = 'mailto:' + escapeAngles(raw);
-        txt = escapeAngles(raw);
+        href = 'mailto:' + showdown.helper.escapeHTMLEntities(raw);
+        txt = showdown.helper.escapeHTMLEntities(raw);
       }
       return {html: showdown.helper._hashHTMLSpan('<a href="' + href + '">' + txt + '</a>', globals), end: i + email[0].length};
     }
@@ -796,14 +788,10 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
             href = showdown.helper.cmEncodeURI(full).replace(/&/g, '&amp;');
         // safeMode: neutralize dangerous schemes but keep the visible text
         if (options.safeMode && !showdown.helper.isSafeUrl(full)) { href = ''; }
-        return {html: showdown.helper._hashHTMLSpan('<a href="' + href + '">' + escapeAngles(raw) + '</a>', globals), end: i + www[0].length};
+        return {html: showdown.helper._hashHTMLSpan('<a href="' + href + '">' + showdown.helper.escapeHTMLEntities(raw) + '</a>', globals), end: i + www[0].length};
       }
     }
     return null;
-  }
-
-  function escapeAngles (s) {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   // ==== writeAnchorTag and parseMail copied verbatim from link.js ====
