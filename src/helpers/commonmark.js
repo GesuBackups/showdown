@@ -11,16 +11,24 @@
  * function bodies (call time), never at load time.
  */
 
+// Guarded ampersand: a bare `&` that does NOT already begin an entity reference. Shared by
+// cmNormalizeURL and cmEscapeTitle (both HTML-escape residual bare ampersands the same way).
+// File-local const (load-order safe: only read inside function bodies below, at call time).
+const cmGuardedAmpersand = /&(?![a-zA-Z#0-9]+;)/g;
+
 /**
- * Resolve HTML5 named (`&ouml;`), decimal (`&#246;`) and hexadecimal (`&#xf6;`)
- * character references to their corresponding characters (CommonMark behavior).
- * Unlike makehtml.decodeEntities, this returns the raw decoded characters (no
- * HTML re-escaping) so the result can be percent-encoded for a URL or further
- * processed. Invalid references are left verbatim.
+ * The single character-reference decoder backing both `cmDecodeEntities` (raw output) and the
+ * `makehtml.decodeEntities` subparser (HTML-re-escaped output). Resolves HTML5 named (`&ouml;`),
+ * decimal (`&#246;`) and hexadecimal (`&#xf6;`) references. The `escapeOutput` policy flag is the
+ * only difference between the two public surfaces:
+ *  - `false` (CommonMark helper): emit the raw decoded character; leave an invalid reference verbatim.
+ *  - `true` (subparser): HTML-escape the decoded character (so e.g. `&lt;` -> `&lt;`, not a live `<`)
+ *    and rewrite an invalid reference's leading `&` to `&amp;`.
  * @param {string} str
+ * @param {boolean} escapeOutput
  * @returns {string}
  */
-showdown.helper.cmDecodeEntities = function (str) {
+showdown.helper.decodeCharacterReferences = function (str, escapeOutput) {
   let entities = showdown.helper.htmlEntities || {};
   function fromCodePoint (cp) {
     if (cp === 0 || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) {
@@ -32,19 +40,36 @@ showdown.helper.cmDecodeEntities = function (str) {
       return '�';
     }
   }
+  function emit (ch) {
+    return escapeOutput ? showdown.helper.escapeHTMLEntities(ch) : ch;
+  }
   return str.replace(/&([#0-9a-zA-Z]+);/g, function (wholeMatch, body) {
     let m;
     if ((m = /^#([0-9]{1,7})$/.exec(body))) {
-      return fromCodePoint(parseInt(m[1], 10));
+      return emit(fromCodePoint(parseInt(m[1], 10)));
     }
     if ((m = /^#[xX]([0-9a-fA-F]{1,6})$/.exec(body))) {
-      return fromCodePoint(parseInt(m[1], 16));
+      return emit(fromCodePoint(parseInt(m[1], 16)));
     }
     if (/^[a-zA-Z][a-zA-Z0-9]*$/.test(body) && Object.prototype.hasOwnProperty.call(entities, body)) {
-      return entities[body];
+      return emit(entities[body]);
     }
-    return wholeMatch;
+    // not a valid reference
+    return escapeOutput ? ('&amp;' + body + ';') : wholeMatch;
   });
+};
+
+/**
+ * Resolve HTML5 named (`&ouml;`), decimal (`&#246;`) and hexadecimal (`&#xf6;`)
+ * character references to their corresponding characters (CommonMark behavior).
+ * Unlike makehtml.decodeEntities, this returns the raw decoded characters (no
+ * HTML re-escaping) so the result can be percent-encoded for a URL or further
+ * processed. Invalid references are left verbatim.
+ * @param {string} str
+ * @returns {string}
+ */
+showdown.helper.cmDecodeEntities = function (str) {
+  return showdown.helper.decodeCharacterReferences(str, false);
 };
 
 /**
@@ -90,7 +115,7 @@ showdown.helper.cmNormalizeURL = function (url) {
   url = url.replace(/\\([!-/:-@[-`{-~])/g, '$1');
   url = showdown.helper.cmDecodeEntities(url);
   url = showdown.helper.cmEncodeURI(url);
-  return url.replace(/&(?![a-zA-Z#0-9]+;)/g, '&amp;');
+  return url.replace(cmGuardedAmpersand, '&amp;');
 };
 
 /**
@@ -101,7 +126,7 @@ showdown.helper.cmNormalizeURL = function (url) {
  */
 showdown.helper.cmEscapeTitle = function (title) {
   return showdown.helper.cmDecodeEntities(title)
-    .replace(/&(?![a-zA-Z#0-9]+;)/g, '&amp;')
+    .replace(cmGuardedAmpersand, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
