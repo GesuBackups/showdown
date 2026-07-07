@@ -1,5 +1,5 @@
 /**
- * @file      makehtml/hashBlock.js
+ * @file      helpers/hashBlock.js
  * @summary   Replaces a finished block of HTML with a `¨K…K` placeholder stored in `globals.gHtmlBlocks`.
  * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
  * @copyright 2018-2026 ShowdownJS

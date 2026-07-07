@@ -1,5 +1,5 @@
 /**
- * @file      makehtml/htmlEntities.js
+ * @file      helpers/htmlEntities.js
  * @summary   The HTML5 named-character-reference table (`showdown.helper.htmlEntities`).
  * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
  * @copyright 2018-2026 ShowdownJS

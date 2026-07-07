@@ -1,5 +1,5 @@
 /**
- * @file      makehtml/encodeCode.js
+ * @file      helpers/encodeCode.js
  * @summary   Entity-encodes and neutralizes Markdown-magic characters inside code spans/blocks.
  * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
  * @copyright 2018-2026 ShowdownJS

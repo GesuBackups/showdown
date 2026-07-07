@@ -1,5 +1,5 @@
 /**
- * @file      makehtml/hashCodeTags.js
+ * @file      helpers/hashCodeTags.js
  * @summary   Hashes and escapes raw `<code>` elements, and defines the shared factory used by `hashPreCodeTags`.
  * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
  * @copyright 2018-2026 ShowdownJS

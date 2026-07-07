@@ -1,5 +1,5 @@
 /**
- * @file      makehtml/unhashHTMLSpans.js
+ * @file      helpers/unhashHTMLSpans.js
  * @summary   Restores `¨C…C` span placeholders back to their stored HTML, expanding nested placeholders (bounded depth).
  * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
  * @copyright 2018-2026 ShowdownJS

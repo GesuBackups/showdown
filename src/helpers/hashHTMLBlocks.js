@@ -1,5 +1,5 @@
 /**
- * @file      makehtml/hashHTMLBlocks.js
+ * @file      helpers/hashHTMLBlocks.js
  * @summary   Replaces top-level raw HTML block elements (`pre`, `div`, `table`, `script`, …) with placeholders.
  * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
  * @copyright 2018-2026 ShowdownJS

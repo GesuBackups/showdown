@@ -1,5 +1,5 @@
 /**
- * @file      makehtml/hashHTMLSpans.js
+ * @file      helpers/hashHTMLSpans.js
  * @summary   Replaces inline raw-HTML spans/self-closing tags with `¨C…C` placeholders (stored in `globals.gHtmlSpans`).
  * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
  * @copyright 2018-2026 ShowdownJS

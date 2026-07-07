@@ -1,5 +1,5 @@
 /**
- * @file      makehtml/escapeSpecialCharsWithinTagAttributes.js
+ * @file      helpers/escapeSpecialCharsWithinTagAttributes.js
  * @summary   Escapes Markdown-magic characters inside raw HTML tags/comments so they don't trigger inline parsing.
  * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
  * @copyright 2018-2026 ShowdownJS

@@ -1,5 +1,5 @@
 /**
- * @file      makehtml/encodeAmpsAndAngles.js
+ * @file      helpers/encodeAmpsAndAngles.js
  * @summary   Encodes stray `&`, `<`, `>`, `"` to HTML entities (leaving real entity references intact).
  * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
  * @copyright 2018-2026 ShowdownJS

@@ -12,10 +12,15 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // Fixed concat order, mirroring the former Gruntfile concat.dist.src.
+//
+// src/helpers/ is a directory glob concatenated in ALPHABETICAL order (same as the subParser
+// globs). Because that order is not semantic, NO file in src/helpers/ may read another helpers
+// file's state at load time — top-level consts/IIFEs must live in the same file as whatever they
+// evaluate. Cross-helper references inside function bodies (call time) are fine.
 const ORDER = [
   'src/options.js',
   'src/showdown.js',
-  'src/helpers.js',
+  'src/helpers',               // directory glob (sorted)
   'src/event.js',
   'src/subParsers/makehtml',   // directory glob (sorted)
   'src/subParsers/makemarkdown', // directory glob (sorted)

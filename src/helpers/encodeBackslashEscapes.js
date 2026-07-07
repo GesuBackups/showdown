@@ -1,5 +1,5 @@
 /**
- * @file      makehtml/encodeBackslashEscapes.js
+ * @file      helpers/encodeBackslashEscapes.js
  * @summary   Resolves Markdown backslash escapes (`\*`, `\_`, …) into placeholder escapes so those characters lose Markdown meaning.
  * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
  * @copyright 2018-2026 ShowdownJS

@@ -1,5 +1,5 @@
 /**
- * @file      makehtml/hashPreCodeTags.js
+ * @file      helpers/hashPreCodeTags.js
  * @summary   Hashes raw `<pre><code>` blocks (storing them in `ghCodeBlocks`) via the shared `makeHashCodeTagsHelper` factory.
  * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
  * @copyright 2018-2026 ShowdownJS
