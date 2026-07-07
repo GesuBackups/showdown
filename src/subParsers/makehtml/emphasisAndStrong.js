@@ -120,36 +120,17 @@ showdown.subParser('makehtml.emphasisAndStrong', function (text, options, global
 
   /**
    * Parse emphasis and strong emphasis using the CommonMark delimiter-run algorithm.
+   * Runs on the shared delimiter-stack engine (showdown.helper.DelimiterStack); the only
+   * path-specific behavior is the inner-render/hash strategy in `buildWrapped` below (no
+   * sentinel fix-up, non-raw wrap nodes — this path runs before the converter's `$`/`¨`
+   * swap semantics matter to flanking).
    * @param {string} str
    * @returns {string}
    */
   function parseCommonmarkEmphasis (str) {
-    // CommonMark punctuation = ASCII punctuation + Unicode P and S categories
-    const asciiPunct = /[!-/:-@[-`{-~]/;
-    function isPunct (ch) {
-      return ch !== undefined && (asciiPunct.test(ch) || /[\p{P}\p{S}]/u.test(ch));
-    }
-    function isWhitespace (ch) {
-      return ch === undefined || /\s/.test(ch) || /\p{Z}/u.test(ch);
-    }
+    let stack = new showdown.helper.DelimiterStack();
 
     // 1. Tokenize into a doubly-linked list of nodes; collect a delimiter stack.
-    let head = null,
-        tail = null,
-        delimiters = null; // tail of delimiter stack
-
-    function appendNode (node) {
-      node.prev = tail;
-      node.next = null;
-      if (tail) {
-        tail.next = node;
-      } else {
-        head = node;
-      }
-      tail = node;
-      return node;
-    }
-
     const len = str.length;
     let i = 0;
     while (i < len) {
@@ -159,160 +140,31 @@ showdown.subParser('makehtml.emphasisAndStrong', function (text, options, global
         while (i < len && str.charAt(i) === ch) {
           ++i;
         }
-        let run = str.slice(start, i),
-            before = (start === 0) ? undefined : str.charAt(start - 1),
-            after = (i >= len) ? undefined : str.charAt(i),
-            beforeWs = isWhitespace(before),
-            afterWs = isWhitespace(after),
-            beforePt = isPunct(before),
-            afterPt = isPunct(after),
-            leftFlanking = !afterWs && (!afterPt || beforeWs || beforePt),
-            rightFlanking = !beforeWs && (!beforePt || afterWs || afterPt),
-            canOpen, canClose;
-        if (ch === '_') {
-          canOpen = leftFlanking && (!rightFlanking || beforePt);
-          canClose = rightFlanking && (!leftFlanking || afterPt);
-        } else {
-          canOpen = leftFlanking;
-          canClose = rightFlanking;
-        }
-        let node = appendNode({type: 'delim', cc: ch, literal: run, numdelims: run.length, origdelims: run.length, canOpen: canOpen, canClose: canClose});
-        node.delimPrev = delimiters;
-        node.delimNext = null;
-        if (delimiters) {
-          delimiters.delimNext = node;
-        }
-        delimiters = node;
+        stack.pushDelim(str, start, i, ch, false);
       } else {
         // accumulate a literal text run up to the next delimiter
         let start = i;
         while (i < len && str.charAt(i) !== '*' && str.charAt(i) !== '_') {
           ++i;
         }
-        appendNode({type: 'text', literal: str.slice(start, i)});
+        stack.appendText(str.slice(start, i));
       }
     }
 
     // 2. Process emphasis (CommonMark reference algorithm).
-    processEmphasis();
+    stack.processEmphasis(null, buildWrapped, false);
 
     // 3. Render remaining nodes back to a string.
-    let out = '';
-    for (let n = head; n !== null; n = n.next) {
-      out += n.literal;
-    }
-    return out;
+    return stack.renderList(function (n) { return n.literal; });
 
-    function removeDelimiter (d) {
-      if (d.delimPrev) {
-        d.delimPrev.delimNext = d.delimNext;
-      }
-      if (d.delimNext) {
-        d.delimNext.delimPrev = d.delimPrev;
-      } else {
-        delimiters = d.delimPrev; // top of stack
-      }
-    }
-
-    function insertAfter (node, newNode) {
-      newNode.prev = node;
-      newNode.next = node.next;
-      if (node.next) {
-        node.next.prev = newNode;
-      } else {
-        tail = newNode;
-      }
-      node.next = newNode;
-    }
-
-    function processEmphasis () {
-      // one lower-bound per delimiter char, bucketed by (origdelims % 3) per the spec
-      let openersBottom = {'_': [null, null, null], '*': [null, null, null]};
-
-      // start from the bottom-most delimiter on the stack
-      let closer = delimiters;
-      while (closer !== null && closer.delimPrev !== null) {
-        closer = closer.delimPrev;
-      }
-
-      while (closer !== null) {
-        if (!closer.canClose) {
-          closer = closer.delimNext;
-          continue;
-        }
-        // look back for a matching opener
-        let opener = closer.delimPrev,
-            openerFound = false,
-            oddMatch;
-        while (opener !== null && opener !== openersBottom[closer.cc][closer.origdelims % 3]) {
-          oddMatch = (closer.canOpen || opener.canClose) &&
-                     (closer.origdelims % 3 !== 0) &&
-                     ((opener.origdelims + closer.origdelims) % 3 === 0);
-          if (opener.cc === closer.cc && opener.canOpen && !oddMatch) {
-            openerFound = true;
-            break;
-          }
-          opener = opener.delimPrev;
-        }
-        let oldCloser = closer;
-
-        if (openerFound) {
-          let use = (opener.numdelims >= 2 && closer.numdelims >= 2) ? 2 : 1,
-              tagOpen = (use === 2) ? '<strong>' : '<em>',
-              tagClose = (use === 2) ? '</strong>' : '</em>';
-
-          // trim consumed delimiters from the opener (end) and closer (start) literals
-          opener.literal = opener.literal.slice(0, opener.literal.length - use);
-          opener.numdelims -= use;
-          closer.literal = closer.literal.slice(use);
-          closer.numdelims -= use;
-
-          // collect inner nodes (between opener and closer), render and hash them
-          let inner = '';
-          for (let n = opener.next; n !== null && n !== closer; n = n.next) {
-            inner += n.literal;
-          }
-          // emphasis content is hashed here, before the rest of the span gamut runs, so apply
-          // hard line breaks and encode double quotes now (CommonMark renders quotes as &quot;)
-          inner = showdown.subParser('makehtml.hardLineBreaks')(inner, options, globals);
-          inner = inner.replace(/"/g, '&quot;');
-          let wrapped = showdown.helper.hashHTMLSpans(tagOpen + inner + tagClose, options, globals);
-
-          // remove inner nodes and their delimiters from the lists
-          let n2 = opener.next;
-          while (n2 !== null && n2 !== closer) {
-            let nx = n2.next;
-            if (n2.type === 'delim') {
-              removeDelimiter(n2);
-            }
-            n2 = nx;
-          }
-          // splice in a single text node holding the wrapped (hashed) result
-          let wrapNode = {type: 'text', literal: wrapped};
-          insertAfter(opener, wrapNode);
-          // relink opener.next directly to closer (drop the removed inner nodes)
-          wrapNode.next = closer;
-          closer.prev = wrapNode;
-
-          // drop fully-consumed delimiters
-          if (opener.numdelims === 0) {
-            opener.literal = '';
-            removeDelimiter(opener);
-          }
-          if (closer.numdelims === 0) {
-            closer.literal = '';
-            let tmp = closer.delimNext;
-            removeDelimiter(closer);
-            closer = tmp;
-          }
-        } else {
-          openersBottom[oldCloser.cc][oldCloser.origdelims % 3] = oldCloser.delimPrev;
-          if (!oldCloser.canOpen) {
-            removeDelimiter(oldCloser);
-          }
-          closer = oldCloser.delimNext;
-        }
-      }
+    // Render + hash a single emphasis/strong span for this (non-cmSpec) path: emphasis
+    // content is hashed here, before the rest of the span gamut runs, so apply hard line
+    // breaks and encode double quotes now (CommonMark renders quotes as &quot;).
+    function buildWrapped (tagOpen, tagClose, opener, closer) {
+      let inner = stack.renderRange(opener.next, closer, function (n) { return n.literal; });
+      inner = showdown.subParser('makehtml.hardLineBreaks')(inner, options, globals);
+      inner = inner.replace(/"/g, '&quot;');
+      return showdown.helper.hashHTMLSpans(tagOpen + inner + tagClose, options, globals);
     }
   }
 

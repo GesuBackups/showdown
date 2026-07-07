@@ -20,10 +20,6 @@
 showdown.subParser('makehtml.cmInline', function (text, options, globals) {
   'use strict';
 
-  // ASCII punctuation, used by the flanking rules and backslash-escape check.
-  // Declared before parseCmInline runs (const is in the temporal dead zone until here).
-  const asciiPunct = /[!-/:-@[-`{-~]/;
-
   // Sticky regexes anchored at the scan cursor (lastIndex) so the recognizers never
   // slice the tail of the string - keeps the tokenizer linear on `<`/`&`-heavy input.
   // Reused across calls; each recognizer sets lastIndex before exec and the parse is
@@ -223,16 +219,13 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
   let afterEvent = showdown.Event.dispatchEnd('makehtml.cmInline.onEnd', text, options, globals);
   return afterEvent.output;
 
-  // ---- shared character helpers (flanking rules) -------------------------------
+  // ---- shared character helpers ------------------------------------------------
+  // The CommonMark flanking classifiers (isPunct/isWhitespace) live on the shared
+  // delimiter-stack engine now; this path only needs the ASCII-punctuation test for
+  // deciding which backslash escapes are meaningful.
 
-  function isPunct (ch) {
-    return ch !== undefined && (asciiPunct.test(ch) || /[\p{P}\p{S}]/u.test(ch));
-  }
-  function isWhitespace (ch) {
-    return ch === undefined || /\s/.test(ch) || /\p{Z}/u.test(ch);
-  }
   function isEscapable (ch) {
-    return ch !== undefined && asciiPunct.test(ch);
+    return showdown.helper.isAsciiPunct(ch);
   }
 
   function hashSpan (html) {
@@ -247,28 +240,25 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
   // ---- main parse --------------------------------------------------------------
 
   function parseCmInline (str) {
-    let head = null,
-        tail = null,
-        delimiters = null, // top of emphasis delimiter stack
+    // The doubly-linked node list + emphasis delimiter stack live on the shared engine
+    // (showdown.helper.DelimiterStack); the bracket (link/image) stack and backtick memo
+    // are specific to this unified parser and stay local.
+    let stack = new showdown.helper.DelimiterStack(),
         brackets = null,   // top of bracket (link/image) stack
         // backtick runs of these lengths have no closer in the rest of the string;
         // future opens of the same length fail immediately (keeps backticks linear)
         backtickNoCloser = {};
 
-    function appendNode (node) {
-      node.prev = tail;
-      node.next = null;
-      node.raw = node.raw || false;
-      if (tail) { tail.next = node; } else { head = node; }
-      tail = node;
-      return node;
-    }
     function appendText (literal) {
-      return appendNode({type: 'text', literal: literal});
+      return stack.appendText(literal);
     }
     // append already-final HTML that must not be escaped at render time
     function appendRaw (html) {
-      return appendNode({type: 'text', literal: html, raw: true});
+      return stack.appendRaw(html);
+    }
+    // render one node: raw nodes emit verbatim, text nodes are HTML-escaped
+    function renderNode (n) {
+      return n.raw ? n.literal : showdown.helper.escapeHTMLEntities(n.literal);
     }
 
     const len = str.length;
@@ -279,7 +269,7 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
       if (ch === '\n') {
         // hard line break: two+ trailing spaces or a backslash before the newline.
         // The <br /> is hashed so the later encodeAmpsAndAngles pass leaves it intact.
-        let n = tail;
+        let n = stack.tail;
         if (n && n.type === 'text' && !n.raw && / {2,}$/.test(n.literal)) {
           n.literal = n.literal.replace(/ +$/, '');
           appendRaw(hashSpan('<br />') + '\n');
@@ -374,38 +364,10 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
       if (ch === '*' || ch === '_') {
         let start = i;
         while (i < len && str.charAt(i) === ch) { ++i; }
-        let run = str.slice(start, i),
-            before = (start === 0) ? undefined : str.charAt(start - 1),
-            after = (i >= len) ? undefined : str.charAt(i);
-        // `$` and `¨` are swapped for the two-char placeholders `¨D`/`¨T` before inline
-        // parsing (see converter.js) and only restored at the end. Resolve them here so
-        // flanking sees the real adjacent character rather than the placeholder's
-        // trailing/leading letter (e.g. the `D` of `¨D` would otherwise read as a letter).
-        if ((before === 'D' || before === 'T') && str.charAt(start - 2) === '¨') {
-          before = (before === 'D') ? '$' : '¨';
-        }
-        if (after === '¨' && (str.charAt(i + 1) === 'D' || str.charAt(i + 1) === 'T')) {
-          after = (str.charAt(i + 1) === 'D') ? '$' : '¨';
-        }
-        let beforeWs = isWhitespace(before),
-            afterWs = isWhitespace(after),
-            beforePt = isPunct(before),
-            afterPt = isPunct(after),
-            leftFlanking = !afterWs && (!afterPt || beforeWs || beforePt),
-            rightFlanking = !beforeWs && (!beforePt || afterWs || afterPt),
-            canOpen, canClose;
-        if (ch === '_') {
-          canOpen = leftFlanking && (!rightFlanking || beforePt);
-          canClose = rightFlanking && (!leftFlanking || afterPt);
-        } else {
-          canOpen = leftFlanking;
-          canClose = rightFlanking;
-        }
-        let node = appendNode({type: 'delim', cc: ch, literal: run, numdelims: run.length, origdelims: run.length, canOpen: canOpen, canClose: canClose});
-        node.delimPrev = delimiters;
-        node.delimNext = null;
-        if (delimiters) { delimiters.delimNext = node; }
-        delimiters = node;
+        // resolveSentinels = true: this path runs after the converter's `$`/`¨` -> `¨D`/`¨T`
+        // swap, so flanking must see the real adjacent character (the engine undoes the swap
+        // for the lookaround only).
+        stack.pushDelim(str, start, i, ch, true);
         continue;
       }
 
@@ -422,11 +384,7 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
     processEmphasis(null);
 
     // render the node list
-    let out = '';
-    for (let n = head; n !== null; n = n.next) {
-      out += n.raw ? n.literal : showdown.helper.escapeHTMLEntities(n.literal);
-    }
-    return out;
+    return stack.renderList(renderNode);
 
     // ---- bracket stack ---------------------------------------------------------
 
@@ -434,7 +392,7 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
       brackets = {
         node: node,
         prev: brackets,
-        prevDelim: delimiters,
+        prevDelim: stack.delimiters,
         image: image,
         active: true,
         sourceStart: sourceStart // index in `str` where the label text begins
@@ -534,10 +492,10 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
       }
 
       // drop the opener node and everything after it, append the built span
-      removeFrom(opener.node);
+      stack.removeFrom(opener.node);
       appendRaw(otpHTML);
       // remove any emphasis delimiters that belonged to the consumed range
-      pruneDelimiters(opener.prevDelim);
+      stack.pruneDelimiters(opener.prevDelim);
 
       if (!opener.image) {
         // a link cannot be nested in another link
@@ -553,15 +511,7 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
 
     // concatenate the rendered HTML of nodes [from .. to)
     function renderNodes (from, to) {
-      let out = '';
-      for (let n = from; n !== null && n !== to; n = n.next) {
-        out += n.raw ? n.literal : showdown.helper.escapeHTMLEntities(n.literal);
-      }
-      return out;
-    }
-    function removeFrom (node) {
-      tail = node.prev;
-      if (tail) { tail.next = null; } else { head = null; }
+      return stack.renderRange(from, to, renderNode);
     }
 
     function normalizeDest (dest) {
@@ -600,99 +550,27 @@ showdown.subParser('makehtml.cmInline', function (text, options, globals) {
     }
 
     // ---- emphasis (CommonMark reference algorithm) -----------------------------
-
-    function removeDelimiter (d) {
-      if (d.delimPrev) { d.delimPrev.delimNext = d.delimNext; }
-      if (d.delimNext) { d.delimNext.delimPrev = d.delimPrev; } else { delimiters = d.delimPrev; }
-    }
-    function insertAfter (node, newNode) {
-      newNode.prev = node;
-      newNode.next = node.next;
-      if (node.next) { node.next.prev = newNode; } else { tail = newNode; }
-      node.next = newNode;
-    }
-    // drop every delimiter at or above `bottom` from the stack (after a bracket span
-    // has consumed the nodes they pointed at)
-    function pruneDelimiters (bottom) {
-      let d = delimiters;
-      while (d !== null && d !== bottom) {
-        let p = d.delimPrev;
-        removeDelimiter(d);
-        d = p;
-      }
-    }
+    // Runs on the shared delimiter-stack engine. This path differs from
+    // emphasisAndStrong's only in how the wrapped span is rendered: the inner nodes are
+    // HTML-escaped, the GFM-inline-links pass + emoji/strikethrough/ellipsis run on them
+    // (because the wrapped span is hashed below, the span-gamut extras never see it), and
+    // the wrap node is raw.
 
     function processEmphasis (stackBottom) {
-      let openersBottom = {
-        '_': [stackBottom, stackBottom, stackBottom],
-        '*': [stackBottom, stackBottom, stackBottom]
-      };
+      stack.processEmphasis(stackBottom, buildEmphasis, true);
+    }
 
-      let closer = delimiters;
-      while (closer !== null && closer.delimPrev !== null && closer.delimPrev !== stackBottom) {
-        closer = closer.delimPrev;
-      }
-      if (closer === stackBottom) { closer = (stackBottom === null) ? closer : stackBottom.delimNext; }
-
-      while (closer !== null) {
-        if (!closer.canClose) { closer = closer.delimNext; continue; }
-        let opener = closer.delimPrev,
-            openerFound = false,
-            oddMatch;
-        while (opener !== null && opener !== stackBottom && opener !== openersBottom[closer.cc][closer.origdelims % 3]) {
-          oddMatch = (closer.canOpen || opener.canClose) &&
-                     (closer.origdelims % 3 !== 0) &&
-                     ((opener.origdelims + closer.origdelims) % 3 === 0);
-          if (opener.cc === closer.cc && opener.canOpen && !oddMatch) { openerFound = true; break; }
-          opener = opener.delimPrev;
-        }
-        let oldCloser = closer;
-
-        if (openerFound) {
-          let use = (opener.numdelims >= 2 && closer.numdelims >= 2) ? 2 : 1,
-              tagOpen = (use === 2) ? '<strong>' : '<em>',
-              tagClose = (use === 2) ? '</strong>' : '</em>';
-
-          opener.literal = opener.literal.slice(0, opener.literal.length - use);
-          opener.numdelims -= use;
-          closer.literal = closer.literal.slice(use);
-          closer.numdelims -= use;
-
-          let inner = renderNodes(opener.next, closer);
-          inner = applyGfmInlineLinks(inner);
-          // The wrapped emphasis span is hashed below, so the Showdown-only extras that
-          // run after cmInline in spanGamut (emoji, strikethrough, ellipsis) never see its
-          // inner content. Apply them here so e.g. `**~~x~~**` still strikes through.
-          inner = showdown.subParser('makehtml.emoji')(inner, options, globals);
-          inner = showdown.subParser('makehtml.strikethrough')(inner, options, globals);
-          inner = showdown.subParser('makehtml.ellipsis')(inner, options, globals);
-          inner = showdown.subParser('makehtml.hardLineBreaks')(inner, options, globals);
-          let wrapped = hashSpan(tagOpen + inner + tagClose);
-
-          let n2 = opener.next;
-          while (n2 !== null && n2 !== closer) {
-            let nx = n2.next;
-            if (n2.type === 'delim') { removeDelimiter(n2); }
-            n2 = nx;
-          }
-          let wrapNode = {type: 'text', literal: wrapped, raw: true};
-          insertAfter(opener, wrapNode);
-          wrapNode.next = closer;
-          closer.prev = wrapNode;
-
-          if (opener.numdelims === 0) { opener.literal = ''; removeDelimiter(opener); }
-          if (closer.numdelims === 0) {
-            closer.literal = '';
-            let tmp = closer.delimNext;
-            removeDelimiter(closer);
-            closer = tmp;
-          }
-        } else {
-          openersBottom[oldCloser.cc][oldCloser.origdelims % 3] = oldCloser.delimPrev;
-          if (!oldCloser.canOpen) { removeDelimiter(oldCloser); }
-          closer = oldCloser.delimNext;
-        }
-      }
+    function buildEmphasis (tagOpen, tagClose, opener, closer) {
+      let inner = renderNodes(opener.next, closer);
+      inner = applyGfmInlineLinks(inner);
+      // The wrapped emphasis span is hashed below, so the Showdown-only extras that run
+      // after cmInline in spanGamut (emoji, strikethrough, ellipsis) never see its inner
+      // content. Apply them here so e.g. `**~~x~~**` still strikes through.
+      inner = showdown.subParser('makehtml.emoji')(inner, options, globals);
+      inner = showdown.subParser('makehtml.strikethrough')(inner, options, globals);
+      inner = showdown.subParser('makehtml.ellipsis')(inner, options, globals);
+      inner = showdown.subParser('makehtml.hardLineBreaks')(inner, options, globals);
+      return hashSpan(tagOpen + inner + tagClose);
     }
   }
 
