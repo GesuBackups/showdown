@@ -98,11 +98,6 @@ function getDefaultOpts (simple) {
       describe: 'Parses simple line breaks as <br>',
       type: 'boolean'
     },
-    requireSpaceBeforeHeadingText: {
-      defaultValue: false,
-      describe: 'Makes adding a space between `#` and the header text mandatory (GFM Style)',
-      type: 'boolean'
-    },
     ghMentions: {
       defaultValue: false,
       describe: 'Enables github @mentions',

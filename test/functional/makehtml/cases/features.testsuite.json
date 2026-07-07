@@ -370,13 +370,13 @@
     }
   },
   {
-    "name": "requireSpaceBeforeHeadingText",
+    "name": "cmSpec-requires-space-before-heading-text",
     "markdown": "# header\n\n#header\n",
     "html": "<h1 id=\"header\">header</h1>\n<p>#header</p>\n",
-    "section": "requireSpaceBeforeHeadingText",
+    "section": "cmSpec",
     "number": 1601,
     "options": {
-      "requireSpaceBeforeHeadingText": true
+      "cmSpec": true
     }
   },
   {

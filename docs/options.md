@@ -714,32 +714,6 @@ Prepend a base URL to relative paths (in links and images). Absolute paths (thos
     <p><a href="https://example.com/some/page.html">link</a></p>
     ```
 
-### requireSpaceBeforeHeadingText
-
-Require a space between a heading `#` and the heading text.
-
-* type: `boolean`
-* default value: `false`
-* introduced in: `1.5.3`
-
-=== "input"
-    
-    ```
-    #heading
-    ```
-
-=== "output (value is `false`)"
-
-    ```html
-    <h1 id="heading">heading</h1>
-    ```
-
-=== "output (value is `true`)"
-
-    ```html
-    <p>#heading</p>
-    ```
-
 ### safeMode
 
 Defense-in-depth hardening for rendering **untrusted** Markdown. When enabled, `safeMode` does two things:

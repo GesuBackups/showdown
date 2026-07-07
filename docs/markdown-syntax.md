@@ -201,7 +201,8 @@ The generated ids are **github-compatible** by default. This can be modified wit
 * [**`headerLevelStart`**][headerLevelStart] sets the starting level (e.g. `3` makes `# header` an
   `<h3>`).
 
-You can also require a space after the `#` with [**`requireSpaceBeforeHeadingText`**][requireSpaceBeforeHeadingText].
+A space is required after the `#` in the CommonMark and GFM flavors (and whenever [**`cmSpec`**][cmSpec]
+is enabled), so `#heading` renders as a paragraph rather than a heading.
 
 ### Line breaks
 
@@ -316,7 +317,7 @@ In most cases Showdown's output is identical to Perl Markdown v1.0.2b7. The know
 [parseImgDimensions]: options.md#parseimgdimensions
 [headerIds]: options.md#headerids
 [headerLevelStart]: options.md#headerlevelstart
-[requireSpaceBeforeHeadingText]: options.md#requirespacebeforeheadingtext
+[cmSpec]: options.md#cmspec
 [simpleLineBreaks]: options.md#simplelinebreaks
 [encodeEmails]: options.md#encodeemails
 [simplifiedAutoLink]: options.md#simplifiedautolink

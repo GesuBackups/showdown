@@ -20,7 +20,6 @@ Legend: ✅ = `on` · ❌ = `off` · _(blank)_ = `off` (default).
 | Option                                 | `vanilla` | `original` | `gfm` | `commonmark` |
 |----------------------------------------|:---------:|:----------:|:--------:|:------------:|
 | `headerIds: false` (disable ids)       |           |     ✅     |          |      ✅      |
-| `requireSpaceBeforeHeadingText`        |           |            |    ✅    |      ✅      |
 | `ghCodeBlocks`                         |    ✅     |     ❌     |    ✅    |      ✅      |
 | `strikethrough`                        |    ✅     |     ❌     |    ✅    |      ❌      |
 | `omitExtraWLInCodeBlocks`              |           |            |    ✅    |              |
@@ -34,8 +33,8 @@ Legend: ✅ = `on` · ❌ = `off` · _(blank)_ = `off` (default).
 | `backslashEscapesHTMLTags`             |           |            |    ✅    |              |
 | `emoji`                                |           |            |    ✅    |              |
 | `splitAdjacentBlockquotes`             |           |            |    ✅    |              |
-| `decodeEntities`                       |           |            |          |      ✅      |
-| `cmSpec`                               |           |            |          |      ✅      |
+| `decodeEntities`                       |           |            |    ✅    |      ✅      |
+| `cmSpec`                               |           |            |    ✅    |      ✅      |
 
 !!! note
     `ghCodeBlocks` defaults to `on`, so `vanilla`, `gfm` and `commonmark` all keep GFM fenced code blocks enabled; only `original` turns them off. `strikethrough` likewise defaults to `on` (enabled in `vanilla` and `gfm`); the spec-oriented `original` and `commonmark` flavors turn it off.

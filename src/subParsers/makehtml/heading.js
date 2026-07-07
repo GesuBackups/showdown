@@ -366,10 +366,12 @@
     // trailing closing-hash sequence (of ANY length, per CommonMark) in code below. The old
     // `(.+?)[ \t]*#*[ \t]*$` form backtracked quadratically on a line of many `#` followed by
     // text (e.g. `'#'.repeat(n) + ' h'`), because the lazy text capture re-scanned the `#` run
-    // at every position. The requireSpace variant already can't backtrack that way (its `[ \t]+`
+    // at every position. The cmSpec variant already can't backtrack that way (its `[ \t]+`
     // after the opening hashes fails fast on a pure/`#`-prefixed line), so it is left unchanged.
-    const atxRegex = (options.requireSpaceBeforeHeadingText) ? /^ {0,3}(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm : /^ {0,3}(#{1,6})[ \t]*(.+)$/gm;
-    const stripClosing = !options.requireSpaceBeforeHeadingText;
+    // cmSpec (CommonMark) requires a space between the opening `#`s and the heading text; the
+    // legacy path does not.
+    const atxRegex = (options.cmSpec) ? /^ {0,3}(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm : /^ {0,3}(#{1,6})[ \t]*(.+)$/gm;
+    const stripClosing = !options.cmSpec;
     text = text.replace(atxRegex, function (wholeMatch, m1, m2) {
       let headingText = stripClosing ? stripAtxClosingSequence(m2) : m2,
           headingLevel = options.headerLevelStart - 1 + m1.length,

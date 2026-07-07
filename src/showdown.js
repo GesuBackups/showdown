@@ -20,7 +20,6 @@ let showdown = {},
     flavor = {
       commonmark: {
         headerIds:                            false,
-        requireSpaceBeforeHeadingText:        true,
         decodeEntities:                       true,
         cmSpec:                               true,
         strikethrough:                        false,
@@ -28,7 +27,6 @@ let showdown = {},
       },
       gfm: {
         headerIds:                            false,
-        requireSpaceBeforeHeadingText:        true,
         decodeEntities:                       true,
         cmSpec:                               true,
         strikethrough:                        true,
