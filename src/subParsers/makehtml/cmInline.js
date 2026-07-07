@@ -5,13 +5,14 @@
  * @copyright 2018-2026 ShowdownJS
  * @license   MIT
  *
- * Invoked only when the `commonmarkInline` option is enabled. Resolves code spans, backslash
+ * Invoked only when the `cmSpec` option is enabled. Resolves code spans, backslash
  * escapes, character references, autolinks, raw HTML, links, images and emphasis together on a
  * single delimiter stack, so the cross-construct precedence rules CommonMark requires — a link
  * cannot contain a link; code spans / autolinks / raw HTML bind before links; emphasis interleaves
  * with link brackets — are expressible, which the sequential per-construct passes could not.
  *
- * Built on the same doubly-linked node list + delimiter stack + processEmphasis design used by
+ * Built on the shared `showdown.helper.DelimiterStack` engine (src/helpers/delimiterStack.js) —
+ * the same doubly-linked node list + delimiter stack + processEmphasis machinery that also backs
  * makehtml.emphasisAndStrong's CommonMark path.
  */
 

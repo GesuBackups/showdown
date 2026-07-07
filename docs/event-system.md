@@ -175,7 +175,9 @@ Might not be run if no regex match found.
     are affected.
 
     The link sub-parsers emit one event per link type (`inline`, `reference`, `angleBrackets`,
-    `autoLink`), so register a listener for each type you want to cover:
+    `autoLink`), so register a listener for each type you want to cover. These events fire in
+    **every flavor** — the `commonmark`/`github` inline engine emits the same families for the
+    links and images it builds:
 
     ```js
     const converter = new showdown.Converter();
@@ -342,7 +344,7 @@ plus `attributes`/output-override.
 | `makehtml.table` | ✓ | ✓; plus `.header` / `.cell` capture |
 | `makehtml.underline` | ✓ | ✓ |
 | `makehtml.completeHTMLDocument` | ✓ | — (document wrapper, lifecycle only) |
-| `makehtml.cmInline` | ✓ | — (the `commonmark`/`github`-flavor inline engine; lifecycle only — its links currently re-emit `makehtml.link.reference`/`.autoLink` capture events) |
+| `makehtml.cmInline` | ✓ | — (the `commonmark`/`github`-flavor inline engine; lifecycle only as a family — the links and images it builds emit the regular `makehtml.link.{inline,reference,autoLink}.*` / `makehtml.image.{inline,reference}.*` capture events, so link/image listeners behave identically across flavors) |
 | *(document level)* `makehtml.onStart` / `.onPreParse` / `.onEnd` | — | — (see [below](#makehtml-document-level-events)) |
 
 `decodeEntities`, the dispatchers (`blockGamut`, `spanGamut`) and every `showdown.helper.*`
