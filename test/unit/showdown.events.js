@@ -1270,4 +1270,109 @@ describe('showdown.Event', function () {
       expect(out).toContain('# MUTATED');
     });
   });
+
+  // D5: cmInline's own CommonMark links/images (built by buildLink/buildImage under cmSpec) now
+  // dispatch the SAME event families as link.js/image.js — makehtml.link.<variant>.* /
+  // makehtml.image.<variant>.* — so listener extensions behave identically across flavors. These
+  // tests exercise the commonmark flavor specifically (the generic conformance/coverage suites
+  // above also cover them, but the cm* exemption ended for what D5 touched, so pin them here).
+  describe('cmInline link/image events (commonmark flavor)', function () {
+
+    function cm (register) {
+      let conv = new showdown.Converter(showdown.getFlavorOptions('commonmark'));
+      register(conv);
+      return conv;
+    }
+
+    it('an inline link fires onCapture with a contract-conformant payload', function () {
+      let ev = null;
+      cm(function (c) {
+        c.listen('makehtml.link.inline.onCapture', function (e) { ev = e; return e; });
+      }).makeHtml('[foo](https://x.com "t")');
+      expect(ev).not.toBe(null);
+      expect(ev.output).toBe(null);
+      expect(ev.regexp).toBe(null);
+      expect(ev.matches._wholeMatch).toBe('[foo](https://x.com "t")');
+      expect(typeof ev.matches.text).toBe('string');
+      expect(ev.matches._url).toBe('https://x.com');
+      expect(ev.attributes.href).toBe('https://x.com');
+      expect(ev.attributes.title).toBe('t');
+    });
+
+    it('a reference link fires makehtml.link.reference.onCapture', function () {
+      let wm = null;
+      cm(function (c) {
+        c.listen('makehtml.link.reference.onCapture', function (e) { wm = e.matches._wholeMatch; return e; });
+      }).makeHtml('[foo][1]\n\n[1]: https://r.com');
+      expect(wm).toBe('[foo][1]');
+    });
+
+    it('an inline image fires makehtml.image.inline.onCapture with src/alt attributes', function () {
+      let ev = null;
+      cm(function (c) {
+        c.listen('makehtml.image.inline.onCapture', function (e) { ev = e; return e; });
+      }).makeHtml('![alt](pic.png "cap")');
+      expect(ev).not.toBe(null);
+      expect(ev.matches._wholeMatch).toBe('![alt](pic.png "cap")');
+      expect(ev.attributes.src).toBe('pic.png');
+      expect(ev.attributes.alt).toBe('alt');
+      expect(ev.attributes.title).toBe('cap');
+    });
+
+    it('a reference image fires makehtml.image.reference.onCapture', function () {
+      let wm = null;
+      cm(function (c) {
+        c.listen('makehtml.image.reference.onCapture', function (e) { wm = e.matches._wholeMatch; return e; });
+      }).makeHtml('![alt][1]\n\n[1]: https://r.com/i.png');
+      expect(wm).toBe('![alt][1]');
+    });
+
+    it('onHash fires for links and images', function () {
+      let linkHash = false, imageHash = false;
+      cm(function (c) {
+        c.listen('makehtml.link.inline.onHash', function (e) { linkHash = true; return e; });
+        c.listen('makehtml.image.inline.onHash', function (e) { imageHash = true; return e; });
+      }).makeHtml('[foo](https://x.com) and ![alt](pic.png)');
+      expect(linkHash).toBe(true);
+      expect(imageHash).toBe(true);
+    });
+
+    it('a link honors a rewritten matches.text', function () {
+      let out = cm(function (c) {
+        c.listen('makehtml.link.inline.onCapture', function (e) { e.matches.text = 'BAR'; return e; });
+      }).makeHtml('[foo](https://x.com)');
+      expect(out).toMatch(/<a href="https:\/\/x\.com">BAR<\/a>/);
+    });
+
+    it('an image honors a rewritten alt via matches.text', function () {
+      let out = cm(function (c) {
+        c.listen('makehtml.image.inline.onCapture', function (e) { e.matches.text = 'NEWALT'; return e; });
+      }).makeHtml('![orig](pic.png)');
+      expect(out).toContain('alt="NEWALT"');
+      expect(out).not.toContain('alt="orig"');
+    });
+
+    it('a listener can add an anchor attribute (honored via _populateAttributes)', function () {
+      let out = cm(function (c) {
+        c.listen('makehtml.link.inline.onCapture', function (e) { e.attributes.rel = 'nofollow'; return e; });
+      }).makeHtml('[foo](https://x.com)');
+      expect(out).toContain('rel="nofollow"');
+    });
+
+    it('setting output on onCapture overrides the rendered link', function () {
+      let out = cm(function (c) {
+        c.listen('makehtml.link.inline.onCapture', function (e) { e.output = '<OVERRIDE>'; return e; });
+      }).makeHtml('[foo](https://x.com)');
+      expect(out).toContain('<OVERRIDE>');
+      expect(out).not.toContain('<a href');
+    });
+
+    it('setting output on onCapture overrides the rendered image', function () {
+      let out = cm(function (c) {
+        c.listen('makehtml.image.inline.onCapture', function (e) { e.output = '<IMGOVERRIDE>'; return e; });
+      }).makeHtml('![alt](pic.png)');
+      expect(out).toContain('<IMGOVERRIDE>');
+      expect(out).not.toContain('<img');
+    });
+  });
 });

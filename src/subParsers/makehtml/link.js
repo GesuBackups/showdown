@@ -142,22 +142,7 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
   }
 
   // 5. Handle GithubMentions (if option is enabled)
-  if (options.ghMentions) {
-    let ghMentionsRegex = /(^|\s)(\\)?(@([a-z\d]+(?:[a-z\d._-]+?[a-z\d]+)*))/gi;
-    text = text.replace(ghMentionsRegex, function (wholeMatch, st, escape, mentions, username) {
-      // bail if the mentions was escaped
-      if (escape === '\\') {
-        return st + mentions;
-      }
-      // check if options.ghMentionsLink is a string
-      // TODO Validation should be done at initialization not at runtime
-      if (!showdown.helper.isString(options.ghMentionsLink)) {
-        throw new Error('ghMentionsLink option must be a string');
-      }
-      let url = options.ghMentionsLink.replace(/\{u}/g, username);
-      return st + writeAnchorTag ('reference', ghMentionsRegex, wholeMatch, mentions, null, url);
-    });
-  }
+  text = showdown.helper.applyGhMentions(text, options, globals, showdown.helper.LEGACY_ANCHOR_URL_POLICY);
 
   // 6 and 7 have to come here to prevent naked links to catch html
   // 6. Handle <a> tags
@@ -176,43 +161,10 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
     // we also include leading markdown magic chars [_*~] for cases like __https://www.google.com/foobar__
     let nakedUrlRegex = /([_*~]*?)(((?:https?|ftp):\/\/|www\.)[^\s<>"'`´.-][^\s<>"'`´]*?\.[a-z\d.]+[^\s<>"']*)\1/gi;
     text = text.replace(nakedUrlRegex, function (wholeMatch, leadingMDChars, url, urlPrefix) {
-      // we now will start traversing the url from the front to back, looking for punctuation chars [_*~,;:.!?\)\]]
-      const len = url.length;
-      let suffix = '';
-
-      for (let i = len - 1; i >= 0; --i) {
-        let char = url.charAt(i);
-        if (/[_*~,;:.!?]/.test(char)) {
-          // it's a punctuation char so we remove it from the url
-          url = url.slice(0, -1);
-          // and prepend it to the suffix
-          suffix = char + suffix;
-        } else if (/[)\]]/.test(char)) {
-          // it's a parenthesis so we need to check for "balance" (kinda)
-          let opPar, clPar;
-          if (/\)/.test(char)) {
-            // it's a curved parenthesis
-            opPar = url.match(/\(/g) || [];
-            clPar = url.match(/\)/g);
-          } else {
-            // it's a squared parenthesis
-            opPar = url.match(/\[/g) || [];
-            clPar = url.match(/]/g);
-          }
-          if (opPar.length < clPar.length) {
-            // there are more closing Parenthesis than opening so chop it!!!!!
-            url = url.slice(0, -1);
-            // and prepend it to the suffix
-            suffix = char + suffix;
-          } else {
-            // it's (kinda) balanced so our work is done
-            break;
-          }
-        } else {
-          // it's not a punctuation or a parenthesis so our work is done
-          break;
-        }
-      }
+      // trim trailing punctuation / unbalanced brackets off the URL into a suffix
+      let trimmed = showdown.helper.trimUrlPunctuation(url);
+      url = trimmed.url;
+      let suffix = trimmed.suffix;
 
       // we copy the treated url to the text variable
       let txt = url;
@@ -372,130 +324,15 @@ showdown.subParser('makehtml.link', function (text, options, globals) {
     return {url: url, title: title, emptyCase: emptyCase, end: j};
   }
 
-  /**
-   *
-   * @param {string} subEvtName
-   * @param {RegExp} pattern
-   * @param {string} wholeMatch
-   * @param {string} text
-   * @param {string|null} [linkId]
-   * @param {string|null} [url]
-   * @param {string|null} [title]
-   * @param {boolean} [emptyCase]
-   * @returns {string}
-   */
+  // Legacy anchor builder + mail parser: thin wrappers over the shared GFM anchor machinery
+  // (showdown.helper.writeAnchorTag / parseMail), pinning this path's href policy (safeMode +
+  // cmNormalizeURL + attribute escape all on).
   function writeAnchorTag (subEvtName, pattern, wholeMatch, text, linkId, url, title, emptyCase) {
-
-    let matches = {
-          _wholeMatch: wholeMatch,
-          _linkId: linkId,
-          _url: url,
-          _title: title,
-          text: text
-        },
-        otp,
-        attributes = {};
-
-    title = title || null;
-    url = url || null;
-    if (linkId) {
-      linkId = options.cmSpec ? showdown.helper.cmNormalizeLabel(linkId) : showdown.helper.caseFold(linkId);
-    } else {
-      linkId = null;
-    }
-    emptyCase = !!emptyCase;
-
-    if (emptyCase) {
-      url = '';
-    } else if (!url) {
-      if (!linkId) {
-        // lower-case and turn embedded newlines into spaces
-        linkId = options.cmSpec ? showdown.helper.cmNormalizeLabel(text) : showdown.helper.caseFold(text).replace(/ ?\n/g, ' ');
-      }
-      if (!showdown.helper.isUndefined(globals.gUrls[linkId])) {
-        url = globals.gUrls[linkId];
-        if (!showdown.helper.isUndefined(globals.gTitles[linkId])) {
-          title = globals.gTitles[linkId];
-        }
-      } else {
-        return wholeMatch;
-      }
-    }
-
-    url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
-    // safeMode: neutralize dangerous URL schemes (javascript:, vbscript:, data:, ...)
-    if (options.safeMode && !showdown.helper.isSafeUrl(url)) {
-      url = '';
-    }
-    if (options.cmSpec) {
-      url = showdown.helper.cmNormalizeURL(url);
-    }
-    url = url.replace(showdown.helper.regexes.asteriskDashTildeAndColon, showdown.helper.escapeCharactersCallback);
-    // escape characters that would otherwise break out of the quoted href attribute
-    // (a `"` in the destination is an attribute-injection vector). cmSpec flavors already
-    // percent-encode the URL above, so this is a no-op there.
-    url = url
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-    attributes.href = url;
-
-    if (title && showdown.helper.isString(title)) {
-      if (options.cmSpec) {
-        title = showdown.helper.cmEscapeTitle(title);
-      } else {
-        title = title
-          .replace(/"/g, '&quot;');
-      }
-      title = title.replace(showdown.helper.regexes.asteriskDashTildeAndColon, showdown.helper.escapeCharactersCallback);
-      attributes.title = title;
-    }
-
-    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.link.' + subEvtName + '.onCapture', wholeMatch, {
-      regexp: pattern,
-      matches: matches,
-      attributes: attributes
-    }, options, globals);
-
-    // if something was passed as output, it takes precedence
-    // and will be used as output
-    if (captureStartEvent.output && captureStartEvent.output !== '') {
-      otp = captureStartEvent.output;
-    } else {
-      attributes = captureStartEvent.attributes;
-      text = captureStartEvent.matches.text || '';
-      // Text can be a markdown element, so we run through the appropriate parsers
-      text = showdown.subParser('makehtml.codeSpan')(text, options, globals);
-      text = showdown.subParser('makehtml.emoji')(text, options, globals);
-      text = showdown.subParser('makehtml.underline')(text, options, globals);
-      text = showdown.subParser('makehtml.emphasisAndStrong')(text, options, globals);
-      text = showdown.subParser('makehtml.strikethrough')(text, options, globals);
-      text = showdown.subParser('makehtml.ellipsis')(text, options, globals);
-      text = showdown.helper.hashHTMLSpans(text, options, globals);
-      otp = '<a' + showdown.helper._populateAttributes(attributes) + '>' + text + '</a>';
-    }
-
-    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.link.' + subEvtName + '.onHash', otp, options, globals);
-    otp = beforeHashEvent.output;
-    return showdown.helper.hashHTMLSpans(otp, options, globals);
+    return showdown.helper.writeAnchorTag(subEvtName, pattern, wholeMatch, text, linkId, url, title, emptyCase,
+      options, globals, showdown.helper.LEGACY_ANCHOR_URL_POLICY);
   }
 
-  /**
-   * @param {string} mail
-   * @returns {{mail: string, url: string}}
-   */
   function parseMail (mail) {
-    let url = 'mailto:';
-    mail = showdown.helper.unescapePlaceholders(mail);
-    if (options.encodeEmails) {
-      url = showdown.helper.encodeEmailAddress(url + mail);
-      mail = showdown.helper.encodeEmailAddress(mail);
-    } else {
-      url = url + mail;
-    }
-    return {
-      mail: mail,
-      url: url
-    };
+    return showdown.helper.parseMail(mail, options);
   }
 });
