@@ -2,7 +2,7 @@
  * Created by Tivie on 21/12/2016.
  */
 'use strict';
-var now = require('performance-now'),
+const now = require('performance-now'),
     fs = require('fs'),
     semverSort = require('semver-sort'),
     performance = {
@@ -34,7 +34,7 @@ performance.generateLog = function (filename, MDFilename, asTable) {
 
   fs.closeSync(fs.openSync(filename, 'a'));
 
-  var json = fs.readFileSync(filename),
+  let json = fs.readFileSync(filename).toString(),
       jsonParsed;
 
   try {
@@ -43,11 +43,11 @@ performance.generateLog = function (filename, MDFilename, asTable) {
     jsonParsed = {};
   }
 
-  var jData = [];
+  let jData = [];
 
-  for (var i = 0; i < performance.testSuites.length; ++i) {
+  for (let i = 0; i < performance.testSuites.length; ++i) {
     // Suite
-    var suiteName = performance.testSuites[i].getSuiteName(),
+    let suiteName = performance.testSuites[i].getSuiteName(),
         cycles = performance.testSuites[i].getOption('cycles'),
         subJData = {
           suiteName: suiteName,
@@ -61,9 +61,9 @@ performance.generateLog = function (filename, MDFilename, asTable) {
     }
 
     // loop through tests
-    for (var ii = 0; ii < testSuite.length; ++ii) {
+    for (let ii = 0; ii < testSuite.length; ++ii) {
       // Test
-      var test = testSuite[ii];
+      let test = testSuite[ii];
       subJData.tests.push({
         name: test.name,
         time: test.time,
@@ -76,8 +76,8 @@ performance.generateLog = function (filename, MDFilename, asTable) {
   jsonParsed[performance.version] = jData;
 
   //Sort jsonParsed
-  var versions = [];
-  for (var version in jsonParsed) {
+  let versions = [];
+  for (let version in jsonParsed) {
     if (Object.prototype.hasOwnProperty.call(jsonParsed, version)) {
       versions.push(version);
     }
@@ -85,9 +85,9 @@ performance.generateLog = function (filename, MDFilename, asTable) {
 
   semverSort.desc(versions);
 
-  var finalJsonObj = {};
+  let finalJsonObj = {};
 
-  for (i = 0; i < versions.length; ++i) {
+  for (let i = 0; i < versions.length; ++i) {
     if (Object.prototype.hasOwnProperty.call(jsonParsed, versions[i])) {
       finalJsonObj[versions[i]] = jsonParsed[versions[i]];
     }
@@ -103,21 +103,21 @@ function generateMD (filename, obj, asTable) {
   asTable = !!asTable;
 
   // generate MD
-  var otp = '# Performance Tests for ' + performance.libraryName + '\n\n\n';
+  let otp = '# Performance Tests for ' + performance.libraryName + '\n\n\n';
 
-  for (var version in obj) {
+  for (let version in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, version)) {
       otp += '## [version ' + version + '](' + performance.githubLink + version + ')\n\n';
-      var testSuite = obj[version];
-      for (var i = 0; i < testSuite.length; ++i) {
+      let testSuite = obj[version];
+      for (let i = 0; i < testSuite.length; ++i) {
         otp += '### Test Suite: ' + testSuite[i].suiteName + ' (' + testSuite[i].cycles + ' cycles)\n';
-        var tests = testSuite[i].tests;
+        let tests = testSuite[i].tests;
         if (asTable) {
           otp += '| test | avgTime | max | min |\n';
           otp += '|:-----|--------:|----:|----:|\n';
         }
-        for (var ii = 0; ii < tests.length; ++ii) {
-          var time = parseFloat(tests[ii].time).toFixed(3),
+        for (let ii = 0; ii < tests.length; ++ii) {
+          let time = parseFloat(tests[ii].time).toFixed(3),
               maxTime = parseFloat(tests[ii].maxTime).toFixed(3),
               minTime = parseFloat(tests[ii].minTime).toFixed(3);
           if (asTable) {
@@ -135,7 +135,7 @@ function generateMD (filename, obj, asTable) {
 }
 
 performance.Suite = function (name) {
-  var suiteName = name || '',
+  let suiteName = name || '',
       tests = [],
       hasRunFlag = false,
       options = {
@@ -195,18 +195,18 @@ performance.Suite = function (name) {
   };
 
   this.run = function run () {
-    var nn = options.cycles;
+    let nn = options.cycles;
     console.log('running tests: ' + nn + ' cycles each.');
-    for (var i = 0; i < tests.length; ++i) {
-      var times = [],
-          passVar = tests[i].obj.prepare();
-      for (var ii = 0; ii < nn; ++ii) {
-        var before = now();
-        tests[i].obj.test(passVar);
-        var after = now();
+    for (let i = 0; i < tests.length; ++i) {
+      let times = [],
+          passlet = tests[i].obj.prepare();
+      for (let ii = 0; ii < nn; ++ii) {
+        let before = now();
+        tests[i].obj.test(passlet);
+        let after = now();
         times.push(after - before);
       }
-      var total = times.reduce(function (a, b) {return a + b;}, 0);
+      let total = times.reduce(function (a, b) {return a + b;}, 0);
       tests[i].time = total / options.cycles;
       tests[i].minTime = Math.min.apply(null, times);
       tests[i].maxTime = Math.max.apply(null, times);
