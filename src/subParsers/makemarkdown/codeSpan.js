@@ -1,3 +1,13 @@
+/**
+ * @file      makemarkdown/codeSpan.js
+ * @summary   Renders a `<code>` inline element back to a backtick code span.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown): chooses a fence longer than any interior
+ * backtick run. Emits `makeMarkdown.codeSpan.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.codeSpan', function (node, options, globals) {
   'use strict';
 

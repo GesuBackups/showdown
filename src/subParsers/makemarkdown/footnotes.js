@@ -1,3 +1,14 @@
+/**
+ * @file      makemarkdown/footnotes.js
+ * @summary   Reverses GFM footnotes: a `<sup class="footnote-ref">` becomes `[^id]` and a `<section class="footnotes">` becomes `[^id]: body` definitions.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown), gated by the `footnotes` option in
+ * `makeMarkdown.node`, mirroring makeHtml. Emits `makeMarkdown.footnotes.onStart`/`onCapture`/`onEnd`.
+ */
+
 // Reverse direction (HTML -> Markdown) for GFM footnotes. Handles the two shapes the
 // forward parser (and GitHub) produce:
 //   <sup class="footnote-ref"><a href="#fn-ID" ...>N</a></sup>      -> [^ID]

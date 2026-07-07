@@ -1,5 +1,13 @@
 /**
- * Parse metadata at the top of the document
+ * @file      makehtml/metadata.js
+ * @summary   Parses a document front-matter metadata block at the top of the document, gated by `metadata`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Extracts the metadata block, records its parsed key/values into `globals.metadata` (consumed by
+ * `completeHTMLDocument`) and exposes the format tag and body. Emits the `makehtml.metadata.*`
+ * event family.
  */
 showdown.subParser('makehtml.metadata', function (text, options, globals) {
   'use strict';

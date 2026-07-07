@@ -1,26 +1,15 @@
-////
-// makehtml/blockquote.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Transforms MD headings into `<h#>` html entities
-//
-// Setext-style headers:
-//	Header 1
-//	========
-//
-//	Header 2
-//	--------
-//
-// atx-style headers:
-//  # Header 1
-//  ## Header 2
-//  ## Header 2 with closing hashes ##
-//  ...
-//  ###### Header 6
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/heading.js
+ * @summary   Converts ATX (`#`) and Setext (`===`/`---`) headings into `<h1>`–`<h6>`, generating id attributes.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * An IIFE registering the heading subparser; a shared `parseHeader` handles both styles, namespacing
+ * events per style (`.atx`/`.setext`), each with its own lifecycle and capture. The heading-id
+ * generator emits the capture-only `makehtml.heading.id.onCapture` hook so listeners can supply
+ * custom slugs. The setext regex is the documented ReDoS-sensitive spot.
+ */
 (function () {
 
   /**

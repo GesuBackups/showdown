@@ -1,12 +1,12 @@
-////
-// makehtml/unhashHTMLSpans.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Unhash HTML spans
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/unhashHTMLSpans.js
+ * @summary   Restores `¨C…C` span placeholders back to their stored HTML, expanding nested placeholders (bounded depth).
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * The inverse of `hashHTMLSpans`. A `showdown.helper.*` mechanism, not a construct; emits no events.
+ */
 
 
 // Mechanism (not a construct): hash plumbing. Attached as a showdown.helper

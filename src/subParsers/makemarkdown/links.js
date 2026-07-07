@@ -1,3 +1,12 @@
+/**
+ * @file      makemarkdown/links.js
+ * @summary   Renders an `<a>` anchor back to a Markdown link, converting children and reading `href`/`title`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown). Emits `makeMarkdown.links.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.links', function (node, options, globals) {
   'use strict';
 

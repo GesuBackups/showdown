@@ -1,5 +1,16 @@
 /**
- * Created by Estevao on 31-05-2015.
+ * @file      converter.js
+ * @summary   The `showdown.Converter` per-instance engine running the makeHtml/makeMarkdown pipelines and event loop.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Merges global and per-call options and holds the instance's listeners and extensions.
+ * `makeHtml(text)` runs the ordered subparser pipeline over a shared mutable `globals` object
+ * (emitting the document-level `makehtml.onStart`/`onPreParse`/`onEnd` events); `makeMarkdown(html)`
+ * walks the DOM produced by `helper.parseHTML` through the `makeMarkdown.node` dispatcher. Also
+ * provides `listen()`/`dispatch()` and reimplements the deprecated `lang`/`output` extensions as
+ * listeners.
  */
 
 /**

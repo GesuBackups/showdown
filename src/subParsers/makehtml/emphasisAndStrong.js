@@ -1,16 +1,15 @@
-////
-// makehtml/emphasisAndStrong.js
-// Copyright (c) 2022 ShowdownJS
-//
-// Transforms MD emphasis and strong into `<em>` and `<strong>` html entities
-//
-// Markdown treats asterisks (*) and underscores (_) as indicators of emphasis.
-// Text wrapped with one * or _ will be wrapped with an HTML <em> tag;
-// double *’s or _’s will be wrapped with an HTML <strong> tag
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/emphasisAndStrong.js
+ * @summary   Converts `*`/`_` emphasis and strong markers into `<em>`/`<strong>` (default, non-cmSpec path).
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Implements Markdown emphasis/strong with a CommonMark-style delimiter-stack/flanking-rule path
+ * (using `\p{...}` Unicode property escapes). Emits capture events under the `.emphasis`, `.strong`
+ * and `.emphasisAndStrong` sub-namespaces plus the top-level lifecycle. In cmSpec mode emphasis is
+ * handled by `cmInline` instead.
+ */
 
 /* jshint esnext: false, esversion: 9 */
 // (esversion 9 enables the \p{...} Unicode property escapes used for CommonMark flanking rules)

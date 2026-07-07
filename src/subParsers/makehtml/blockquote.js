@@ -1,16 +1,14 @@
-////
-// makehtml/blockquote.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Transforms MD blockquotes into `<blockquote>` html entities
-//
-// Markdown uses email-style > characters for blockquoting.
-// Markdown allows you to be lazy and only put the > before the first line of a hard-wrapped paragraph but
-// it looks best if the text is hard wrapped with a > before every line.
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/blockquote.js
+ * @summary   Converts `>`-prefixed Markdown blockquotes into `<blockquote>` blocks.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Recognizes email-style blockquote syntax, recursing through `blockGamut` for inner content, and
+ * has a separate cmSpec container parser (`parseCmBlockquotes`); guards against pathological nesting
+ * (bails past depth 25). Emits the `makehtml.blockquote.*` event family.
+ */
 
 
 showdown.subParser('makehtml.blockquote', function (text, options, globals) {

@@ -1,3 +1,12 @@
+/**
+ * @file      makemarkdown/header.js
+ * @summary   Renders `<h1>`–`<h6>` back to ATX (`#`) headings using the passed heading level.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown). Emits `makeMarkdown.header.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.header', function (node, options, globals, headerLevel) {
   'use strict';
 

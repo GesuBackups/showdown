@@ -1,7 +1,13 @@
 /**
- * Strips link definitions from text, stores the URLs and titles in
- * hash references.
- * Link defs are in the form: ^[id]: url "optional title"
+ * @file      makehtml/stripLinkDefinitions.js
+ * @summary   Removes `[id]: url "title"` link-reference definitions and stores them (with optional dimensions) in `globals`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Runs early; case-folds link ids and supports base64 data-URLs and `=WxH` dimensions. A definition
+ * renders no inline content, so its capture events carry no `text` key — only descriptive fields
+ * (`linkId`, `url`, `title`, …). Emits the `makehtml.stripLinkDefinitions.*` event family.
  */
 showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, globals) {
   'use strict';

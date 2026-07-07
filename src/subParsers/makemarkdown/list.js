@@ -1,3 +1,13 @@
+/**
+ * @file      makemarkdown/list.js
+ * @summary   Renders `<ul>`/`<ol>` back to Markdown lists, tracking the ordered `start` number and item `type`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown): passes a list `type` down to its items.
+ * Emits `makeMarkdown.list.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.list', function (node, options, globals, type) {
   'use strict';
 

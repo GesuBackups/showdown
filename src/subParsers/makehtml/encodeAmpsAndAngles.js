@@ -1,12 +1,13 @@
-////
-// makehtml/encodeAmpsAndAngles.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Smart processing for ampersands and angle brackets that need to be encoded.
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/encodeAmpsAndAngles.js
+ * @summary   Encodes stray `&`, `<`, `>`, `"` to HTML entities (leaving real entity references intact).
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A character-level encoding pass attached as a `showdown.helper.*` mechanism, not a construct;
+ * emits no events.
+ */
 
 // Mechanism (not a construct): a character-level encoding pass. Attached as a
 // showdown.helper (no events) rather than registered as a subparser.

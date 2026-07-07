@@ -1,3 +1,12 @@
+/**
+ * @file      makemarkdown/txt.js
+ * @summary   Renders a text node: collapses space runs, restores `¨NBSP;` sentinels, unescapes entities, and reverses `ellipsis`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown). Emits `makeMarkdown.txt.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.txt', function (node, options, globals) {
   'use strict';
 

@@ -1,19 +1,14 @@
-////
-// makehtml/githubCodeBlock.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Handle github codeblocks prior to running HashHTML so that
-// HTML contained within the codeblock gets escaped properly
-// Example:
-// ```ruby
-// def hello_world(x)
-//     puts "Hello, #{x}"
-// end
-// ```
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/githubCodeBlock.js
+ * @summary   Converts GFM fenced code blocks (``` / ~~~) into `<pre><code>`, escaping their contents before HTML hashing.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Gated by `ghCodeBlocks`; handles info strings/language classes, and a `topLevelOnly` argument
+ * restricts opening fences to indent 0 in cmSpec container mode (so list/blockquote items own their
+ * own indented fences). Emits the `makehtml.githubCodeBlock.*` event family.
+ */
 
 
 showdown.subParser('makehtml.githubCodeBlock', function (text, options, globals, topLevelOnly) {

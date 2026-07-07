@@ -1,5 +1,14 @@
 /**
+ * @file      makehtml/paragraphs.js
+ * @summary   Wraps blank-line-separated blocks of text in `<p>` tags and restores hashed HTML/code placeholders.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
  *
+ * Splits on `\n{2,}`, passes non-hash grafs through `spanGamut` and re-emits hashed HTML block/span
+ * placeholders untouched. Emits one `onCapture`/`onHash` per paragraph with `regexp: null` (a legal
+ * value — paragraphs are found by split, not regex); `matches.text` is mutable and honored, and
+ * `attributes` apply to the `<p>`.
  */
 showdown.subParser('makehtml.paragraphs', function (text, options, globals) {
   'use strict';

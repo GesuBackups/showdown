@@ -1,22 +1,16 @@
-////
-// makehtml/cmList.js
-// Copyright (c) 2024 ShowdownJS
-//
-// CommonMark list container-block parser (spec section 5.2/5.3).
-//
-// This is a separate, line-based parser invoked only when the `commonmarkLists`
-// option is enabled (it is part of the `commonmark` flavor). Showdown's default
-// regex list parser (`makehtml.list`) is left untouched; `makehtml.list` simply
-// delegates here when the flag is on.
-//
-// It differs from the regex parser in the ways CommonMark requires: a change of
-// bullet character or ordered delimiter starts a new list, ordered lists keep
-// their start number and the `)` delimiter, loose/tight is decided per list (not
-// per item), and items nest by content indentation.
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/cmList.js
+ * @summary   The CommonMark container-block list parser (spec §5.2/5.3), used in place of the regex parser under cmSpec.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A separate line-based parser invoked by `makehtml.list` when `commonmarkLists` is on: a change of
+ * bullet character or ordered delimiter starts a new list, ordered lists keep their start number and
+ * `)` delimiter, loose/tight is decided per list, and items nest by content indentation. Registered
+ * under `makehtml.cmList` but deliberately emits the shared `makehtml.list.*` events so listeners
+ * work in every flavor.
+ */
 
 
 showdown.subParser('makehtml.cmList', function (text, options, globals) {

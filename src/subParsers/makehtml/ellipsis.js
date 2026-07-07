@@ -1,12 +1,12 @@
-////
-// makehtml/ellipsis.js
-// Copyright (c) 2018 ShowdownJS
-//
-// transform three dots (...) into ellipsis (…)
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/ellipsis.js
+ * @summary   Replaces literal `...` with the ellipsis character `…` when the `ellipsis` option is on.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A simple gated per-match transform. Emits the `makehtml.ellipsis.*` event family.
+ */
 
 
 showdown.subParser('makehtml.ellipsis', function (text, options, globals) {

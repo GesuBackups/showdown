@@ -1,21 +1,14 @@
-////
-// makehtml/encodeBackslashEscapes.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Returns the string, with after processing the following backslash escape sequences.
-//
-// The polite way to do this is with the new escapeCharacters() function:
-//
-// text = escapeCharacters(text,"\\",true);
-// text = escapeCharacters(text,"`*_{}[]()>#+-.!",true);
-//
-// ...but we're sidestepping its use of the (slow) RegExp constructor
-// as an optimization for Firefox.  This function gets called a LOT.
-//
-// ***Author:***
-// - attacklab
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/encodeBackslashEscapes.js
+ * @summary   Resolves Markdown backslash escapes (`\*`, `\_`, …) into placeholder escapes so those characters lose Markdown meaning.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Uses a hand-optimized replace chain that sidesteps the slow `RegExp` constructor (this runs very
+ * frequently). A character-level pass attached as a `showdown.helper.*` mechanism, not a construct;
+ * emits no events.
+ */
 
 // Mechanism (not a construct): a character-level encoding pass. Attached as a
 // showdown.helper (no events) rather than registered as a subparser.

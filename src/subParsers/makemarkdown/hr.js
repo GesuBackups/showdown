@@ -1,3 +1,12 @@
+/**
+ * @file      makemarkdown/hr.js
+ * @summary   Renders `<hr>` back to a `---` thematic break.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown). Emits `makeMarkdown.hr.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.hr', function (node, options, globals) {
   'use strict';
 

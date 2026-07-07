@@ -1,5 +1,15 @@
 /**
- * Created by Estevao on 31-05-2015.
+ * @file      event.js
+ * @summary   The `showdown.Event` class and the static dispatch helpers powering the listener event system.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Implements the event object (name, `input`, `output`, `regexp`, `matches`, `attributes`, plus
+ * read-only `_globals`/`_options`/`_converter` context) with validating accessors and fluent
+ * builders, and the static dispatch helpers (`dispatchStart`/`dispatchCapture`/`dispatchHash`/
+ * `dispatchEnd`) that construct subparsers must use to emit `onStart`/`onCapture`/`onHash`/`onEnd`.
+ * This is the contract listener extensions hook into.
  */
 
 showdown.Event = class {

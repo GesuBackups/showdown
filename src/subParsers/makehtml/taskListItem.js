@@ -1,28 +1,16 @@
-////
-// makehtml/taskListItem.js
-// Copyright (c) 2024 ShowdownJS
-//
-// GFM task-list item renderer, shared by both list parsers.
-//
-// Given the raw text of a single list item, it matches a leading `[ ]`/`[x]`
-// marker plus the rest of that line and renders the marker as a disabled
-// `<input type="checkbox">`, leaving the line's text in place for the caller to
-// parse further. It runs at the same (raw, pre-parse) stage in both
-// `makehtml.list` (the default regex parser) and `makehtml.cmList` (the
-// commonmark container-block parser), so the events below always expose the
-// task item's raw source line on either path.
-//
-// Events (nested under the `makehtml.list.taskListItem` namespace that the default
-// list parser already uses for its item-level events):
-//   makehtml.list.taskListItem.checkbox.onCapture - fired on a matched task line.
-//     `input` and `_wholeMatch` are the full source line (`[ ] foo *bar*`);
-//     `attributes` are the checkbox attributes. Returning output overrides the line.
-//   makehtml.list.taskListItem.checkbox.onHash    - fired with the rendered line
-//     (`<input ...> foo *bar*`) before it is handed back to the caller.
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/taskListItem.js
+ * @summary   Renders a GFM task-list marker (`[ ]`/`[x]`) as a disabled `<input type="checkbox">`, shared by both list parsers.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Given a raw list-item line, matches the leading marker and renders the checkbox, leaving the label
+ * text for the caller to parse; gated by `tasklists`. Because both `makehtml.list` and
+ * `makehtml.cmList` delegate here, one listener covers task lists in every flavor. Emits lifecycle
+ * `onStart`/`onEnd` plus `makehtml.list.taskListItem.checkbox.onCapture`/`onHash` — where `input`
+ * and `_wholeMatch` are the full source line and `attributes` are the checkbox attributes.
+ */
 
 
 showdown.subParser('makehtml.list.taskListItem.checkbox', function (text, options, globals) {

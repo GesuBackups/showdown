@@ -1,12 +1,14 @@
-////
-// makehtml/hardLineBreaks.js
-// Copyright (c) 2022 ShowdownJS
-//
-// Transforms hard line breaks (trailing spaces / backslash) into `<br />` tags.
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/hardLineBreaks.js
+ * @summary   Converts hard line breaks (trailing double-space or backslash-newline) into `<br />`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Supports the vanilla (`  \n`) and GFM `simpleLineBreaks` styles plus `\`+newline. A break has no
+ * inner content, so its per-break capture events carry only `_wholeMatch`; `attributes` apply to the
+ * emitted `<br>`. Emits the `makehtml.hardLineBreaks.*` event family.
+ */
 
 showdown.subParser('makehtml.hardLineBreaks', function (text, options, globals) {
   'use strict';

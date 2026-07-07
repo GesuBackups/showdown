@@ -1,3 +1,15 @@
+/**
+ * @file      makemarkdown/emphasis.js
+ * @summary   Renders `<em>`/`<i>` back to `*`-delimited emphasis, and defines the shared wrap-marker factory.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown). Defines the `makeMarkdownWrapMarkerSubParser`
+ * factory shared by the four "wrap rendered children in a marker" inline constructs (emphasis, strong,
+ * strikethrough, underline) and registers the emphasis (`*`) variant. Emits `onStart`/`onCapture`/`onEnd`.
+ */
+
 // Shared implementation for the four "wrap the rendered children in a marker" inline
 // constructs — emphasis (`*`), strong (`**`), strikethrough (`~~`) and underline (`__`).
 // They are identical apart from the wrap marker and their event family, so they collapse

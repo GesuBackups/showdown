@@ -1,7 +1,18 @@
 // noinspection HtmlDeprecatedAttribute,CheckImageSize
 
 /**
- * showdownjs helper functions
+ * @file      helpers.js
+ * @summary   The `showdown.helper.*` utility library: string/type helpers, escaping, DOM access, and shared regexes.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Provides the cross-cutting helpers used everywhere: type guards, `escapeCharacters`/
+ * `escapeCharactersCallback`, `caseFold`, `replaceRecursiveRegExp`, entity (un)escaping and the
+ * placeholder plumbing. Lazily resolves a DOM for `makeMarkdown` (`showdown.helper.document`
+ * prefers an ambient window/document, falling back to a required happy-dom `Window` in Node) and
+ * exposes `parseHTML`, which parses untrusted HTML in an inert document so scripts never execute.
+ * Also the home for the character-level encoder/hash mechanisms attached from the `makehtml/` files.
  */
 
 if (!Object.prototype.hasOwnProperty.call(showdown, 'helper')) {

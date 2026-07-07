@@ -1,3 +1,12 @@
+/**
+ * @file      makemarkdown/break.js
+ * @summary   Renders a `<br>` element as a hard line break.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown). Emits `makeMarkdown.break.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.break', function (node, options, globals) {
   'use strict';
 

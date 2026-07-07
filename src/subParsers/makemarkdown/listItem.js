@@ -1,3 +1,12 @@
+/**
+ * @file      makemarkdown/listItem.js
+ * @summary   Renders a single `<li>` back to a Markdown list item, indenting nested lists onto their own lines.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown). Emits `makeMarkdown.listItem.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.listItem', function (node, options, globals) {
   'use strict';
 

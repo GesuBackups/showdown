@@ -1,12 +1,15 @@
 /**
- * GFM footnotes (cmark-gfm footnotes extension).
+ * @file      makehtml/footnotes.js
+ * @summary   GFM footnotes: collects `[^id]: body` definitions and renders `[^id]` references into a `<section class="footnotes">`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
  *
- * Runs in two phases (selected by the `phase` argument):
- *   'strip' - before stripLinkDefinitions: collect `[^label]: body` definitions
- *             into globals and replace `[^label]` references that have a definition
- *             with a hashed `<sup>` span (numbered by order of first reference).
- *   'build' - after paragraphs: render the referenced footnotes into a
- *             `<section class="footnotes">` and append it to the document.
+ * Runs in two phases (selected by the `phase` argument): 'strip' (before `stripLinkDefinitions`)
+ * collects definitions into `globals` and replaces referenced markers with hashed numbered `<sup>`
+ * spans; 'build' (after `paragraphs`) renders the footnote section and appends it to the document.
+ * Emits lifecycle `onStart`/`onEnd` plus per-item `makehtml.footnotes.definition.*` and
+ * `makehtml.footnotes.reference.*` events.
  */
 showdown.subParser('makehtml.footnotes', function (text, options, globals, phase) {
   'use strict';

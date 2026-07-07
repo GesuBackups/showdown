@@ -1,20 +1,15 @@
-////
-// makehtml/disallowedHtmlTags.js
-// Copyright (c) 2018 ShowdownJS
-//
-// GFM "disallowed raw HTML" extension (tagfilter): a small blacklist of HTML tags
-// is neutralized in the output by escaping their leading `<` to `&lt;`. These tags
-// are singled out because they change how the surrounding markup is interpreted
-// (script/style/iframe/etc.). See https://github.github.com/gfm/#disallowed-raw-html-extension-
-//
-// When the `safeMode` option is on, this stage also neutralizes a broader set of
-// dangerous raw-HTML tags Showdown never generates and strips inline event-handler
-// attributes (on*=...), so that embedded `<script>`, `<img onerror>`, `<svg onload>`
-// and similar cannot execute. This is defense-in-depth, not a full HTML sanitizer.
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/disallowedHtmlTags.js
+ * @summary   Neutralizes dangerous raw-HTML tags by escaping their leading `<` (GFM tagfilter, spec §6.11).
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Runs late over near-final output, gated by `disallowRawHTML`/`safeMode`, filtering a blacklist
+ * (`script`, `style`, `iframe`, `title`, `textarea`, `xmp`, `noembed`, `noframes`, `plaintext`). In
+ * `safeMode` it also strips inline `on*=` handlers as defense-in-depth (not a full sanitizer). Emits
+ * one `onCapture`/`onHash` per neutralized tag; a listener can whitelist a tag by setting `output`.
+ */
 
 
 showdown.subParser('makehtml.disallowedHtmlTags', function (text, options, globals) {

@@ -1,3 +1,14 @@
+/**
+ * @file      makemarkdown/input.js
+ * @summary   Renders a checkbox `<input>` back to a `[ ]`/`[x]` task marker (inside a list item, when `tasklists` is on).
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown): only emits the marker inside a list item with
+ * following content and when `tasklists` is on; otherwise emits the raw `<input>` so it round-trips.
+ * Emits `makeMarkdown.input.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.input', function (node, options, globals) {
   'use strict';
 

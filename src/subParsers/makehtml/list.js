@@ -1,16 +1,15 @@
-////
-// makehtml/list.js
-// Copyright (c) 2022 ShowdownJS
-//
-// Transforms MD lists into `<ul>` or `<ol>` html list
-//
-// Markdown supports ordered (numbered) and unordered (bulleted) lists.
-// Unordered lists use asterisks, pluses, and hyphens - interchangably - as list markers
-// Ordered lists use numbers followed by periods.
-//
-// ***Author:***
-// - Estevão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/list.js
+ * @summary   The default regex-based list parser converting Markdown lists into `<ul>`/`<ol>`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Recognizes ordered/unordered lists (interchangeable `*`/`+`/`-` markers), handling nesting,
+ * loose/tight items and delegating task-list checkboxes to `makehtml.list.taskListItem.checkbox`.
+ * When `cmSpec` is set it delegates wholesale to `makehtml.cmList`. Emits the `makehtml.list.*`
+ * family including `.listItem` and `.taskListItem`.
+ */
 
 
 showdown.subParser('makehtml.list', function (text, options, globals) {

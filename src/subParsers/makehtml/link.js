@@ -1,17 +1,15 @@
-////
-// makehtml/links.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Transforms MD links into `<a>` html anchors
-//
-// A link contains link text (the visible text), a link destination (the URI that is the link destination), and
-// optionally a link title. There are two basic kinds of links in Markdown.
-// In inline links the destination and title are given immediately after the link text.
-// In reference links the destination and title are defined elsewhere in the document.
-//
-// ***Author:***
-// - Estevão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/link.js
+ * @summary   Converts Markdown links (inline, reference, autolinks) into `<a>` anchors.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Handles reference-style, inline (with a cmSpec balanced-paren path), angle-bracket and GFM
+ * auto-links; short-circuits when no `]` is present and uses bracket-aware sub-patterns to stay
+ * linear (ReDoS guards). Emits capture events per type — `.inline`/`.reference`/`.angleBrackets`/
+ * `.autoLink` — exposing the anchor `attributes` (the documented hook for `target`/`rel`).
+ */
 
 showdown.subParser('makehtml.link', function (text, options, globals) {
 

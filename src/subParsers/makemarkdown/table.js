@@ -1,3 +1,12 @@
+/**
+ * @file      makemarkdown/table.js
+ * @summary   Renders a `<table>` back to a GFM pipe table (header row, alignment delimiter row, body rows).
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown). Emits `makeMarkdown.table.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.table',
   /**
    *

@@ -1,22 +1,19 @@
-////
-// makehtml/cmInline.js
-// Copyright (c) 2024 ShowdownJS
-//
-// Unified CommonMark inline parser (spec section 6).
-//
-// Invoked only when the `commonmarkInline` option is enabled. It resolves code
-// spans, backslash escapes, character references, autolinks, raw HTML, links,
-// images and emphasis together on a single delimiter stack, so the cross-construct
-// precedence rules CommonMark requires (a link cannot contain a link; code spans /
-// autolinks / raw HTML bind before links; emphasis interleaves with link brackets)
-// are expressible - which the sequential per-construct passes could not.
-//
-// It is built on the same doubly-linked node list + delimiter stack + processEmphasis
-// design used by makehtml.emphasisAndStrong's CommonMark path.
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/cmInline.js
+ * @summary   Unified CommonMark inline parser (spec §6).
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Invoked only when the `commonmarkInline` option is enabled. Resolves code spans, backslash
+ * escapes, character references, autolinks, raw HTML, links, images and emphasis together on a
+ * single delimiter stack, so the cross-construct precedence rules CommonMark requires — a link
+ * cannot contain a link; code spans / autolinks / raw HTML bind before links; emphasis interleaves
+ * with link brackets — are expressible, which the sequential per-construct passes could not.
+ *
+ * Built on the same doubly-linked node list + delimiter stack + processEmphasis design used by
+ * makehtml.emphasisAndStrong's CommonMark path.
+ */
 
 /* jshint esnext: false, esversion: 9 */
 

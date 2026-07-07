@@ -1,33 +1,14 @@
-////
-// makehtml/codeSpan.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Transforms MD code spans into `<code>` html entities
-//
-// Backtick quotes are used for <code></code> spans.
-//
-// You can use multiple backticks as the delimiters if you want to
-// include literal backticks in the code span. So, this input:
-//
-// Just type ``foo `bar` baz`` at the prompt.
-//
-// Will translate to:
-//
-// <p>Just type <code>foo `bar` baz</code> at the prompt.</p>
-//
-// There's no arbitrary limit to the number of backticks you
-// can use as delimters. If you need three consecutive backticks
-// in your code, use four for delimiters, etc.
-//
-// You can use spaces to get literal backticks at the edges:
-// ... type `` `bar` `` ...
-//
-// Turns to:
-// ... type <code>`bar`</code> ...
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/codeSpan.js
+ * @summary   Converts backtick-delimited inline code into `<code>` spans.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Recognizes backtick code spans, including multi-backtick delimiters and edge-space trimming, and
+ * encodes the interior with `encodeCode` so its characters lose Markdown meaning. Not used in cmSpec
+ * mode, where `cmInline` handles code spans. Emits the `makehtml.codeSpan.*` event family.
+ */
 
 
 showdown.subParser('makehtml.codeSpan', function (text, options, globals) {

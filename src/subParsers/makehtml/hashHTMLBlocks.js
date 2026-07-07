@@ -1,12 +1,13 @@
-////
-// makehtml/hashHTMLBlocks.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Hash HTML blocks
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/hashHTMLBlocks.js
+ * @summary   Replaces top-level raw HTML block elements (`pre`, `div`, `table`, `script`, …) with placeholders.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Shields raw HTML blocks from Markdown parsing by hashing them. A `showdown.helper.*` mechanism,
+ * not a construct; emits no events.
+ */
 
 // Mechanism (not a construct): hash plumbing. Attached as a showdown.helper
 // (no events) rather than registered as a subparser.

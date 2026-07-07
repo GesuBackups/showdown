@@ -1,3 +1,16 @@
+/**
+ * @file      makehtml/table.js
+ * @summary   Converts GFM pipe tables into `<table>`, gated by `tables`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Recognizes header + delimiter + body rows, breaking the table at the first line that starts
+ * another block construct (returning the tail for reprocessing) and handling alignment and escaped
+ * pipes. The header regex is written to avoid quadratic backtracking (ReDoS). Emits `makehtml.table.*`
+ * plus `.header`/`.cell` captures.
+ */
+
 showdown.subParser('makehtml.table', function (text, options, globals) {
   'use strict';
 

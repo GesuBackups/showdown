@@ -1,12 +1,14 @@
-////
-// makehtml/codeBlock.js
-// Copyright (c) 2022 ShowdownJS
-//
-// Process Markdown `<pre><code>` blocks.
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/codeBlock.js
+ * @summary   Converts 4-space/tab-indented Markdown code blocks into `<pre><code>`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Recognizes indented (Markdown/CommonMark) code blocks, entity-encoding their content via
+ * `encodeCode` and hashing the result; uses a sentinel (`¨0`) to emulate end-of-string anchoring.
+ * Emits the `makehtml.codeBlock.*` event family.
+ */
 
 
 showdown.subParser('makehtml.codeBlock', function (text, options, globals) {

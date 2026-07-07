@@ -1,5 +1,16 @@
-
-
+/**
+ * @file      makemarkdown/node.js
+ * @summary   The recursive HTML→Markdown dispatcher that routes each DOM node to the right construct subparser.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * The reverse-direction analogue of `blockGamut`/`spanGamut`: handles text nodes, HTML comments and
+ * unknown/raw elements itself, and dispatches known elements (headings, lists, links, tables, …) to
+ * their subparser, falling back to `renderRawElement` when a feature-gated construct's option is off.
+ * Emits `makeMarkdown.node.onStart`/`onCapture`/`onEnd` for every node — the one place to observe content without
+ * a dedicated subparser.
+ */
 showdown.subParser('makeMarkdown.node', function (node, options, globals, spansOnly) {
   'use strict';
 

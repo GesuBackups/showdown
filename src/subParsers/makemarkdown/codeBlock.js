@@ -1,3 +1,13 @@
+/**
+ * @file      makemarkdown/codeBlock.js
+ * @summary   Renders a `<pre><code>` block back to a fenced code block, or raw HTML when `ghCodeBlocks` is off.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown): pulls the stashed code from `globals.preList`
+ * and re-escapes special chars when emitting raw HTML. Emits `makeMarkdown.codeBlock.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.codeBlock', function (node, options, globals) {
   'use strict';
 

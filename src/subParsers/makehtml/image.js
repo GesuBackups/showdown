@@ -1,12 +1,15 @@
-////
-// makehtml/blockquote.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Turn Markdown image into <img> tags.
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/image.js
+ * @summary   Converts Markdown image syntax `![alt](url)` / reference images into `<img>` tags.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Handles inline, crazy-bracket, base64, reference and shortcut-reference forms, with optional
+ * dimension parsing (`=WxH`) and a CommonMark balanced-paren scanner in cmSpec mode; short-circuits
+ * when no `]` is present (ReDoS guard). Emits capture events at `.inline`/`.reference` with the
+ * `<img>` `attributes`.
+ */
 
 
 showdown.subParser('makehtml.image', function (text, options, globals) {

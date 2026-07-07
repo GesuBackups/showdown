@@ -1,12 +1,15 @@
-////
-// makehtml/completeHTMLDocument.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Create a full HTML document from the processed markdown
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/completeHTMLDocument.js
+ * @summary   Wraps the converted HTML in a full document when `completeHTMLDocument` is enabled.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Gated behind the option; pulls title/charset/lang/meta from parsed document metadata
+ * (`globals.metadata.parsed`) to build the `<head>`, then wraps the body in
+ * `<!DOCTYPE>`/`<html>`/`<head>`/`<body>`. A lifecycle-only construct: emits `onStart`/`onEnd` with
+ * no per-match capture.
+ */
 // noinspection HtmlRequiredLangAttribute
 
 

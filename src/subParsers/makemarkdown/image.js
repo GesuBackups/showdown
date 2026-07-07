@@ -1,3 +1,12 @@
+/**
+ * @file      makemarkdown/image.js
+ * @summary   Renders `<img>` back to Markdown image syntax `![alt](src)`, reversing emoji images to `:code:` when `emoji` is on.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown). Emits `makeMarkdown.image.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.image', function (node, options, globals) {
   'use strict';
 

@@ -1,12 +1,13 @@
-////
-// makehtml/hashHTMLSpans.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Hash span elements that should not be parsed as markdown
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/hashHTMLSpans.js
+ * @summary   Replaces inline raw-HTML spans/self-closing tags with `¨C…C` placeholders (stored in `globals.gHtmlSpans`).
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Uses a forward-cursor scan with an absent-close-tag cache to stay linear (ReDoS-safe). A
+ * `showdown.helper.*` mechanism, not a construct; emits no events.
+ */
 
 // Mechanism (not a construct): hash plumbing. Attached as a showdown.helper
 // (no events) rather than registered as a subparser.

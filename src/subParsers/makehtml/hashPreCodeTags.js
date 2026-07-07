@@ -1,12 +1,13 @@
-////
-// makehtml/hashPreCodeTags.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Hash and escape <pre><code> elements that should not be parsed as markdown
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/hashPreCodeTags.js
+ * @summary   Hashes raw `<pre><code>` blocks (storing them in `ghCodeBlocks`) via the shared `makeHashCodeTagsHelper` factory.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Differs from `hashCodeTags` only in its open/close patterns and storage target. A
+ * `showdown.helper.*` mechanism, not a construct; emits no events.
+ */
 
 // Registered through the shared makeHashCodeTagsHelper factory (defined in
 // hashCodeTags.js): the <pre><code> variant differs only in the open/close patterns

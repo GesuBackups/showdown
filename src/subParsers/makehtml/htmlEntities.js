@@ -1,11 +1,14 @@
-////
-// makehtml/htmlEntities.js
-// Copyright (c) 2024 ShowdownJS
-//
-// HTML5 named character reference table (name -> replacement string).
-// Generated from the WHATWG HTML5 named character reference set.
-// Used by makehtml.decodeEntities to resolve &name; references (CommonMark).
-////
+/**
+ * @file      makehtml/htmlEntities.js
+ * @summary   The HTML5 named-character-reference table (`showdown.helper.htmlEntities`).
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Maps HTML5 entity names to their replacement strings, generated from the WHATWG named
+ * character reference set and consumed by `makehtml.decodeEntities`. Pure data — a mechanism,
+ * not a construct; emits no events.
+ */
 
 showdown.helper.htmlEntities = {
   'AElig': 'Æ',

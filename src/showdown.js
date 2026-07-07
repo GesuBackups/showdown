@@ -1,5 +1,15 @@
 /**
- * Created by Tivie on 06-01-2015.
+ * @file      showdown.js
+ * @summary   The static `showdown` namespace: global options, subparser/extension registries, and flavor presets.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Creates the shared `showdown` object and its private `parsers`, `extensions` and `globalOptions`
+ * state, and defines the flavor bundles (`commonmark`, `gfm`, `original`, `vanilla`, with `github`
+ * aliased to `gfm` — each flavor is just a set of option overrides). Exposes `subParser(name[, fn])`
+ * to get/register subparsers and `extension(...)`/`validate()` for the three extension types. Runs
+ * first in the concatenation so every later file can register against it.
  */
 // Private properties
 let showdown = {},

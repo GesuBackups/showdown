@@ -1,13 +1,15 @@
-////
-// makehtml/blockGamut.js
-// Copyright (c) 2018 ShowdownJS
-//
-// These are all the transformations that form block-level
-// tags like paragraphs, headers, and list items.
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/blockGamut.js
+ * @summary   Routes text through every block-level construct in order (headings, HR, lists, code, tables, blockquotes, …).
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * The block-level recursive dispatcher: it matches nothing itself, only calls the block
+ * constructs in a fixed sequence (with a `skip` argument so a construct can avoid re-invoking
+ * itself) and recurses through them. Contains the cmSpec ordering special-cases. Emits no
+ * events — whole-text hooks are covered by the document-level events.
+ */
 
 // Dispatcher (not a construct): it matches nothing itself, only routes text through the
 // block-level subparsers, so it emits no events (the document-level makehtml.onStart /

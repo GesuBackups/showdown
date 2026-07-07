@@ -1,13 +1,14 @@
-////
-// makehtml/escapeSpecialCharsWithinTagAttributes.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Within tags -- meaning between < and > -- encode [\ ` * _ ~ =] so they
-// don't conflict with their use in Markdown for code, italics and strong.
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/escapeSpecialCharsWithinTagAttributes.js
+ * @summary   Escapes Markdown-magic characters inside raw HTML tags/comments so they don't trigger inline parsing.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Within tags — between `<` and `>` — encodes `` \ ` * _ ~ = | `` so they don't conflict with their
+ * Markdown meanings. Skipped in cmSpec mode (where raw HTML is recognized/hashed strictly). A
+ * `showdown.helper.*` mechanism, not a construct; emits no events.
+ */
 
 // Mechanism (not a construct): a character-level escaping pass. Attached as a
 // showdown.helper (no events) rather than registered as a subparser.

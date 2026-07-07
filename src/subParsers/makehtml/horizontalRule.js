@@ -1,15 +1,14 @@
-////
-// makehtml/blockquote.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Turn Markdown horizontal rule shortcuts into <hr /> tags.
-//
-// Any 3 or more unindented consecutive hyphens, asterisks or underscores with or without a space beetween them
-// in a single line is considered a horizontal rule
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/horizontalRule.js
+ * @summary   Converts thematic breaks (`---`, `***`, `___`, 3+ markers) into `<hr />`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Recognizes the several spacing variants; in cmSpec mode it defers indented dash runs that are
+ * really setext underlines inside list items. A rule has no inner content, so its capture events
+ * carry no `text`. Emits the `makehtml.horizontalRule.*` event family.
+ */
 showdown.subParser('makehtml.horizontalRule', function (text, options, globals) {
   'use strict';
   let startEvent = showdown.Event.dispatchStart('makehtml.horizontalRule.onStart', text, options, globals);

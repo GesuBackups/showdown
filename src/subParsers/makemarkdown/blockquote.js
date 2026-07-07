@@ -1,3 +1,13 @@
+/**
+ * @file      makemarkdown/blockquote.js
+ * @summary   Renders a `<blockquote>` element back into `>`-prefixed Markdown.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown): recurses into the blockquote's children and
+ * prefixes each rendered line with `>`. Emits `makeMarkdown.blockquote.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.blockquote', function (node, options, globals) {
   'use strict';
 

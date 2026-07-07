@@ -1,11 +1,13 @@
-////
-// makehtml/hashBlock.js
-// Copyright (c) 2018 ShowdownJS
-//
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/hashBlock.js
+ * @summary   Replaces a finished block of HTML with a `¨K…K` placeholder stored in `globals.gHtmlBlocks`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Core hash plumbing so processed blocks aren't reparsed. A `showdown.helper.*` mechanism, not a
+ * construct; emits no events.
+ */
 
 // Mechanism (not a construct): hash plumbing. Attached as a showdown.helper
 // (no events) rather than registered as a subparser.

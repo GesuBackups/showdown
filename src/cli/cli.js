@@ -1,5 +1,15 @@
 /**
- * Created by tivie
+ * @file      cli/cli.js
+ * @summary   The `commander`-based command-line interface (built to `bin/showdown.js`) exposing `makehtml`/`makemarkdown`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Conditionally loads a `showdown` build (test bundle via `SHOWDOWN_CLI_BUNDLE`, `dist/`, or
+ * `.build/`), defines the two conversion subcommands with their shared options, and wires them to
+ * `converter.makeHtml`/`makeMarkdown`. Contains all the plumbing — a `Messenger` with ANSI colour
+ * resolution, option coercion/validation, glob input expansion, output-path derivation and
+ * single vs. batch conversion — but no conversion logic of its own.
  */
 const fs = require('fs'),
     path = require('path'),

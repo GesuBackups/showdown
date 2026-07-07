@@ -1,3 +1,14 @@
+/**
+ * @file      makehtml/strikethrough.js
+ * @summary   Converts GFM `~`/`~~` strikethrough runs into `<del>`, gated by `strikethrough`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Recognizes length-matched tilde runs with flanking rules, rejecting runs of three or more.
+ * Emits the `makehtml.strikethrough.*` event family.
+ */
+
 showdown.subParser('makehtml.strikethrough', function (text, options, globals) {
   'use strict';
   if (!options.strikethrough) {

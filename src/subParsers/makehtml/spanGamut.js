@@ -1,6 +1,14 @@
 /**
- * These are all the transformations that occur *within* block-level
- * tags like paragraphs, headers, and list items.
+ * @file      makehtml/spanGamut.js
+ * @summary   Routes text through every inline/span-level construct (code spans, links, images, emphasis, emoji, …).
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * The inline recursive dispatcher. In the default path it runs `codeSpan`, escaping, links/images,
+ * emphasis, etc.; in cmSpec mode it delegates most inline work to `cmInline` (after `underline`),
+ * then runs the Showdown-only extras (emoji, strikethrough, ellipsis) and the final hashing/encoding
+ * passes. Emits no events.
  */
 
 // Dispatcher (not a construct): it matches nothing itself, only routes text through the

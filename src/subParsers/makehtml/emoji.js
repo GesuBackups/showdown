@@ -1,13 +1,14 @@
-////
-// makehtml/emoji.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Turn emoji codes into emojis
-// List of supported emojis: https://github.com/showdownjs/showdown/wiki/Emojis
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/emoji.js
+ * @summary   Replaces `:code:` emoji shortcodes with their emoji glyphs (or images), gated by the `emoji` option.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Matches `:shortcode:` and looks it up in `showdown.helper.emojis`, leaving unknown codes
+ * untouched. See https://github.com/showdownjs/showdown/wiki/Emojis for the supported set. Emits the
+ * `makehtml.emoji.*` event family.
+ */
 
 
 showdown.subParser('makehtml.emoji', function (text, options, globals) {
