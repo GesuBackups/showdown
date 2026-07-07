@@ -452,8 +452,7 @@ ids](#heading-ids).
 
 The whitespace between the `#` characters and the heading text is
 optional.  This follows Original Markdown and differs from CommonMark
-and GFM, which require it (see
-[requireSpaceBeforeHeadingText](#requirespacebeforeheadingtext-option-requirespacebeforeheadingtext)):
+and GFM, which require it.
 
 ```````````````````````````````` example
 #Foo
@@ -725,21 +724,6 @@ clamping would silently merge distinct heading levels.
 .
 <h3 id="foo">Foo</h3>
 <h4 id="bar">Bar</h4>
-````````````````````````````````
-
-### requireSpaceBeforeHeadingText (option: `requireSpaceBeforeHeadingText`)
-
-With `requireSpaceBeforeHeadingText: true`, ATX headings require
-whitespace between the opening `#` run and the text, as in CommonMark
-and GFM.  `#5 bolt` and `#hashtag` are then plain paragraph text:
-
-```````````````````````````````` example options:requireSpaceBeforeHeadingText
-#foo
-
-# bar
-.
-<p>#foo</p>
-<h1 id="bar">bar</h1>
 ````````````````````````````````
 
 ## Indented code blocks
@@ -1127,7 +1111,8 @@ Markdown is not a replacement for HTML: for any markup not covered by
 Markdown's syntax, HTML itself is used.  An **HTML block** is a
 block-level HTML element written directly in the document.  It is passed
 through to the output verbatim, and its content is **not** processed as
-Markdown.
+Markdown — unless its opening tag carries the [`markdown`
+attribute](#the-markdown-attribute).
 
 The **block-level elements** are: `blockquote`, `del`, `div`, `dl`,
 `fieldset`, `form`, `h1`–`h6`, `iframe`, `ins`, `math`, `noscript`,
@@ -1171,6 +1156,40 @@ Markdown syntax is not processed inside an HTML block, and no extra
 <div>
 *this is not emphasis*
 </div>
+````````````````````````````````
+
+### The markdown attribute
+
+If the opening tag of an HTML block contains a `markdown` attribute,
+the block's *content* is parsed as Markdown after all (as in PHP
+Markdown Extra).  The wrapping tags are passed through as usual, and
+the attribute itself is kept in the output:
+
+```````````````````````````````` example
+<div markdown="1">
+*this is emphasis*
+
+# a heading
+</div>
+.
+<div markdown="1"><p><em>this is emphasis</em></p>
+<h1 id="a-heading">a heading</h1></div>
+````````````````````````````````
+
+The attribute's value is irrelevant — `markdown`, `markdown="1"` and
+`markdown="span"` all behave the same way.
+
+Caution: the trigger is a simple word search on the opening tag, so a
+tag whose attributes merely *contain* the word `markdown` — for example
+`class="markdown-body"` or `data-markdown` — enables Markdown
+processing as well:
+
+```````````````````````````````` example
+<div class="markdown-body">
+*em*
+</div>
+.
+<div class="markdown-body"><p><em>em</em></p></div>
 ````````````````````````````````
 
 A block-level tag at the start of a line interrupts a paragraph; a
@@ -1398,6 +1417,8 @@ text
 <h2 id="title-my-document">title: My Document</h2>
 <p>text</p>
 ````````````````````````````````
+
+
 # Container blocks
 
 Container blocks contain other blocks as their content.
@@ -1684,7 +1705,7 @@ continue the enclosing list:
 ### disableForced4SpacesIndentedSublists (option: `disableForced4SpacesIndentedSublists`)
 
 With `disableForced4SpacesIndentedSublists: true`, any extra marker
-indentation nests, as in Original Markdown:
+indentation nests, as in Original Markdown (and it's buggy behavior):
 
 ```````````````````````````````` example options:disableForced4SpacesIndentedSublists
 * foo
@@ -2918,6 +2939,9 @@ default settings, differs from [Original Markdown](original.md).
     `www.` autolinks get a scheme prepended.
   - **Image dimensions grammar**: `=WxH` after an image URL is consumed
     (and rendered only with `parseImgDimensions`).
+  - **The `markdown` attribute** on an HTML block's opening tag makes
+    its content be parsed as Markdown (PHP Markdown Extra style;
+    Original always passes HTML block content through verbatim).
 
 **Different resolutions of shared syntax:**
 
@@ -2973,7 +2997,6 @@ scope* are not specified by this document.
 | `omitExtraWLInCodeBlocks` | `false` | [Fenced code blocks](#omitextrawlincodeblocks-option-omitextrawlincodeblocks) |
 | `parseImgDimensions` | `false` | [Images](#image-dimensions-option-parseimgdimensions) |
 | `relativePathBaseUrl` | `''` | [Document and output options](#relativepathbaseurl-option-relativepathbaseurl) |
-| `requireSpaceBeforeHeadingText` | `false` | [Headings](#requirespacebeforeheadingtext-option-requirespacebeforeheadingtext) |
 | `safeMode` | `false` | [Document and output options](#safemode-option-safemode) |
 | `simpleLineBreaks` | `false` | [Hard line breaks](#simplelinebreaks-option-simplelinebreaks) |
 | `simplifiedAutoLink` | `false` | [Automatic links](#naked-urls-option-simplifiedautolink) |
@@ -2995,7 +3018,7 @@ the defaults (`showdown.setFlavor(name)`).  This document specifies the
 |---|---|
 | `vanilla` | none (the defaults; this spec) |
 | `original` | `headerIds: false`, `ghCodeBlocks: false`, `strikethrough: false` — see the [Original Markdown spec](original.md) |
-| `commonmark` | `cmSpec: true`, `decodeEntities: true`, `requireSpaceBeforeHeadingText: true`, `headerIds: false`, `strikethrough: false`, `encodeEmails: false` — see the [CommonMark spec](CommonMark.md) |
+| `commonmark` | `cmSpec: true`, `decodeEntities: true`, `headerIds: false`, `strikethrough: false`, `encodeEmails: false` — see the [CommonMark spec](CommonMark.md) |
 | `gfm` | everything in `commonmark`, plus `strikethrough: true`, `tables: true`, `tasklists: true`, `footnotes: true`, `ghMentions: true`, `simplifiedAutoLink: true`, `emoji: true`, `ghCodeBlocks: true`, `omitExtraWLInCodeBlocks: true`, `disallowRawHTML: true` — see the [GFM spec](gfm.md) |
 | `github` | alias of `gfm` (backwards compatibility) |
 
