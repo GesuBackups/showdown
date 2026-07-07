@@ -588,9 +588,9 @@ Foo
 
 When the underline follows a multi-line paragraph, the **entire
 paragraph** becomes the heading text, line breaks included.  (This
-differs from Original Markdown and CommonMark, where only the last line
-is used.)  In the generated `id`, a line break becomes a dash, exactly
-like a space:
+follows CommonMark, but differs from Original Markdown, where only the
+last line is used.)  In the generated `id`, a line break becomes a dash,
+exactly like a space:
 
 ```````````````````````````````` example
 foo
