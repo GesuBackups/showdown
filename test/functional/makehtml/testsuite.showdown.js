@@ -32,18 +32,18 @@ describe('makeHtml() showdown (vanilla) testsuite', function () {
           //   Setext headings_31 ............. showdown.md — a line break inside a setext
           //                                    heading's generated id should become a dash
           //                                    (id="foo-bar"); it is currently kept literal.
-          //   Emphasis and strong emphasis_132 showdown.md — `**foo *bar* baz**`: em
+          //   Emphasis and strong emphasis_133 showdown.md — `**foo *bar* baz**`: em
           //                                    nested inside strong is not recognized.
-          //   Automatic links_159 ............ showdown.md — `&` in an autolink URL is
+          //   Automatic links_160 ............ showdown.md — `&` in an autolink URL is
           //                                    not entity-encoded in the href/text.
-          //   Automatic escaping_179 ......... showdown.md — bare `<`/`>` (`4 < 5 and
+          //   Automatic escaping_180 ......... showdown.md — bare `<`/`>` (`4 < 5 and
           //                                    6 > 3`) are swallowed by legacy inline HTML
           //                                    span hashing instead of being escaped.
           switch (name) {
             case 'Setext headings_31':
-            case 'Emphasis and strong emphasis_132':
-            case 'Automatic links_159':
-            case 'Automatic escaping_179':
+            case 'Emphasis and strong emphasis_133':
+            case 'Automatic links_160':
+            case 'Automatic escaping_180':
               continue;
           }
           // each case carries the converter options it needs in the fixture (vanilla defaults

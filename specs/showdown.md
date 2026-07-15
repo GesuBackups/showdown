@@ -1223,6 +1223,20 @@ comment -->
 <p>Bar</p>
 ````````````````````````````````
 
+A comment is terminated by `-->` **or** by `--!>` (the HTML "comment end
+bang" sequence).  This is a deliberate security deviation from CommonMark,
+which recognizes only `-->`: browsers close a comment at `--!>` too, so
+recognizing only `-->` would let content an author believes is commented
+out reach the browser as live HTML.  Showdown applies this rule in **every
+flavor**, including `commonmark` and `gfm`:
+
+```````````````````````````````` example
+<!-- commented --!><span>shown</span>
+.
+<!-- commented --!>
+<p><span>shown</span></p>
+````````````````````````````````
+
 Note that span-level HTML tags are **not** HTML blocks; they flow with
 paragraph content and Markdown *is* processed around and inside them
 (see [Inline HTML](#inline-html)).

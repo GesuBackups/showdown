@@ -19,7 +19,11 @@ let cmAttributeName = '[a-zA-Z_:][a-zA-Z0-9:._-]*',
     cmAttribute = '(?:\\s+' + cmAttributeName + '(?:\\s*=\\s*' + cmAttributeValue + ')?)',
     cmOpenTag = '<[A-Za-z][A-Za-z0-9\\-]*' + cmAttribute + '*\\s*/?>',
     cmCloseTag = '</[A-Za-z][A-Za-z0-9\\-]*\\s*>',
-    cmHTMLComment = '<!-->|<!--->|<!--(?:[^-]|-[^-]|--[^>])*-->',
+    // Deliberate deviation from CommonMark: `--!>` (the HTML "comment end bang" state) also
+    // terminates a comment, matching browser parsing of the output — recognizing only `-->`
+    // lets content the parser believes is commented out leak through as live HTML
+    // (js/bad-tag-filter). The content loop excludes both terminators.
+    cmHTMLComment = '<!-->|<!--->|<!--(?:[^-]|-[^-]|--(?:[^>!]|![^>]))*--!?>',
     cmProcessingInstruction = '<[?][\\s\\S]*?[?]>',
     cmDeclaration = '<![A-Za-z]+[^>]*>',
     cmCDATA = '<!\\[CDATA\\[[\\s\\S]*?\\]\\]>';

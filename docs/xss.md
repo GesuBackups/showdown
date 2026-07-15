@@ -115,6 +115,7 @@ These apply regardless of options:
 * **`makeMarkdown` (HTML → Markdown) parses into an *inert* document.** Assigning untrusted HTML never executes `<script>` nor fires `on*` handlers such as `<img onerror>`/`<svg onload>`, even in a browser.
 * **`makeMarkdown` escapes emitted destinations/titles**, so a crafted attribute cannot inject a brand-new `[link](javascript:…)` when the Markdown is round-tripped back through `makeHtml`.
 * **Link/image and reference parsing are bounded**, so pathological inputs cannot cause catastrophic (quadratic) backtracking — a denial-of-service vector when converting large untrusted inputs.
+* **HTML comments end at `-->` or `--!>`** in every flavor. Browsers treat `--!>` (the HTML "comment end bang" sequence) as a comment terminator, so recognizing only `-->` would let content an author believes is commented out — e.g. `<!-- … --!><img src=x onerror=…>` — reach the browser as live HTML. This intentionally deviates from CommonMark, which recognizes only `-->`.
 
 ## Mitigate XSS
 

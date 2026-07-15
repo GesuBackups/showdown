@@ -629,6 +629,10 @@ The **block-level elements** are: `blockquote`, `del`, `div`, `dl`,
 (Implementations MAY recognize additional block-level elements
 introduced by later HTML versions.)
 
+An HTML comment is terminated by `-->` or by `--!>` (the HTML "comment
+end bang" sequence); the `--!>` form is honored so that content an author
+believes is commented out cannot reach the browser as live HTML.
+
 An HTML block begins with the opening tag of a block-level element (or an
 HTML comment) at the very start of a line, preceded by a blank line or the
 start of the document.  It ends with the corresponding closing tag at the

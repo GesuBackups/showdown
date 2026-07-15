@@ -540,9 +540,16 @@ Input:
 |-----------------------------------------------|----------------------------------------------|
 | whole block verbatim; `*foo*` and `*bar*` literal | block ends at the blank line: `<p><em>bar</em></p>` between the two halves |
 
-A `markdown="1"` attribute on a block-level opening tag makes its content parse
-as Markdown (the attribute is dropped) — **the same across all four flavors**.
-*(Showdown extension; see [showdown.md](showdown.md) and [original.md](original.md).)*
+Two behaviors are **the same across all four flavors**, both deliberate Showdown
+choices:
+
+- A `markdown="1"` attribute on a block-level opening tag makes its content parse
+  as Markdown (the attribute is dropped). *(Showdown extension; see
+  [showdown.md](showdown.md) and [original.md](original.md).)*
+- An HTML comment is terminated by `-->` **or** `--!>`. This is a **security
+  deviation from CommonMark** (which recognizes only `-->`): browsers close a
+  comment at `--!>` as well, so honoring only `-->` would let content an author
+  believes is commented out reach the browser as live HTML.
 
 ## Link reference definitions
 

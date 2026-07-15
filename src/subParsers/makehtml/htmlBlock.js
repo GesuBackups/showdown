@@ -178,7 +178,12 @@ showdown.subParser('makehtml.htmlBlock', function (text, options, globals) {
     let type1Start = /^ {0,3}<(?:script|pre|style|textarea)(?:[ \t>]|$)/i,
         type1End   = /<\/(?:script|pre|style|textarea)>/i,
         type2Start = /^ {0,3}<!--/,
-        type2End   = /-->/,
+        // Deliberate deviation from CommonMark (which recognizes only `-->`): `--!>` — the
+        // HTML "comment end bang" state — also terminates a comment, matching what browsers
+        // do with the output. Recognizing only `-->` lets content the parser believes is
+        // commented out leak through as live HTML (js/bad-tag-filter). Documented in
+        // specs/showdown.md and specs/comparison.md.
+        type2End   = /--!?>/,
         type3Start = /^ {0,3}<\?/,
         type3End   = /\?>/,
         type4Start = /^ {0,3}<![A-Za-z]/,
