@@ -1236,7 +1236,8 @@ a title) so that it can be used by [reference-style links](#links) and
   - a link identifier in square brackets, optionally indented by up to
     three spaces;
   - followed by a colon;
-  - followed by one or more spaces or tabs;
+  - optionally followed by spaces or tabs (the destination MAY instead be
+    placed on the next line);
   - followed by the destination URL, optionally surrounded by angle
     brackets;
   - optionally followed (separated by whitespace) by a title in double
@@ -1244,6 +1245,12 @@ a title) so that it can be used by [reference-style links](#links) and
     the next line, indented by any amount of whitespace.
 
 A link reference definition is metadata: it produces no output itself.
+
+Identifiers are matched case-insensitively, with runs of internal
+whitespace collapsed to a single space.  When the same identifier is
+defined more than once, the **first** definition wins.  A definition
+cannot interrupt a paragraph — it is only recognized at the start of a
+block.
 
 ```````````````````````````````` example
 [foo]: http://example.com/  "Optional Title Here"
@@ -1302,6 +1309,21 @@ use.  A definition that is never used still produces no output:
 ```````````````````````````````` example
 [unused]: http://example.com/
 .
+````````````````````````````````
+
+A destination that is a base64 `data:` URL may wrap across several lines
+(long base64 payloads are frequently hard-wrapped by editors and mail
+clients); the line breaks and surrounding whitespace are stripped when
+the definition is resolved:
+
+```````````````````````````````` example
+![logo][]
+
+[logo]:
+data:image/png;base64,iVBORw0KGgoAAAANSUhEUg
+AAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+.
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" alt="logo" /></p>
 ````````````````````````````````
 
 ## Paragraphs

@@ -27,22 +27,7 @@ showdown.subParser('makehtml.blockquote', function (text, options, globals) {
   let startEvent = showdown.Event.dispatchStart('makehtml.blockquote.onStart', text, options, globals);
   text = startEvent.output;
 
-  if (options.cmSpec) {
-    text = parseCmBlockquotes(text);
-  } else {
-    let pattern = /(^ {0,3}>[ \t]?.+\n(.+\n)*\n*)+/gm;
-
-    if (options.splitAdjacentBlockquotes) {
-      pattern = /^ {0,3}>[\s\S]*?\n\n/gm;
-    }
-
-    text = text.replace(pattern, function (bq) {
-      let wholeMatch = bq;
-      bq = bq.replace(/^[ \t]*>[ \t]?/gm, ''); // trim one level of quoting
-      bq = bq.replace(/^[ \t]+$/gm, ''); // trim whitespace-only lines
-      return renderBlockquote(bq, wholeMatch, pattern);
-    });
-  }
+  text = parseBlockquotes(text);
 
   let afterEvent = showdown.Event.dispatchEnd('makehtml.blockquote.onEnd', text, options, globals);
   return afterEvent.output;
@@ -75,14 +60,13 @@ showdown.subParser('makehtml.blockquote', function (text, options, globals) {
     } else {
       bq = captureStartEvent.matches.text;
       bq = showdown.subParser('makehtml.githubCodeBlock')(bq, options, globals);
-      // CommonMark container mode: run the source-level leaf-block passes on the quote's
-      // own (marker-stripped) content, mirroring the converter pipeline, so an HTML block
-      // or a link reference definition nested inside the block quote is recognized in the
-      // quote's context instead of only at the top level.
-      if (options.cmSpec) {
-        bq = showdown.helper.hashHTMLBlocks(bq, options, globals, true);
-        bq = showdown.subParser('makehtml.stripLinkDefinitions')(bq, options, globals);
-      }
+      // Run the source-level leaf-block passes on the quote's own (marker-stripped)
+      // content, mirroring the converter pipeline, so an HTML block or a link reference
+      // definition nested inside the block quote is recognized in the quote's context
+      // instead of only at the top level (spec-silent → CommonMark, so this runs for
+      // every flavor).
+      bq = showdown.subParser('makehtml.htmlBlock')(bq, options, globals);
+      bq = showdown.subParser('makehtml.stripLinkDefinitions')(bq, options, globals);
       globals.blockquoteDepth = (globals.blockquoteDepth || 0) + 1;
       bq = showdown.subParser('makehtml.blockGamut')(bq, options, globals); // recurse
       bq = showdown.subParser('makehtml.paragraphs')(bq, options, globals);
@@ -102,24 +86,38 @@ showdown.subParser('makehtml.blockquote', function (text, options, globals) {
   }
 
   /**
-   * CommonMark block-quote container parsing (spec section 5.1). Scans line by
-   * line: a block quote consumes consecutive lines that carry the `>` marker
-   * (an optional single space after `>` is stripped), plus lazy paragraph
-   * continuation lines (markerless non-blank text that follows a paragraph line).
-   * A blank line, or a markerless line that cannot lazily continue a paragraph,
-   * ends the block quote; two block quotes separated by a blank line are distinct.
+   * The one block-quote container scanner for every flavor (based on CommonMark spec
+   * section 5.1). Scans line by line: a block quote begins on a `^ {0,3}>` line (an
+   * optional single space after `>` is stripped) and consumes consecutive `>`-marked
+   * lines plus lazy continuation lines. Two flavor divergences are documented in the
+   * specs and derived here, not forked into a second engine:
+   *
+   *   - **laziness** — CommonMark (`cmSpec`) allows only *paragraph* continuation lines
+   *     to lazily continue (a markerless heading/fence/list/thematic-break ends the
+   *     quote); Original/Showdown use *full* laziness — every markerless non-blank line
+   *     continues the quote (original.md §"Blockquotes" / showdown.md §"Block quotes").
+   *   - **splitting** — a blank line separates two adjacent block quotes when
+   *     `cmSpec || splitAdjacentBlockquotes`; otherwise (Original/Showdown default) a
+   *     blank line that is followed by another `>` block is absorbed, merging them into
+   *     one quote (original.md's email-style merge-across-blank-lines).
+   *
    * @param {string} str
    * @returns {string}
    */
-  function parseCmBlockquotes (str) {
-    let marker = /^ {0,3}>/,
-        lines = str.split('\n'),
-        out = [],
-        i = 0,
-        n = lines.length;
+  function parseBlockquotes (str) {
+    let marker  = /^ {0,3}>/,
+        isBlank = /^[ \t]*$/,
+        lines   = str.split('\n'),
+        out     = [],
+        i       = 0,
+        n       = lines.length,
+        // Original/Showdown use full laziness; CommonMark only paragraph laziness
+        fullLazy = !options.cmSpec,
+        // CommonMark and the vanilla option both split adjacent quotes on a blank line
+        split    = options.cmSpec || options.splitAdjacentBlockquotes;
 
-    // a markerless line that can lazily continue a paragraph: non-blank text that
-    // does not itself begin a block which would interrupt the paragraph
+    // a markerless line that can lazily continue a paragraph (paragraph-laziness only):
+    // non-blank text that does not itself begin a block which would interrupt the paragraph
     function isLazyParagraph (line) {
       if (line.trim() === '') { return false; }
       return !(
@@ -163,24 +161,37 @@ showdown.subParser('makehtml.blockquote', function (text, options, globals) {
         if (marker.test(line)) {
           let stripped = line.replace(/^ {0,3}>[ \t]?/, '');
           bqLines.push(stripped);
-          prevParagraph = isParagraphLine(stripped);
+          prevParagraph = fullLazy ? false : isParagraphLine(stripped);
           i++;
-        } else if (prevParagraph && isLazyParagraph(line)) {
-          // CommonMark: a setext underline may not be a lazy continuation line. Escape the
-          // leading marker so the recursive setext parser can't claim it as an underline;
-          // encodeBackslashEscapes restores the literal `=`/`-` downstream.
-          if (/^ {0,3}(?:=+|-+)[ \t]*$/.test(line)) {
+        } else if (isBlank.test(line)) {
+          if (split) {
+            break; // a blank line ends the quote
+          }
+          // merge mode: absorb a blank run only when another `>` block follows it
+          let k = i;
+          while (k < n && isBlank.test(lines[k])) { k++; }
+          if (k < n && marker.test(lines[k])) {
+            for (; i < k; i++) { bqLines.push(''); }
+            prevParagraph = false;
+          } else {
+            break;
+          }
+        } else if (fullLazy || (prevParagraph && isLazyParagraph(line))) {
+          // paragraph-laziness only (CommonMark): a setext underline may not be a lazy
+          // continuation line. Escape the leading marker so the recursive setext parser
+          // can't claim it as an underline; encodeBackslashEscapes restores the literal
+          // `=`/`-` downstream. Under full laziness the underline is ordinary quote content.
+          if (!fullLazy && /^ {0,3}(?:=+|-+)[ \t]*$/.test(line)) {
             line = line.replace(/^( {0,3})([=-])/, '$1\\$2');
           }
           bqLines.push(line);
-          prevParagraph = isParagraphLine(line);
+          prevParagraph = fullLazy ? false : isParagraphLine(line);
           i++;
         } else {
-          break; // blank line or non-continuing line ends the block quote
+          break; // non-continuing line ends the block quote
         }
       }
-      // trailing newline mirrors the original regex match (which ended in \n) so the
-      // recursive block parsers see a complete final line
+      // trailing newline so the recursive block parsers see a complete final line
       let content = bqLines.join('\n') + '\n';
       out.push(renderBlockquote(content, content, null));
     }

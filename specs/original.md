@@ -617,6 +617,12 @@ Markdown's syntax, HTML itself is used.  An **HTML block** is a block-level
 HTML element written directly in the document.  It is passed through to
 the output verbatim, and its content is **not** processed as Markdown.
 
+As the one exception, a block-level opening tag carrying the attribute
+`markdown="1"` has its content parsed as Markdown; the attribute itself is
+removed from the output.  (See the [HTML blocks section of the Showdown
+spec](showdown.md) for examples — the behavior is identical in both
+flavors.)
+
 The **block-level elements** are: `blockquote`, `del`, `div`, `dl`,
 `fieldset`, `form`, `h1`–`h6`, `iframe`, `ins`, `math`, `noscript`,
 `ol`, `p`, `pre`, `script`, `table`, `ul`, plus `hr` and HTML comments.
@@ -740,7 +746,8 @@ title) so that it can be used by [reference-style links](#links) and
   - a link identifier in square brackets, optionally indented by up to
     three spaces;
   - followed by a colon;
-  - followed by one or more spaces or tabs;
+  - optionally followed by spaces or tabs (the destination MAY instead be
+    placed on the next line);
   - followed by the destination URL, optionally surrounded by angle
     brackets;
   - optionally followed (separated by whitespace) by a title in double
@@ -748,6 +755,12 @@ title) so that it can be used by [reference-style links](#links) and
     next line, indented by any amount of whitespace.
 
 A link reference definition is metadata: it produces no output itself.
+
+Identifiers are matched case-insensitively, with runs of internal
+whitespace collapsed to a single space.  When the same identifier is
+defined more than once, the **first** definition wins.  A definition
+cannot interrupt a paragraph — it is only recognized at the start of a
+block.
 
 Note that a bare bracketed string like `[foo]` is **not** a link in
 Original Markdown; a reference-style link always requires a second pair

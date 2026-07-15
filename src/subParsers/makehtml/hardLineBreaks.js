@@ -19,8 +19,9 @@ showdown.subParser('makehtml.hardLineBreaks', function (text, options, globals) 
   // Do hard breaks
   if (options.simpleLineBreaks) {
     // GFM style hard breaks
-    // only add line breaks if the text does not contain a block (special case for lists)
-    if (!/\n\n¨K/.test(text)) {
+    // only add line breaks if the text does not contain a block (special case for lists).
+    // ¨K = a generated/hashed block; ¨R = a raw CommonMark HTML block (wrapped in single newlines).
+    if (!/\n\n¨K/.test(text) && !/\n¨R\d+R\n/.test(text)) {
       text = text.replace(/\n+/gm, function (wholeMatch) { return parseBreak(/\n+/gm, wholeMatch); });
     }
   } else {

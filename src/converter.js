@@ -382,11 +382,11 @@ showdown.Converter = function (converterOptions) {
       // quotes are handled by the container parsers (and a later blockGamut pass for
       // genuinely top-level indented fences).
       text = showdown.helper.expandCmTabs(text);
-      text = showdown.helper.hashHTMLBlocks(text, options, globals, true);
+      text = showdown.subParser('makehtml.htmlBlock')(text, options, globals);
       text = showdown.subParser('makehtml.githubCodeBlock')(text, options, globals, true);
     } else {
       text = showdown.subParser('makehtml.githubCodeBlock')(text, options, globals);
-      text = showdown.helper.hashHTMLBlocks(text, options, globals, true);
+      text = showdown.subParser('makehtml.htmlBlock')(text, options, globals);
     }
     text = showdown.helper.hashCodeTags(text, options, globals);
     // Footnotes (GFM): collect `[^id]: ...` definitions and replace `[^id]` references

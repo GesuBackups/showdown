@@ -104,7 +104,8 @@ showdown.subParser('makehtml.image', function (text, options, globals) {
         attributes;
 
     if (linkId) {
-      linkId = options.cmSpec ? showdown.helper.cmNormalizeLabel(linkId) : showdown.helper.caseFold(linkId);
+      // one label normalization for all flavors (matches stripLinkDefinitions storage)
+      linkId = showdown.helper.cmNormalizeLabel(linkId);
     } else {
       linkId = null;
     }
@@ -118,8 +119,8 @@ showdown.subParser('makehtml.image', function (text, options, globals) {
 
     } else if (showdown.helper.isUndefined(url) || url === '' || url === null) {
       if (linkId === '' || linkId === null) {
-        // lower-case and turn embedded newlines into spaces
-        linkId = options.cmSpec ? showdown.helper.cmNormalizeLabel(altText) : showdown.helper.caseFold(altText).replace(/ ?\n/g, ' ');
+        // shortcut/collapsed reference: fold the alt text as the label
+        linkId = showdown.helper.cmNormalizeLabel(altText);
       }
       if (!showdown.helper.isUndefined(gUrls[linkId])) {
         url = gUrls[linkId];

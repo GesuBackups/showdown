@@ -110,9 +110,11 @@ converter renders those without extra configuration. See
 
 # Differences by syntax
 
-Constructs where all four agree (thematic breaks, indented code blocks, HTML
-blocks, link reference definitions, paragraphs, blank lines, images, inline HTML)
-are omitted. Only the divergences are shown.
+Constructs where all four agree (thematic breaks, indented code blocks,
+paragraphs, blank lines, images, inline HTML) are omitted. Only the divergences
+are shown — including [HTML blocks](#html-blocks) and [link reference
+definitions](#link-reference-definitions), which diverge in ways worth spelling
+out.
 
 ## Backslash escapes
 
@@ -511,6 +513,53 @@ Showdown-only, on by default in `vanilla`. Input `Wait... what...`:
 | Original · CommonMark · GFM | Showdown             |
 |-----------------------------|----------------------|
 | `<p>Wait... what...</p>`    | `<p>Wait… what…</p>` |
+
+## HTML blocks
+
+The construct is available in every flavor, but the **recognition model differs
+by lineage** (Showdown's default parser follows Original; `cmSpec` switches to the
+CommonMark model):
+
+- **Original · Showdown** — a block is a block-level opening tag whose content runs
+  **verbatim to the matching closing tag**; blank lines inside do not end it.
+- **CommonMark · GFM** — the [seven typed HTML blocks](https://spec.commonmark.org/0.31.2/#html-blocks);
+  a type 6/7 block (e.g. `<div>`) **ends at the first blank line**, so Markdown
+  between blank lines inside it *is* parsed.
+
+Input:
+
+```
+<div>
+*foo*
+
+*bar*
+</div>
+```
+
+| Original · Showdown (balanced model)          | CommonMark · GFM (typed model)               |
+|-----------------------------------------------|----------------------------------------------|
+| whole block verbatim; `*foo*` and `*bar*` literal | block ends at the blank line: `<p><em>bar</em></p>` between the two halves |
+
+A `markdown="1"` attribute on a block-level opening tag makes its content parse
+as Markdown (the attribute is dropped) — **the same across all four flavors**.
+*(Showdown extension; see [showdown.md](showdown.md) and [original.md](original.md).)*
+
+## Link reference definitions
+
+The construct is available in every flavor; the following details are **converged
+to the CommonMark behavior for all four** (they were previously under-specified):
+
+- identifiers are matched case-insensitively with internal whitespace collapsed;
+- when an identifier is defined more than once, the **first** definition wins;
+- a definition **cannot interrupt a paragraph** (recognized only at a block start);
+- the destination URL is percent-encoded, and its character references are decoded
+  only when the `decodeEntities` option is on (the documented per-flavor divergence);
+- a base64 `data:` destination may wrap across multiple lines.
+
+The one lineage difference is orthogonal to the definition itself — it is whether a
+**shortcut reference** `[foo]` (with no second bracket pair) resolves against a
+definition: **Original does not** recognize shortcut references; CommonMark, GFM and
+Showdown do.
 
 ---
 

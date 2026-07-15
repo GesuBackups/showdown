@@ -39,7 +39,9 @@ kinds of pass:
   `escapeSpecialCharsWithinTagAttributes`), the hash/unhash helpers (`hashBlock`,
   `hashHTMLBlocks`, `hashHTMLSpans`, `hashCodeTags`, `hashPreCodeTags`, `unhashHTMLSpans`,
   `unescapeSpecialChars`) and the heading-id generator. These are plain `showdown.helper.*`
-  functions and emit **no events**.
+  functions and emit **no events**. (`showdown.helper.hashHTMLBlocks` only protects the markup
+  the block parsers *generate* from a spurious `<p>` wrap — recognizing raw HTML blocks in the
+  Markdown *source* is the job of the `makehtml.htmlBlock` construct, which does emit events.)
 
 Two further passes emit no events even though they are registered sub-parsers:
 
@@ -334,6 +336,7 @@ plus `attributes`/output-override.
 | `makehtml.hardLineBreaks` | ✓ | ✓ (per break, no `text`) |
 | `makehtml.heading` | ✓ (also `.atx` / `.setext` own lifecycle) | at `.atx` / `.setext`; plus the capture-only `.id` hook |
 | `makehtml.horizontalRule` | ✓ | ✓ (no `text`) |
+| `makehtml.htmlBlock` | ✓ | ✓ (per raw HTML block) |
 | `makehtml.image` | ✓ | at `.inline` / `.reference` |
 | `makehtml.link` | ✓ | at `.inline` / `.reference` / `.angleBrackets` / `.autoLink` |
 | `makehtml.list` | ✓ | ✓; plus `.listItem`, `.taskListItem`, `.taskListItem.checkbox` (checkbox also has its own lifecycle) |
@@ -367,6 +370,19 @@ Notable per-construct events:
 * **`makehtml.footnotes.reference.onCapture` / `.onHash`** — one event per footnote reference
   (`[^id]`). No `text` key (the reference renders as a generated `<sup>`); `_label`,
   `_rawLabel` and `_number` are read-only context and a listener may override `output`.
+* **`makehtml.htmlBlock.onCapture` / `.onHash`** — one event per raw HTML block recognized in
+  the Markdown source (both recognition strategies: CommonMark's seven typed blocks under
+  `cmSpec`, the balanced-tag model plus the standalone HR/comment/processor-instruction cases
+  otherwise). `matches.text` is the raw block source (mutable and honored, except for
+  `markdown="1"` blocks whose stored content is already-converted HTML); a listener may set
+  `output` to replace or suppress the block. `regexp` is `null` (recognition is scanner-based).
+* **`makehtml.stripLinkDefinitions.onCapture` / `.onHash`** — one event per link reference
+  definition. No `text` key (a definition is stored, never rendered inline); `matches` carries
+  the mutable-and-honored `linkId`, `url`, `title`, `width` and `height` descriptive fields
+  (`width`/`height` are the optional `=WxH` image dimensions, `null` when absent). `regexp` is
+  `null` for every flavor (the definition scanner is not regex-driven).
+* **`makehtml.blockquote.onCapture`** — `regexp` is `null` for every flavor (block quotes are
+  parsed by a line scanner, not a regex).
 * **`makehtml.heading.id.onCapture`** — capture-only (a helper, no lifecycle/hash). Fired with
   the generated heading id under `matches.text` (mutable and honored), so a listener can supply
   a custom slug; `_headingText` is read-only context. Deduplication of duplicate ids runs after

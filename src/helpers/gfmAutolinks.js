@@ -57,7 +57,9 @@ showdown.helper.writeAnchorTag = function (subEvtName, pattern, wholeMatch, text
   title = title || null;
   url = url || null;
   if (linkId) {
-    linkId = options.cmSpec ? showdown.helper.cmNormalizeLabel(linkId) : showdown.helper.caseFold(linkId);
+    // one label normalization for all flavors: definitions are stored under
+    // cmNormalizeLabel (see stripLinkDefinitions), so uses must fold identically
+    linkId = showdown.helper.cmNormalizeLabel(linkId);
   } else {
     linkId = null;
   }
@@ -67,8 +69,8 @@ showdown.helper.writeAnchorTag = function (subEvtName, pattern, wholeMatch, text
     url = '';
   } else if (!url) {
     if (!linkId) {
-      // lower-case and turn embedded newlines into spaces
-      linkId = options.cmSpec ? showdown.helper.cmNormalizeLabel(text) : showdown.helper.caseFold(text).replace(/ ?\n/g, ' ');
+      // shortcut/collapsed reference: fold the link text as the label
+      linkId = showdown.helper.cmNormalizeLabel(text);
     }
     if (!showdown.helper.isUndefined(globals.gUrls[linkId])) {
       url = globals.gUrls[linkId];

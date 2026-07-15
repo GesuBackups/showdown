@@ -156,6 +156,18 @@ describe('showdown.Event', function () {
         { event: 'onHash', text: 'foo\n===', result: true },
         { event: 'onHash', text: 'foo', result: false }
       ],
+      htmlBlock: [
+        // source recognition: a top-level raw HTML block fires the full lifecycle + per-block
+        // capture/hash; plain text fires only the always-run onStart/onEnd.
+        { event: 'onStart', text: '<div>\nfoo\n</div>', result: true },
+        { event: 'onStart', text: 'foo', result: true },
+        { event: 'onEnd', text: '<div>\nfoo\n</div>', result: true },
+        { event: 'onEnd', text: 'foo', result: true },
+        { event: 'onCapture', text: '<div>\nfoo\n</div>', result: true },
+        { event: 'onCapture', text: 'foo', result: false },
+        { event: 'onHash', text: '<div>\nfoo\n</div>', result: true },
+        { event: 'onHash', text: 'foo', result: false }
+      ],
       horizontalRule: [
         { event: 'onStart', text: '---', result: true },
         { event: 'onStart', text: 'foo', result: true },
@@ -597,7 +609,7 @@ describe('showdown.Event', function () {
     let makehtmlSubparsers = [
       'blockquote', 'cmInline', 'codeBlock', 'codeSpan', 'completeHTMLDocument',
       'disallowedHtmlTags', 'ellipsis', 'emoji', 'emphasisAndStrong', 'footnotes',
-      'githubCodeBlock', 'hardLineBreaks',
+      'githubCodeBlock', 'hardLineBreaks', 'htmlBlock',
       'heading', 'heading.atx', 'heading.setext', 'horizontalRule', 'image', 'link',
       'list', 'list.taskListItem.checkbox', 'metadata', 'paragraphs', 'strikethrough',
       'stripLinkDefinitions', 'table', 'underline'
@@ -729,6 +741,8 @@ describe('showdown.Event', function () {
       { event: 'makehtml.list.taskListItem', hasText: true },
       { event: 'makehtml.list.taskListItem.checkbox', hasText: true },
       { event: 'makehtml.stripLinkDefinitions', hasText: false },
+      // source-recognized raw HTML block: its capture carries the raw block source as text
+      { event: 'makehtml.htmlBlock', hasText: true },
       // D10 additions: paragraphs carry their graf text; a hard break has no inner content
       // (like a horizontal rule), so it carries no `text` key.
       { event: 'makehtml.paragraphs', hasText: true },
@@ -754,6 +768,7 @@ describe('showdown.Event', function () {
       '```js', 'fenced', '```', '',
       '- list item', '', '- [ ] task', '', '- # heading in item', '',
       '> blockquote', '',
+      '<div>a raw html block</div>', '',
       '| h1 | h2 |', '|----|----|', '| a  | b  |', '',
       'A note.[^fn] and a disallowed <iframe></iframe> tag.', '',
       '- - -', '', '[1]: https://ref.com "rt"', '', '[^fn]: footnote body', ''
@@ -846,7 +861,7 @@ describe('showdown.Event', function () {
         'makehtml.image.inline', 'makehtml.emphasisAndStrong.emphasis',
         'makehtml.emphasisAndStrong.strong', 'makehtml.list', 'makehtml.list.listItem',
         'makehtml.list.taskListItem', 'makehtml.list.taskListItem.checkbox',
-        'makehtml.stripLinkDefinitions', 'makehtml.paragraphs',
+        'makehtml.stripLinkDefinitions', 'makehtml.paragraphs', 'makehtml.htmlBlock',
         'makehtml.footnotes.definition', 'makehtml.footnotes.reference',
         'makehtml.disallowedHtmlTags', 'makehtml.heading.id'
       ];

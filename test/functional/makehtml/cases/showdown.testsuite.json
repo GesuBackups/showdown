@@ -1,0 +1,1343 @@
+[
+  {
+    "markdown": "→foo\n",
+    "html": "<pre><code>foo\n</code></pre>\n",
+    "section": "Tabs",
+    "number": 1
+  },
+  {
+    "markdown": "    foo\n→bar\n",
+    "html": "<pre><code>foo\nbar\n</code></pre>\n",
+    "section": "Tabs",
+    "number": 2
+  },
+  {
+    "markdown": "\\*literal asterisks\\*\n",
+    "html": "<p>*literal asterisks*</p>\n",
+    "section": "Backslash escapes",
+    "number": 3
+  },
+  {
+    "markdown": "\\< \\> \\\" \\&\n",
+    "html": "<p>&lt; &gt; &quot; &amp;</p>\n",
+    "section": "Backslash escapes",
+    "number": 4
+  },
+  {
+    "markdown": "\\a \\w\n",
+    "html": "<p>\\a \\w</p>\n",
+    "section": "Backslash escapes",
+    "number": 5
+  },
+  {
+    "markdown": "`\\*foo\\*`\n",
+    "html": "<p><code>\\*foo\\*</code></p>\n",
+    "section": "Backslash escapes",
+    "number": 6
+  },
+  {
+    "markdown": "    \\*foo\\*\n",
+    "html": "<pre><code>\\*foo\\*\n</code></pre>\n",
+    "section": "Backslash escapes",
+    "number": 7
+  },
+  {
+    "markdown": "1986\\. What a great season.\n",
+    "html": "<p>1986. What a great season.</p>\n",
+    "section": "Backslash escapes",
+    "number": 8
+  },
+  {
+    "markdown": "- `one\n- two`\n",
+    "html": "<ul>\n<li>`one</li>\n<li>two`</li>\n</ul>\n",
+    "section": "Precedence",
+    "number": 9
+  },
+  {
+    "markdown": "* * *\n\n***\n\n*****\n\n- - -\n\n---------\n\n___\n\n_ _ _\n",
+    "html": "<hr />\n<hr />\n<hr />\n<hr />\n<hr />\n<hr />\n<hr />\n",
+    "section": "Horizontal rules",
+    "number": 10
+  },
+  {
+    "markdown": "**\n",
+    "html": "<p>**</p>\n",
+    "section": "Horizontal rules",
+    "number": 11
+  },
+  {
+    "markdown": "*-*\n",
+    "html": "<p><em>-</em></p>\n",
+    "section": "Horizontal rules",
+    "number": 12
+  },
+  {
+    "markdown": "---a---\n",
+    "html": "<p>---a---</p>\n",
+    "section": "Horizontal rules",
+    "number": 13
+  },
+  {
+    "markdown": "   ***\n",
+    "html": "<hr />\n",
+    "section": "Horizontal rules",
+    "number": 14
+  },
+  {
+    "markdown": "    ***\n",
+    "html": "<pre><code>***\n</code></pre>\n",
+    "section": "Horizontal rules",
+    "number": 15
+  },
+  {
+    "markdown": "Foo\n---\nbar\n",
+    "html": "<h2 id=\"foo\">Foo</h2>\n<p>bar</p>\n",
+    "section": "Horizontal rules",
+    "number": 16
+  },
+  {
+    "markdown": "* Foo\n* * *\n* Bar\n",
+    "html": "<ul>\n<li>Foo</li>\n</ul>\n<hr />\n<ul>\n<li>Bar</li>\n</ul>\n",
+    "section": "Horizontal rules",
+    "number": 17
+  },
+  {
+    "markdown": "# This is an H1\n\n## This is an H2\n\n###### This is an H6\n",
+    "html": "<h1 id=\"this-is-an-h1\">This is an H1</h1>\n<h2 id=\"this-is-an-h2\">This is an H2</h2>\n<h6 id=\"this-is-an-h6\">This is an H6</h6>\n",
+    "section": "ATX headings",
+    "number": 18
+  },
+  {
+    "markdown": "#Foo\n\n#5 bolt\n",
+    "html": "<h1 id=\"foo\">Foo</h1>\n<h1 id=\"5-bolt\">5 bolt</h1>\n",
+    "section": "ATX headings",
+    "number": 19
+  },
+  {
+    "markdown": "   # foo\n",
+    "html": "<h1 id=\"foo\">foo</h1>\n",
+    "section": "ATX headings",
+    "number": 20
+  },
+  {
+    "markdown": "    # foo\n",
+    "html": "<pre><code># foo\n</code></pre>\n",
+    "section": "ATX headings",
+    "number": 21
+  },
+  {
+    "markdown": "####### foo\n",
+    "html": "<h6 id=\"-foo\"># foo</h6>\n",
+    "section": "ATX headings",
+    "number": 22
+  },
+  {
+    "markdown": "\\## foo\n",
+    "html": "<p>## foo</p>\n",
+    "section": "ATX headings",
+    "number": 23
+  },
+  {
+    "markdown": "# foo #\n\n## foo ######\n\n# foo#\n",
+    "html": "<h1 id=\"foo\">foo</h1>\n<h2 id=\"foo-1\">foo</h2>\n<h1 id=\"foo-2\">foo</h1>\n",
+    "section": "ATX headings",
+    "number": 24
+  },
+  {
+    "markdown": "### foo ### b\n",
+    "html": "<h3 id=\"foo--b\">foo ### b</h3>\n",
+    "section": "ATX headings",
+    "number": 25
+  },
+  {
+    "markdown": "# Foo *bar*\n",
+    "html": "<h1 id=\"foo-bar\">Foo <em>bar</em></h1>\n",
+    "section": "ATX headings",
+    "number": 26
+  },
+  {
+    "markdown": "foo\n# bar\nbaz\n",
+    "html": "<p>foo</p>\n<h1 id=\"bar\">bar</h1>\n<p>baz</p>\n",
+    "section": "ATX headings",
+    "number": 27
+  },
+  {
+    "markdown": "This is an H1\n=============\n\nThis is an H2\n-------------\n",
+    "html": "<h1 id=\"this-is-an-h1\">This is an H1</h1>\n<h2 id=\"this-is-an-h2\">This is an H2</h2>\n",
+    "section": "Setext headings",
+    "number": 28
+  },
+  {
+    "markdown": "Foo\n=\n\nBar\n-\n",
+    "html": "<h1 id=\"foo\">Foo</h1>\n<h2 id=\"bar\">Bar</h2>\n",
+    "section": "Setext headings",
+    "number": 29
+  },
+  {
+    "markdown": "Foo\n= =\n",
+    "html": "<p>Foo\n= =</p>\n",
+    "section": "Setext headings",
+    "number": 30
+  },
+  {
+    "markdown": "foo\nbar\n===\n",
+    "html": "<h1 id=\"foo-bar\">foo\nbar</h1>\n",
+    "section": "Setext headings",
+    "number": 31
+  },
+  {
+    "markdown": "Foo *bar*\n=========\n",
+    "html": "<h1 id=\"foo-bar\">Foo <em>bar</em></h1>\n",
+    "section": "Setext headings",
+    "number": 32
+  },
+  {
+    "markdown": "# Foo Bar! And *baz* 100% (ok)?\n",
+    "html": "<h1 id=\"foo-bar-and-baz-100-ok\">Foo Bar! And <em>baz</em> 100% (ok)?</h1>\n",
+    "section": "Heading ids",
+    "number": 33
+  },
+  {
+    "markdown": "# Olá é çedilha\n",
+    "html": "<h1 id=\"olá-é-çedilha\">Olá é çedilha</h1>\n",
+    "section": "Heading ids",
+    "number": 34
+  },
+  {
+    "markdown": "# _foo_ and **bar**\n",
+    "html": "<h1 id=\"_foo_-and-bar\"><em>foo</em> and <strong>bar</strong></h1>\n",
+    "section": "Heading ids",
+    "number": 35
+  },
+  {
+    "markdown": "# AT&T\n",
+    "html": "<h1 id=\"att\">AT&amp;T</h1>\n",
+    "section": "Heading ids",
+    "number": 36
+  },
+  {
+    "markdown": "# Foo\n\n# Foo\n\n# Foo\n",
+    "html": "<h1 id=\"foo\">Foo</h1>\n<h1 id=\"foo-1\">Foo</h1>\n<h1 id=\"foo-2\">Foo</h1>\n",
+    "section": "Heading ids",
+    "number": 37
+  },
+  {
+    "markdown": "# Foo\n",
+    "html": "<h1>Foo</h1>\n",
+    "section": "Heading ids",
+    "number": 38,
+    "options": {
+      "headerIds": false
+    }
+  },
+  {
+    "markdown": "# Foo\n",
+    "html": "<h1 id=\"user-content-foo\">Foo</h1>\n",
+    "section": "Heading ids",
+    "number": 39,
+    "options": {
+      "headerIds": {
+        "prefix": "user-content-"
+      }
+    }
+  },
+  {
+    "markdown": "# Foo \"Bar\" <baz>\n",
+    "html": "<h1 id=\"foo--bar---baz-\">Foo &quot;Bar&quot; <baz></h1>\n",
+    "section": "Heading ids",
+    "number": 40,
+    "options": {
+      "headerIds": {
+        "raw": true
+      }
+    }
+  },
+  {
+    "markdown": "# Foo\n\n## Bar\n",
+    "html": "<h3 id=\"foo\">Foo</h3>\n<h4 id=\"bar\">Bar</h4>\n",
+    "section": "Heading ids",
+    "number": 41,
+    "options": {
+      "headerLevelStart": 3
+    }
+  },
+  {
+    "markdown": "This is a normal paragraph:\n\n    This is a code block.\n",
+    "html": "<p>This is a normal paragraph:</p>\n<pre><code>This is a code block.\n</code></pre>\n",
+    "section": "Indented code blocks",
+    "number": 42
+  },
+  {
+    "markdown": "Here is an example of AppleScript:\n\n    tell application \"Foo\"\n        beep\n    end tell\n",
+    "html": "<p>Here is an example of AppleScript:</p>\n<pre><code>tell application &quot;Foo&quot;\n    beep\nend tell\n</code></pre>\n",
+    "section": "Indented code blocks",
+    "number": 43
+  },
+  {
+    "markdown": "    <div class=\"footer\">\n        &copy; 2004 Foo Corporation\n    </div>\n",
+    "html": "<pre><code>&lt;div class=&quot;footer&quot;&gt;\n    &amp;copy; 2004 Foo Corporation\n&lt;/div&gt;\n</code></pre>\n",
+    "section": "Indented code blocks",
+    "number": 44
+  },
+  {
+    "markdown": "    chunk one\n\n    chunk two\n",
+    "html": "<pre><code>chunk one\n\nchunk two\n</code></pre>\n",
+    "section": "Indented code blocks",
+    "number": 45
+  },
+  {
+    "markdown": "Foo\n    bar\n",
+    "html": "<p>Foo\n    bar</p>\n",
+    "section": "Indented code blocks",
+    "number": 46
+  },
+  {
+    "markdown": "    foo\n\n\nbar\n",
+    "html": "<pre><code>foo\n</code></pre>\n<p>bar</p>\n",
+    "section": "Indented code blocks",
+    "number": 47
+  },
+  {
+    "markdown": "```\nfoo\n```\n",
+    "html": "<pre><code>foo\n</code></pre>\n",
+    "section": "Fenced code blocks",
+    "number": 48
+  },
+  {
+    "markdown": "~~~\nfoo\n~~~\n",
+    "html": "<pre><code>foo\n</code></pre>\n",
+    "section": "Fenced code blocks",
+    "number": 49
+  },
+  {
+    "markdown": "```\n# not a heading\n*not em*\n```\n",
+    "html": "<pre><code># not a heading\n*not em*\n</code></pre>\n",
+    "section": "Fenced code blocks",
+    "number": 50
+  },
+  {
+    "markdown": "```js\nvar x = 1;\n```\n",
+    "html": "<pre><code class=\"js language-js\">var x = 1;\n</code></pre>\n",
+    "section": "Fenced code blocks",
+    "number": 51
+  },
+  {
+    "markdown": "~~~ css\nbody {}\n~~~\n",
+    "html": "<pre><code class=\"css language-css\">body {}\n</code></pre>\n",
+    "section": "Fenced code blocks",
+    "number": 52
+  },
+  {
+    "markdown": "````\ncode with ``` inside\n````\n",
+    "html": "<pre><code>code with ``` inside\n</code></pre>\n",
+    "section": "Fenced code blocks",
+    "number": 53
+  },
+  {
+    "markdown": "```\nfoo\n```\n",
+    "html": "<pre><code>foo</code></pre>\n",
+    "section": "Fenced code blocks",
+    "number": 54,
+    "options": {
+      "omitExtraWLInCodeBlocks": true
+    }
+  },
+  {
+    "markdown": "```\nfoo\n```\n",
+    "html": "<p><code> foo </code></p>\n",
+    "section": "Fenced code blocks",
+    "number": 55,
+    "options": {
+      "ghCodeBlocks": false
+    }
+  },
+  {
+    "markdown": "| h1 | h2 |\n|----|----|\n| a  | b  |\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>h1</th>\n<th>h2</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>a</td>\n<td>b</td>\n</tr>\n</tbody>\n</table>\n",
+    "section": "Tables (option: `tables`)",
+    "number": 56,
+    "options": {
+      "tables": true
+    }
+  },
+  {
+    "markdown": "h1 | h2\n---|---\na | b\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>h1</th>\n<th>h2</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>a</td>\n<td>b</td>\n</tr>\n</tbody>\n</table>\n",
+    "section": "Tables (option: `tables`)",
+    "number": 57,
+    "options": {
+      "tables": true
+    }
+  },
+  {
+    "markdown": "| l | c | r |\n|:--|:-:|--:|\n| a | b | c |\n",
+    "html": "<table>\n<thead>\n<tr>\n<th style=\"text-align:left;\">l</th>\n<th style=\"text-align:center;\">c</th>\n<th style=\"text-align:right;\">r</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td style=\"text-align:left;\">a</td>\n<td style=\"text-align:center;\">b</td>\n<td style=\"text-align:right;\">c</td>\n</tr>\n</tbody>\n</table>\n",
+    "section": "Tables (option: `tables`)",
+    "number": 58,
+    "options": {
+      "tables": true
+    }
+  },
+  {
+    "markdown": "| *em* | `code` |\n|------|--------|\n| **b** | [l](/u) |\n",
+    "html": "<table>\n<thead>\n<tr>\n<th><em>em</em></th>\n<th><code>code</code></th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><strong>b</strong></td>\n<td><a href=\"/u\">l</a></td>\n</tr>\n</tbody>\n</table>\n",
+    "section": "Tables (option: `tables`)",
+    "number": 59,
+    "options": {
+      "tables": true
+    }
+  },
+  {
+    "markdown": "| a\\| b | c |\n|----|---|\n| d | e |\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>a| b</th>\n<th>c</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>d</td>\n<td>e</td>\n</tr>\n</tbody>\n</table>\n",
+    "section": "Tables (option: `tables`)",
+    "number": 60,
+    "options": {
+      "tables": true
+    }
+  },
+  {
+    "markdown": "| h1 | h2 |\n|----|----|\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>h1</th>\n<th>h2</th>\n</tr>\n</thead>\n<tbody>\n</tbody>\n</table>\n",
+    "section": "Tables (option: `tables`)",
+    "number": 61,
+    "options": {
+      "tables": true
+    }
+  },
+  {
+    "markdown": "| h1 | h2 |\n|----|----|\n| a | b |\n",
+    "html": "<p>| h1 | h2 |\n|----|----|\n| a | b |</p>\n",
+    "section": "Tables (option: `tables`)",
+    "number": 62
+  },
+  {
+    "markdown": "| h1 |\n|----|\n| a |\n",
+    "html": "<table>\n<thead>\n<tr>\n<th id=\"h1\">h1</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td class=\"h1_col\">a</td>\n</tr>\n</tbody>\n</table>\n",
+    "section": "Tables (option: `tables`)",
+    "number": 63,
+    "options": {
+      "tables": true,
+      "tablesHeaderId": true
+    }
+  },
+  {
+    "markdown": "This is a regular paragraph.\n\n<table>\n    <tr>\n        <td>Foo</td>\n    </tr>\n</table>\n\nThis is another regular paragraph.\n",
+    "html": "<p>This is a regular paragraph.</p>\n<table>\n    <tr>\n        <td>Foo</td>\n    </tr>\n</table>\n<p>This is another regular paragraph.</p>\n",
+    "section": "HTML blocks",
+    "number": 64
+  },
+  {
+    "markdown": "<div>\n*this is not emphasis*\n</div>\n",
+    "html": "<div>\n*this is not emphasis*\n</div>\n",
+    "section": "HTML blocks",
+    "number": 65
+  },
+  {
+    "markdown": "<div markdown=\"1\">\n*this is emphasis*\n\n# a heading\n</div>\n",
+    "html": "<div markdown=\"1\"><p><em>this is emphasis</em></p>\n<h1 id=\"a-heading\">a heading</h1></div>\n",
+    "section": "HTML blocks",
+    "number": 66
+  },
+  {
+    "markdown": "<div class=\"markdown-body\">\n*em*\n</div>\n",
+    "html": "<div class=\"markdown-body\"><p><em>em</em></p></div>\n",
+    "section": "HTML blocks",
+    "number": 67
+  },
+  {
+    "markdown": "Foo\n<div>\nbar\n</div>\n",
+    "html": "<p>Foo</p>\n<div>\nbar\n</div>\n",
+    "section": "HTML blocks",
+    "number": 68
+  },
+  {
+    "markdown": "Foo\n\n<!-- this is a\ncomment -->\n\nBar\n",
+    "html": "<p>Foo</p>\n<!-- this is a\ncomment -->\n<p>Bar</p>\n",
+    "section": "HTML blocks",
+    "number": 69
+  },
+  {
+    "markdown": "[foo]: http://example.com/  \"Optional Title Here\"\n\n[foo][]\n",
+    "html": "<p><a href=\"http://example.com/\" title=\"Optional Title Here\">foo</a></p>\n",
+    "section": "Link reference definitions",
+    "number": 70
+  },
+  {
+    "markdown": "[a]: http://example.com/  \"Title\"\n[b]: http://example.com/  'Title'\n[c]: http://example.com/  (Title)\n\n[foo][a], [foo][b], [foo][c]\n",
+    "html": "<p><a href=\"http://example.com/\" title=\"Title\">foo</a>, <a href=\"http://example.com/\" title=\"Title\">foo</a>, <a href=\"http://example.com/\" title=\"Title\">foo</a></p>\n",
+    "section": "Link reference definitions",
+    "number": 71
+  },
+  {
+    "markdown": "[id]: <http://example.com/>  \"Optional Title Here\"\n\n[id][]\n",
+    "html": "<p><a href=\"http://example.com/\" title=\"Optional Title Here\">id</a></p>\n",
+    "section": "Link reference definitions",
+    "number": 72
+  },
+  {
+    "markdown": "[id]: http://example.com/longish/path/to/resource\n    \"Optional Title Here\"\n\n[id][]\n",
+    "html": "<p><a href=\"http://example.com/longish/path/to/resource\" title=\"Optional Title Here\">id</a></p>\n",
+    "section": "Link reference definitions",
+    "number": 73
+  },
+  {
+    "markdown": "[link text][A]\n\n[a]: http://example.com/\n",
+    "html": "<p><a href=\"http://example.com/\">link text</a></p>\n",
+    "section": "Link reference definitions",
+    "number": 74
+  },
+  {
+    "markdown": "[unused]: http://example.com/\n",
+    "html": "",
+    "section": "Link reference definitions",
+    "number": 75
+  },
+  {
+    "markdown": "![logo][]\n\n[logo]:\ndata:image/png;base64,iVBORw0KGgoAAAANSUhEUg\nAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\n",
+    "html": "<p><img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\" alt=\"logo\" /></p>\n",
+    "section": "Link reference definitions",
+    "number": 76
+  },
+  {
+    "markdown": "aaa\n\nbbb\n",
+    "html": "<p>aaa</p>\n<p>bbb</p>\n",
+    "section": "Paragraphs",
+    "number": 77
+  },
+  {
+    "markdown": "aaa\nbbb\nccc\n",
+    "html": "<p>aaa\nbbb\nccc</p>\n",
+    "section": "Paragraphs",
+    "number": 78
+  },
+  {
+    "markdown": "   aaa\n",
+    "html": "<p>aaa</p>\n",
+    "section": "Paragraphs",
+    "number": 79
+  },
+  {
+    "markdown": "\n\naaa\n\n\n\nbbb\n\n\n",
+    "html": "<p>aaa</p>\n<p>bbb</p>\n",
+    "section": "Blank lines",
+    "number": 80
+  },
+  {
+    "markdown": "---\ntitle: My Document\nauthor: Me\n---\n\n# Hi\n",
+    "html": "<h1 id=\"hi\">Hi</h1>\n",
+    "section": "Metadata (option: `metadata`)",
+    "number": 81,
+    "options": {
+      "metadata": true
+    }
+  },
+  {
+    "markdown": "«««\nkey: value\n»»»\n\ntext\n",
+    "html": "<p>text</p>\n",
+    "section": "Metadata (option: `metadata`)",
+    "number": 82,
+    "options": {
+      "metadata": true
+    }
+  },
+  {
+    "markdown": "---\ntitle: My Document\n---\n\ntext\n",
+    "html": "<hr />\n<h2 id=\"title-my-document\">title: My Document</h2>\n<p>text</p>\n",
+    "section": "Metadata (option: `metadata`)",
+    "number": 83
+  },
+  {
+    "markdown": "> This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,\n> consectetuer adipiscing elit.\n>\n> Donec sit amet nisl. Aliquam semper ipsum sit amet velit.\n",
+    "html": "<blockquote>\n<p>This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,\nconsectetuer adipiscing elit.</p>\n<p>Donec sit amet nisl. Aliquam semper ipsum sit amet velit.</p>\n</blockquote>\n",
+    "section": "Blockquotes",
+    "number": 84
+  },
+  {
+    "markdown": ">foo\n",
+    "html": "<blockquote>\n<p>foo</p>\n</blockquote>\n",
+    "section": "Blockquotes",
+    "number": 85
+  },
+  {
+    "markdown": "> This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,\nconsectetuer adipiscing elit.\n\n> Donec sit amet nisl. Aliquam semper ipsum sit amet velit.\n",
+    "html": "<blockquote>\n<p>This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,\nconsectetuer adipiscing elit.</p>\n<p>Donec sit amet nisl. Aliquam semper ipsum sit amet velit.</p>\n</blockquote>\n",
+    "section": "Blockquotes",
+    "number": 86
+  },
+  {
+    "markdown": "> quoted\n\nnot quoted\n",
+    "html": "<blockquote>\n<p>quoted</p>\n</blockquote>\n<p>not quoted</p>\n",
+    "section": "Blockquotes",
+    "number": 87
+  },
+  {
+    "markdown": "> This is the first level of quoting.\n>\n> > This is nested blockquote.\n>\n> Back to the first level.\n",
+    "html": "<blockquote>\n<p>This is the first level of quoting.</p>\n<blockquote>\n<p>This is nested blockquote.</p>\n</blockquote>\n<p>Back to the first level.</p>\n</blockquote>\n",
+    "section": "Blockquotes",
+    "number": 88
+  },
+  {
+    "markdown": "> ## This is a heading.\n>\n> 1.   This is the first list item.\n> 2.   This is the second list item.\n>\n> Here's some example code:\n>\n>     return shell_exec(\"echo $input | $markdown_script\");\n",
+    "html": "<blockquote>\n<h2 id=\"this-is-a-heading\">This is a heading.</h2>\n<ol>\n<li>This is the first list item.</li>\n<li>This is the second list item.</li>\n</ol>\n<p>Here's some example code:</p>\n<pre><code>return shell_exec(&quot;echo $input | $markdown_script&quot;);\n</code></pre>\n</blockquote>\n",
+    "section": "Blockquotes",
+    "number": 89
+  },
+  {
+    "markdown": "foo\n> bar\n",
+    "html": "<p>foo</p>\n<blockquote>\n<p>bar</p>\n</blockquote>\n",
+    "section": "Blockquotes",
+    "number": 90
+  },
+  {
+    "markdown": "> one\n\n> two\n",
+    "html": "<blockquote>\n<p>one</p>\n</blockquote>\n<blockquote>\n<p>two</p>\n</blockquote>\n",
+    "section": "Blockquotes",
+    "number": 91,
+    "options": {
+      "splitAdjacentBlockquotes": true
+    }
+  },
+  {
+    "markdown": "*   Red\n*   Green\n*   Blue\n",
+    "html": "<ul>\n<li>Red</li>\n<li>Green</li>\n<li>Blue</li>\n</ul>\n",
+    "section": "List items",
+    "number": 92
+  },
+  {
+    "markdown": "*foo*\n",
+    "html": "<p><em>foo</em></p>\n",
+    "section": "List items",
+    "number": 93
+  },
+  {
+    "markdown": "   * foo\n",
+    "html": "<ul>\n<li>foo</li>\n</ul>\n",
+    "section": "List items",
+    "number": 94
+  },
+  {
+    "markdown": "*   Lorem ipsum dolor sit amet, consectetuer adipiscing elit.\nAliquam hendrerit mi posuere lectus.\n*   Donec sit amet nisl.\n",
+    "html": "<ul>\n<li>Lorem ipsum dolor sit amet, consectetuer adipiscing elit.\nAliquam hendrerit mi posuere lectus.</li>\n<li>Donec sit amet nisl.</li>\n</ul>\n",
+    "section": "List items",
+    "number": 95
+  },
+  {
+    "markdown": "1.  This is a list item with two paragraphs. Lorem ipsum dolor\n    sit amet, consectetuer adipiscing elit.\n\n    Vestibulum enim wisi, viverra nec, fringilla in, laoreet\n    vitae, risus.\n\n2.  Suspendisse id sem consectetuer libero luctus adipiscing.\n",
+    "html": "<ol>\n<li><p>This is a list item with two paragraphs. Lorem ipsum dolor\nsit amet, consectetuer adipiscing elit.</p>\n<p>Vestibulum enim wisi, viverra nec, fringilla in, laoreet\nvitae, risus.</p></li>\n<li><p>Suspendisse id sem consectetuer libero luctus adipiscing.</p></li>\n</ol>\n",
+    "section": "List items",
+    "number": 96
+  },
+  {
+    "markdown": "*   A list item with a blockquote:\n\n    > This is a blockquote\n    > inside a list item.\n",
+    "html": "<ul>\n<li><p>A list item with a blockquote:</p>\n<blockquote>\n<p>This is a blockquote\ninside a list item.</p>\n</blockquote></li>\n</ul>\n",
+    "section": "List items",
+    "number": 97
+  },
+  {
+    "markdown": "*   A list item with a code block:\n\n        <code goes here>\n",
+    "html": "<ul>\n<li><p>A list item with a code block:</p>\n<pre><code>&lt;code goes here&gt;\n</code></pre></li>\n</ul>\n",
+    "section": "List items",
+    "number": 98
+  },
+  {
+    "markdown": "*   Item\n    *   Nested item\n    *   Another nested item\n*   Second top-level item\n",
+    "html": "<ul>\n<li>Item<ul>\n<li>Nested item</li>\n<li>Another nested item</li></ul></li>\n<li>Second top-level item</li>\n</ul>\n",
+    "section": "List items",
+    "number": 99
+  },
+  {
+    "markdown": "* foo\n  * bar\n",
+    "html": "<ul>\n<li>foo</li>\n<li>bar</li>\n</ul>\n",
+    "section": "List items",
+    "number": 100
+  },
+  {
+    "markdown": "* foo\n  * bar\n",
+    "html": "<ul>\n<li>foo<ul>\n<li>bar</li></ul></li>\n</ul>\n",
+    "section": "List items",
+    "number": 101,
+    "options": {
+      "disableForced4SpacesIndentedSublists": true
+    }
+  },
+  {
+    "markdown": "Foo\n* bar\n",
+    "html": "<p>Foo</p>\n<ul>\n<li>bar</li>\n</ul>\n",
+    "section": "Lists",
+    "number": 102
+  },
+  {
+    "markdown": "* Red\n+ Green\n- Blue\n",
+    "html": "<ul>\n<li>Red</li>\n<li>Green</li>\n<li>Blue</li>\n</ul>\n",
+    "section": "Lists",
+    "number": 103
+  },
+  {
+    "markdown": "1. one\n* two\n",
+    "html": "<ol>\n<li>one</li>\n</ol>\n<ul>\n<li>two</li>\n</ul>\n",
+    "section": "Lists",
+    "number": 104
+  },
+  {
+    "markdown": "1.  Bird\n1.  McHale\n",
+    "html": "<ol>\n<li>Bird</li>\n<li>McHale</li>\n</ol>\n",
+    "section": "Lists",
+    "number": 105
+  },
+  {
+    "markdown": "3. Bird\n1. McHale\n8. Parish\n",
+    "html": "<ol start=\"3\">\n<li>Bird</li>\n<li>McHale</li>\n<li>Parish</li>\n</ol>\n",
+    "section": "Lists",
+    "number": 106
+  },
+  {
+    "markdown": "*   Bird\n*   Magic\n",
+    "html": "<ul>\n<li>Bird</li>\n<li>Magic</li>\n</ul>\n",
+    "section": "Lists",
+    "number": 107
+  },
+  {
+    "markdown": "*   Bird\n\n*   Magic\n",
+    "html": "<ul>\n<li><p>Bird</p></li>\n<li><p>Magic</p></li>\n</ul>\n",
+    "section": "Lists",
+    "number": 108
+  },
+  {
+    "markdown": "* a\n\n  continuation of a\n\n* b\n* c\n",
+    "html": "<ul>\n<li><p>a</p>\n<p>continuation of a</p></li>\n<li><p>b</p></li>\n<li><p>c</p></li>\n</ul>\n",
+    "section": "Lists",
+    "number": 109
+  },
+  {
+    "markdown": "*   First\n\n    *   Nested A\n    *   Nested B\n\n*   Second\n",
+    "html": "<ul>\n<li><p>First</p>\n<ul>\n<li>Nested A</li>\n<li>Nested B</li></ul></li>\n<li><p>Second</p></li>\n</ul>\n",
+    "section": "Lists",
+    "number": 110
+  },
+  {
+    "markdown": "* item one\n\n* item two\n\nnot an item\n",
+    "html": "<ul>\n<li><p>item one</p></li>\n<li><p>item two</p></li>\n</ul>\n<p>not an item</p>\n",
+    "section": "Lists",
+    "number": 111
+  },
+  {
+    "markdown": "1986. What a great season.\n",
+    "html": "<ol start=\"1986\">\n<li>What a great season.</li>\n</ol>\n",
+    "section": "Lists",
+    "number": 112
+  },
+  {
+    "markdown": "1986\\. What a great season.\n",
+    "html": "<p>1986. What a great season.</p>\n",
+    "section": "Lists",
+    "number": 113
+  },
+  {
+    "markdown": "- [ ] open\n- [x] done\n",
+    "html": "<ul>\n<li><input disabled type=\"checkbox\"> open</li>\n<li><input checked disabled type=\"checkbox\"> done</li>\n</ul>\n",
+    "section": "Task list items (option: `tasklists`)",
+    "number": 114,
+    "options": {
+      "tasklists": true
+    }
+  },
+  {
+    "markdown": "- [ ] open\n- [x] done\n",
+    "html": "<ul>\n<li>[ ] open</li>\n<li>[x] done</li>\n</ul>\n",
+    "section": "Task list items (option: `tasklists`)",
+    "number": 115
+  },
+  {
+    "markdown": "- [ ] open\n- [x] done\n",
+    "html": "<ul>\n<li class=\"task-list-item\" style=\"list-style-type: none;\"><input type=\"checkbox\" disabled style=\"margin: 0px 0.35em 0.25em -1.6em; vertical-align: middle;\"> open</li>\n<li class=\"task-list-item task-list-item-complete\" style=\"list-style-type: none;\"><input type=\"checkbox\" disabled style=\"margin: 0px 0.35em 0.25em -1.6em; vertical-align: middle;\" checked> done</li>\n</ul>\n",
+    "section": "Task list items (option: `tasklists`)",
+    "number": 116,
+    "options": {
+      "tasklists": true,
+      "moreStyling": true
+    }
+  },
+  {
+    "markdown": "text[^1] more\n\n[^1]: the note\n",
+    "html": "<p>text<sup class=\"footnote-ref\"><a href=\"#fn-1\" id=\"fnref-1\" data-footnote-ref>1</a></sup> more</p>\n<section class=\"footnotes\" data-footnotes>\n<ol>\n<li id=\"fn-1\">\n<p>the note <a href=\"#fnref-1\" class=\"footnote-backref\" data-footnote-backref data-footnote-backref-idx=\"1\" aria-label=\"Back to reference 1\">↩</a></p>\n</li>\n</ol>\n</section>\n",
+    "section": "Footnotes (option: `footnotes`)",
+    "number": 117,
+    "options": {
+      "footnotes": true
+    }
+  },
+  {
+    "markdown": "B[^b] then A[^a]\n\n[^a]: note a\n[^b]: note b\n",
+    "html": "<p>B<sup class=\"footnote-ref\"><a href=\"#fn-b\" id=\"fnref-b\" data-footnote-ref>1</a></sup> then A<sup class=\"footnote-ref\"><a href=\"#fn-a\" id=\"fnref-a\" data-footnote-ref>2</a></sup></p>\n<section class=\"footnotes\" data-footnotes>\n<ol>\n<li id=\"fn-b\">\n<p>note b <a href=\"#fnref-b\" class=\"footnote-backref\" data-footnote-backref data-footnote-backref-idx=\"1\" aria-label=\"Back to reference 1\">↩</a></p>\n</li>\n<li id=\"fn-a\">\n<p>note a <a href=\"#fnref-a\" class=\"footnote-backref\" data-footnote-backref data-footnote-backref-idx=\"2\" aria-label=\"Back to reference 2\">↩</a></p>\n</li>\n</ol>\n</section>\n",
+    "section": "Footnotes (option: `footnotes`)",
+    "number": 118,
+    "options": {
+      "footnotes": true
+    }
+  },
+  {
+    "markdown": "text[^nope] here\n",
+    "html": "<p>text[^nope] here</p>\n",
+    "section": "Footnotes (option: `footnotes`)",
+    "number": 119,
+    "options": {
+      "footnotes": true
+    }
+  },
+  {
+    "markdown": "text\n\n[^unused]: never referenced\n",
+    "html": "<p>text</p>\n",
+    "section": "Footnotes (option: `footnotes`)",
+    "number": 120,
+    "options": {
+      "footnotes": true
+    }
+  },
+  {
+    "markdown": "text[^1] more\n\n[^1]: the note\n",
+    "html": "<p>text[^1] more</p>\n<p>[^1]: the note</p>\n",
+    "section": "Footnotes (option: `footnotes`)",
+    "number": 121
+  },
+  {
+    "markdown": "Use the `printf()` function.\n",
+    "html": "<p>Use the <code>printf()</code> function.</p>\n",
+    "section": "Code spans",
+    "number": 122
+  },
+  {
+    "markdown": "``There is a literal backtick (`) here.``\n",
+    "html": "<p><code>There is a literal backtick (`) here.</code></p>\n",
+    "section": "Code spans",
+    "number": 123
+  },
+  {
+    "markdown": "A single backtick in a code span: `` ` ``\n",
+    "html": "<p>A single backtick in a code span: <code>`</code></p>\n",
+    "section": "Code spans",
+    "number": 124
+  },
+  {
+    "markdown": "Please don't use any `<blink>` tags.\n\n`&#8212;` is the decimal-encoded equivalent of `&mdash;`.\n",
+    "html": "<p>Please don't use any <code>&lt;blink&gt;</code> tags.</p>\n<p><code>&amp;#8212;</code> is the decimal-encoded equivalent of <code>&amp;mdash;</code>.</p>\n",
+    "section": "Code spans",
+    "number": 125
+  },
+  {
+    "markdown": "`foo\n",
+    "html": "<p>`foo</p>\n",
+    "section": "Code spans",
+    "number": 126
+  },
+  {
+    "markdown": "*single asterisks*\n\n_single underscores_\n\n**double asterisks**\n\n__double underscores__\n\n***triple asterisks***\n\n___triple underscores___\n",
+    "html": "<p><em>single asterisks</em></p>\n<p><em>single underscores</em></p>\n<p><strong>double asterisks</strong></p>\n<p><strong>double underscores</strong></p>\n<p><strong><em>triple asterisks</em></strong></p>\n<p><strong><em>triple underscores</em></strong></p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 127
+  },
+  {
+    "markdown": "un * frigging * believable\n",
+    "html": "<p>un * frigging * believable</p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 128
+  },
+  {
+    "markdown": "*foo\n",
+    "html": "<p>*foo</p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 129
+  },
+  {
+    "markdown": "un*frigging*believable\n\nun_frigging_believable\n",
+    "html": "<p>un<em>frigging</em>believable</p>\n<p>un<em>frigging</em>believable</p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 130
+  },
+  {
+    "markdown": "*foo **bar** baz*\n",
+    "html": "<p><em>foo <strong>bar</strong> baz</em></p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 131
+  },
+  {
+    "markdown": "**foo *bar* baz**\n",
+    "html": "<p><strong>foo <em>bar</em> baz</strong></p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 132
+  },
+  {
+    "markdown": "\\*this text is surrounded by literal asterisks\\*\n",
+    "html": "<p>*this text is surrounded by literal asterisks*</p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 133
+  },
+  {
+    "markdown": "foo_bar_baz and _em_\n",
+    "html": "<p>foo_bar_baz and <em>em</em></p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 134,
+    "options": {
+      "literalMidWordUnderscores": true
+    }
+  },
+  {
+    "markdown": "a ~~foo~~ b\n\na ~foo~ b\n",
+    "html": "<p>a <del>foo</del> b</p>\n<p>a <del>foo</del> b</p>\n",
+    "section": "Strikethrough",
+    "number": 135
+  },
+  {
+    "markdown": "~~strike **this** out~~\n",
+    "html": "<p><del>strike <strong>this</strong> out</del></p>\n",
+    "section": "Strikethrough",
+    "number": 136
+  },
+  {
+    "markdown": "a ~~~foo~~~ b\n\na ~~foo~ b\n\n~~ foo ~~\n",
+    "html": "<p>a ~~~foo~~~ b</p>\n<p>a ~~foo~ b</p>\n<p>~~ foo ~~</p>\n",
+    "section": "Strikethrough",
+    "number": 137
+  },
+  {
+    "markdown": "\\~\\~foo\\~\\~ and ~~bar~~\n",
+    "html": "<p>~~foo~~ and <del>bar</del></p>\n",
+    "section": "Strikethrough",
+    "number": 138
+  },
+  {
+    "markdown": "~~foo~~\n",
+    "html": "<p>~~foo~~</p>\n",
+    "section": "Strikethrough",
+    "number": 139,
+    "options": {
+      "strikethrough": false
+    }
+  },
+  {
+    "markdown": "__foo__ and ___bar___\n",
+    "html": "<p><u>foo</u> and <u>bar</u></p>\n",
+    "section": "Underline (option: `underline`)",
+    "number": 140,
+    "options": {
+      "underline": true
+    }
+  },
+  {
+    "markdown": "__foo__ and *bar* and _baz_\n",
+    "html": "<p><u>foo</u> and <em>bar</em> and _baz_</p>\n",
+    "section": "Underline (option: `underline`)",
+    "number": 141,
+    "options": {
+      "underline": true
+    }
+  },
+  {
+    "markdown": "foo__bar__baz and __em__\n",
+    "html": "<p>foo__bar__baz and <u>em</u></p>\n",
+    "section": "Underline (option: `underline`)",
+    "number": 142,
+    "options": {
+      "underline": true,
+      "literalMidWordUnderscores": true
+    }
+  },
+  {
+    "markdown": "This is [an example](http://example.com/ \"Title\") inline link.\n\n[This link](http://example.net/) has no title attribute.\n",
+    "html": "<p>This is <a href=\"http://example.com/\" title=\"Title\">an example</a> inline link.</p>\n<p><a href=\"http://example.net/\">This link</a> has no title attribute.</p>\n",
+    "section": "Links",
+    "number": 143
+  },
+  {
+    "markdown": "See my [About](/about/) page for details.\n",
+    "html": "<p>See my <a href=\"/about/\">About</a> page for details.</p>\n",
+    "section": "Links",
+    "number": 144
+  },
+  {
+    "markdown": "[link](<http://example.com/>)\n",
+    "html": "<p><a href=\"http://example.com/\">link</a></p>\n",
+    "section": "Links",
+    "number": 145
+  },
+  {
+    "markdown": "This is [an example][id] reference-style link.\n\n[id]: http://example.com/  \"Optional Title Here\"\n",
+    "html": "<p>This is <a href=\"http://example.com/\" title=\"Optional Title Here\">an example</a> reference-style link.</p>\n",
+    "section": "Links",
+    "number": 146
+  },
+  {
+    "markdown": "This is [an example] [id] reference-style link.\n\n[id]: http://example.com/\n",
+    "html": "<p>This is <a href=\"http://example.com/\">an example</a> reference-style link.</p>\n",
+    "section": "Links",
+    "number": 147
+  },
+  {
+    "markdown": "Visit [Daring Fireball][] for more information.\n\n[Daring Fireball]: http://daringfireball.net/\n",
+    "html": "<p>Visit <a href=\"http://daringfireball.net/\">Daring Fireball</a> for more information.</p>\n",
+    "section": "Links",
+    "number": 148
+  },
+  {
+    "markdown": "[foo][undefined]\n",
+    "html": "<p>[foo][undefined]</p>\n",
+    "section": "Links",
+    "number": 149
+  },
+  {
+    "markdown": "[foo]\n\n[foo]: http://example.com/\n",
+    "html": "<p><a href=\"http://example.com/\">foo</a></p>\n",
+    "section": "Links",
+    "number": 150
+  },
+  {
+    "markdown": "[*emphasized* link](/url)\n\n[link [with brackets]](/url)\n",
+    "html": "<p><a href=\"/url\"><em>emphasized</em> link</a></p>\n<p><a href=\"/url\">link [with brackets]</a></p>\n",
+    "section": "Links",
+    "number": 151
+  },
+  {
+    "markdown": "![Alt text](/path/to/img.jpg)\n\n![Alt text](/path/to/img.jpg \"Optional title\")\n",
+    "html": "<p><img src=\"/path/to/img.jpg\" alt=\"Alt text\" /></p>\n<p><img src=\"/path/to/img.jpg\" alt=\"Alt text\" title=\"Optional title\" /></p>\n",
+    "section": "Images",
+    "number": 152
+  },
+  {
+    "markdown": "![Alt text][id]\n\n[id]: url/to/image  \"Optional title attribute\"\n",
+    "html": "<p><img src=\"url/to/image\" alt=\"Alt text\" title=\"Optional title attribute\" /></p>\n",
+    "section": "Images",
+    "number": 153
+  },
+  {
+    "markdown": "![foo](</url/with spaces.png>)\n",
+    "html": "<p><img src=\"/url/with spaces.png\" alt=\"foo\" /></p>\n",
+    "section": "Images",
+    "number": 154
+  },
+  {
+    "markdown": "![a](/img.png =100x80)\n\n![b](/img.png =100x*)\n\n![c](/img.png =100%x50)\n",
+    "html": "<p><img src=\"/img.png\" alt=\"a\" width=\"100\" height=\"80\" /></p>\n<p><img src=\"/img.png\" alt=\"b\" width=\"100\" height=\"auto\" /></p>\n<p><img src=\"/img.png\" alt=\"c\" width=\"100%\" height=\"50\" /></p>\n",
+    "section": "Images",
+    "number": 155,
+    "options": {
+      "parseImgDimensions": true
+    }
+  },
+  {
+    "markdown": "![a](/img.png =100x80)\n",
+    "html": "<p><img src=\"/img.png\" alt=\"a\" /></p>\n",
+    "section": "Images",
+    "number": 156
+  },
+  {
+    "markdown": "<http://example.com/>\n\n<ftp://example.com/file>\n",
+    "html": "<p><a href=\"http://example.com/\">http://example.com/</a></p>\n<p><a href=\"ftp://example.com/file\">ftp://example.com/file</a></p>\n",
+    "section": "Automatic links",
+    "number": 157
+  },
+  {
+    "markdown": "<www.example.com>\n",
+    "html": "<p><a href=\"http://www.example.com\">www.example.com</a></p>\n",
+    "section": "Automatic links",
+    "number": 158
+  },
+  {
+    "markdown": "<http://example.com/?a=1&b=2>\n",
+    "html": "<p><a href=\"http://example.com/?a=1&amp;b=2\">http://example.com/?a=1&amp;b=2</a></p>\n",
+    "section": "Automatic links",
+    "number": 159
+  },
+  {
+    "markdown": "<address@example.com>\n",
+    "html": "<p><a href=\"&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#97;&#100;&#100;&#114;&#101;&#115;&#115;&#64;&#101;&#120;&#97;&#109;&#112;&#108;&#101;&#46;&#99;&#111;&#109;\">&#97;&#100;&#100;&#114;&#101;&#115;&#115;&#64;&#101;&#120;&#97;&#109;&#112;&#108;&#101;&#46;&#99;&#111;&#109;</a></p>\n",
+    "section": "Automatic links",
+    "number": 160
+  },
+  {
+    "markdown": "<address@example.com>\n",
+    "html": "<p><a href=\"mailto:address@example.com\">address@example.com</a></p>\n",
+    "section": "Automatic links",
+    "number": 161,
+    "options": {
+      "encodeEmails": false
+    }
+  },
+  {
+    "markdown": "visit http://example.com/ now\n",
+    "html": "<p>visit http://example.com/ now</p>\n",
+    "section": "Automatic links",
+    "number": 162
+  },
+  {
+    "markdown": "visit http://example.com/ now\n\nvisit www.example.com now\n",
+    "html": "<p>visit <a href=\"http://example.com/\">http://example.com/</a> now</p>\n<p>visit <a href=\"http://www.example.com\">www.example.com</a> now</p>\n",
+    "section": "Automatic links",
+    "number": 163,
+    "options": {
+      "simplifiedAutoLink": true
+    }
+  },
+  {
+    "markdown": "mail foo@example.com now\n",
+    "html": "<p>mail <a href=\"&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#102;&#111;&#111;&#64;&#101;&#120;&#97;&#109;&#112;&#108;&#101;&#46;&#99;&#111;&#109;\">&#102;&#111;&#111;&#64;&#101;&#120;&#97;&#109;&#112;&#108;&#101;&#46;&#99;&#111;&#109;</a> now</p>\n",
+    "section": "Automatic links",
+    "number": 164,
+    "options": {
+      "simplifiedAutoLink": true
+    }
+  },
+  {
+    "markdown": "see http://example.com/foo. done\n\n(see www.example.com/foo)\n",
+    "html": "<p>see <a href=\"http://example.com/foo\">http://example.com/foo</a>. done</p>\n<p>(see <a href=\"http://www.example.com/foo\">www.example.com/foo</a>)</p>\n",
+    "section": "Automatic links",
+    "number": 165,
+    "options": {
+      "simplifiedAutoLink": true
+    }
+  },
+  {
+    "markdown": "<www.example.com>\n",
+    "html": "<p><a href=\"https://www.example.com\">www.example.com</a></p>\n",
+    "section": "Automatic links",
+    "number": 166,
+    "options": {
+      "httpsAutoLinks": true
+    }
+  },
+  {
+    "markdown": "ping @tivie ok\n",
+    "html": "<p>ping <a href=\"https://github.com/tivie\">@tivie</a> ok</p>\n",
+    "section": "Automatic links",
+    "number": 167,
+    "options": {
+      "ghMentions": true
+    }
+  },
+  {
+    "markdown": "ping \\@tivie ok\n",
+    "html": "<p>ping @tivie ok</p>\n",
+    "section": "Automatic links",
+    "number": 168,
+    "options": {
+      "ghMentions": true
+    }
+  },
+  {
+    "markdown": "ping @tivie\n",
+    "html": "<p>ping <a href=\"https://twitter.com/tivie\">@tivie</a></p>\n",
+    "section": "Automatic links",
+    "number": 169,
+    "options": {
+      "ghMentions": true,
+      "ghMentionsLink": "https://twitter.com/{u}"
+    }
+  },
+  {
+    "markdown": "this is a :smile: emoji\n\n:notanemoji:\n",
+    "html": "<p>this is a 😄 emoji</p>\n<p>:notanemoji:</p>\n",
+    "section": "Emoji (option: `emoji`)",
+    "number": 170,
+    "options": {
+      "emoji": true
+    }
+  },
+  {
+    "markdown": "a :smile: b\n",
+    "html": "<p>a :smile: b</p>\n",
+    "section": "Emoji (option: `emoji`)",
+    "number": 171
+  },
+  {
+    "markdown": "Wait... what...\n",
+    "html": "<p>Wait… what…</p>\n",
+    "section": "Ellipsis",
+    "number": 172
+  },
+  {
+    "markdown": "a . . . b\n",
+    "html": "<p>a . . . b</p>\n",
+    "section": "Ellipsis",
+    "number": 173
+  },
+  {
+    "markdown": "Wait...\n",
+    "html": "<p>Wait...</p>\n",
+    "section": "Ellipsis",
+    "number": 174,
+    "options": {
+      "ellipsis": false
+    }
+  },
+  {
+    "markdown": "<span>*foo*</span>\n\na <b>*bold em*</b> c\n",
+    "html": "<p><span><em>foo</em></span></p>\n<p>a <b><em>bold em</em></b> c</p>\n",
+    "section": "Inline HTML",
+    "number": 175
+  },
+  {
+    "markdown": "<a href=\"http://example.com/_a_b_\">link</a>\n",
+    "html": "<p><a href=\"http://example.com/_a_b_\">link</a></p>\n",
+    "section": "Inline HTML",
+    "number": 176
+  },
+  {
+    "markdown": "\\<div>foo\\</div>\n",
+    "html": "<p>&lt;div&gt;foo&lt;/div&gt;</p>\n",
+    "section": "Inline HTML",
+    "number": 177,
+    "options": {
+      "backslashEscapesHTMLTags": true
+    }
+  },
+  {
+    "markdown": "AT&T sells &quot;phones&quot; &mdash; for &#36;5.\n",
+    "html": "<p>AT&amp;T sells &quot;phones&quot; &mdash; for &#36;5.</p>\n",
+    "section": "Automatic escaping",
+    "number": 178
+  },
+  {
+    "markdown": "4 < 5 and 6 > 3\n",
+    "html": "<p>4 &lt; 5 and 6 &gt; 3</p>\n",
+    "section": "Automatic escaping",
+    "number": 179
+  },
+  {
+    "markdown": "He said \"hi\" loudly\n",
+    "html": "<p>He said &quot;hi&quot; loudly</p>\n",
+    "section": "Automatic escaping",
+    "number": 180
+  },
+  {
+    "markdown": "Roses are red,  \nviolets are blue.\n",
+    "html": "<p>Roses are red,<br />\nviolets are blue.</p>\n",
+    "section": "Hard line breaks",
+    "number": 181
+  },
+  {
+    "markdown": "Roses are red,\\\nviolets are blue.\n",
+    "html": "<p>Roses are red,<br />\nviolets are blue.</p>\n",
+    "section": "Hard line breaks",
+    "number": 182
+  },
+  {
+    "markdown": "aaa\nbbb\n",
+    "html": "<p>aaa\nbbb</p>\n",
+    "section": "Hard line breaks",
+    "number": 183
+  },
+  {
+    "markdown": "aaa\nbbb\n",
+    "html": "<p>aaa<br />\nbbb</p>\n",
+    "section": "Hard line breaks",
+    "number": 184,
+    "options": {
+      "simpleLineBreaks": true
+    }
+  },
+  {
+    "markdown": "- a\n- b\n\npara\nhere\n",
+    "html": "<ul>\n<li>a</li>\n<li>b</li>\n</ul>\n<p>para<br />\nhere</p>\n",
+    "section": "Hard line breaks",
+    "number": 185,
+    "options": {
+      "simpleLineBreaks": true
+    }
+  },
+  {
+    "markdown": "hello $.;'there\n",
+    "html": "<p>hello $.;'there</p>\n",
+    "section": "Textual content",
+    "number": 186
+  },
+  {
+    "markdown": "AT&amp;T &mdash; &#36;5 &lt;tag&gt;\n",
+    "html": "<p>AT&amp;T — $5 &lt;tag&gt;</p>\n",
+    "section": "decodeEntities (option: `decodeEntities`)",
+    "number": 187,
+    "options": {
+      "decodeEntities": true
+    }
+  },
+  {
+    "markdown": "<script>alert(1)</script>\n\n<em>fine</em>\n",
+    "html": "&lt;script>alert(1)&lt;/script>\n<p><em>fine</em></p>\n",
+    "section": "disallowRawHTML (option: `disallowRawHTML`)",
+    "number": 188,
+    "options": {
+      "disallowRawHTML": true
+    }
+  },
+  {
+    "markdown": "a <iframe src=\"x\"></iframe> b\n",
+    "html": "<p>a &lt;iframe src=\"x\">&lt;/iframe> b</p>\n",
+    "section": "disallowRawHTML (option: `disallowRawHTML`)",
+    "number": 189,
+    "options": {
+      "disallowRawHTML": true
+    }
+  },
+  {
+    "markdown": "[click](javascript:alert(1))\n",
+    "html": "<p><a href=\"\">click</a></p>\n",
+    "section": "safeMode (option: `safeMode`)",
+    "number": 190,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "markdown": "![x](data:image/png;base64,AAAA) ![y](data:text/html;base64,AAAA)\n",
+    "html": "<p><img src=\"data:image/png;base64,AAAA\" alt=\"x\" /> <img src=\"\" alt=\"y\" /></p>\n",
+    "section": "safeMode (option: `safeMode`)",
+    "number": 191,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "markdown": "<img src=x onerror=alert(1)>\n",
+    "html": "<p><img src=x></p>\n",
+    "section": "safeMode (option: `safeMode`)",
+    "number": 192,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "markdown": "# Hi\n\npara\n",
+    "html": "<!DOCTYPE HTML>\n<html>\n<head>\n<meta charset=\"utf-8\">\n</head>\n<body>\n<h1 id=\"hi\">Hi</h1>\n<p>para</p>\n</body>\n</html>\n",
+    "section": "completeHTMLDocument (option: `completeHTMLDocument`)",
+    "number": 193,
+    "options": {
+      "completeHTMLDocument": true
+    }
+  },
+  {
+    "markdown": "---\ntitle: T\nlang: en\n---\n\npara\n",
+    "html": "<!DOCTYPE HTML>\n<html lang=\"en\">\n<head>\n<title>T</title>\n<meta charset=\"utf-8\">\n<meta name=\"lang\" content=\"en\">\n</head>\n<body>\n<p>para</p>\n</body>\n</html>\n",
+    "section": "completeHTMLDocument (option: `completeHTMLDocument`)",
+    "number": 194,
+    "options": {
+      "completeHTMLDocument": true,
+      "metadata": true
+    }
+  },
+  {
+    "markdown": "[a](/foo) ![b](img/x.png) [c](http://absolute.com/)\n",
+    "html": "<p><a href=\"https://example.com/foo\">a</a> <img src=\"https://example.com/img/x.png\" alt=\"b\" /> <a href=\"http://absolute.com/\">c</a></p>\n",
+    "section": "relativePathBaseUrl (option: `relativePathBaseUrl`)",
+    "number": 195,
+    "options": {
+      "relativePathBaseUrl": "https://example.com/"
+    }
+  },
+  {
+    "markdown": "    # heading\n    para\n    here\n",
+    "html": "<h1 id=\"heading\">heading</h1>\n<p>para\nhere</p>\n",
+    "section": "smartIndentationFix (option: `smartIndentationFix`)",
+    "number": 196,
+    "options": {
+      "smartIndentationFix": true
+    }
+  }
+]

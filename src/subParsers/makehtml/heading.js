@@ -309,15 +309,16 @@
           let newLines = nPrepend.trim().split('\n');
           let nLastLine = newLines.pop().toString();
 
-          if (/^¨K\d+K$/.test(nLastLine) || /^\s*$/gm.test(nLastLine)) {
-            // everything before --- or === is a block or empty line, so it's a false positive
+          if (/^¨(?:K\d+K|R\d+R)$/.test(nLastLine) || /^\s*$/gm.test(nLastLine)) {
+            // everything before --- or === is a block (¨K hashed / ¨R raw HTML block) or empty
+            // line, so it's a false positive
             prepend += nPrepend + '\n\n';
             headingText = '';
           } else {
             // the last line is something else... so let's look at the line before that
             let toHeading = nLastLine;
             nLastLine = newLines.pop().toString();
-            if (/^¨K\d+K$/.test(nLastLine) === false && /^\s*$/gm.test(nLastLine) === false) {
+            if (/^¨(?:K\d+K|R\d+R)$/.test(nLastLine) === false && /^\s*$/gm.test(nLastLine) === false) {
               toHeading = nLastLine + '\n' + toHeading;
             }
             headingText = toHeading;
