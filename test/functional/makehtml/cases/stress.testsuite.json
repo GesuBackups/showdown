@@ -882,7 +882,7 @@
   {
     "name": "list-lines",
     "markdown": "-\n-\n-",
-    "html": "<h2 id=\"-\n-\">-\n-</h2>",
+    "html": "<h2 id=\"---\">-\n-</h2>",
     "section": "markdown-lists-quotes",
     "number": 111,
     "options": {}

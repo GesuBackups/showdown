@@ -107,7 +107,10 @@
       // minimal sanitization: only spaces, ', ", > and < become dashes (the prefix is
       // included, so it gets the same treatment). WARNING: may produce malformed ids.
       title = title
-        .replace(/ /g, '-')
+        // a space or an internal line break (multi-line setext heading text) becomes a
+        // dash — per-char so a run of spaces still yields a run of dashes. ATX ids never
+        // contain a newline (the m-flag `.+` capture never crosses lines).
+        .replace(/[ \r\n]/g, '-')
         // replace previously escaped chars (&, ¨ and $)
         .replace(/&amp;/g, '&')
         .replace(/¨T/g, '¨')
@@ -119,7 +122,10 @@
       // default: GitHub-compatible ids (spaces become dashes, non-alphanumeric chars
       // are stripped). Borrowed from github's redcarpet so results are similar.
       title = title
-        .replace(/ /g, '-')
+        // a space or an internal line break (multi-line setext heading text) becomes a
+        // dash — per-char so a run of spaces still yields a run of dashes. ATX ids never
+        // contain a newline (the m-flag `.+` capture never crosses lines).
+        .replace(/[ \r\n]/g, '-')
         // replace previously escaped chars (&, ¨ and $)
         .replace(/&amp;/g, '')
         .replace(/¨T/g, '')
@@ -182,71 +188,121 @@
              /^ {0,3}(?:```|~~~)/.test(first);
     }
 
-    text = text.replace(setextRegexH1, function (wholeMatch, headingText, line1, line2, line3, line4) {
-      if (options.cmSpec && cmSkipSetext(headingText)) { return wholeMatch; }
-      return parseSetextHeading(setextRegexH2, options.headerLevelStart, wholeMatch, headingText, line1, line2, line3, line4);
-    });
+    // H1 (`=` underline) and H2 (`-` underline) run the identical callback; only the
+    // resulting heading level differs (H2 is one deeper). One closure, parameterized by
+    // level, drives both passes. Note both pass `setextRegexH2` as the event regexp — a
+    // long-standing quirk preserved here (the pattern is only surfaced in the capture event).
+    function setextReplacer (level) {
+      return function (wholeMatch, headingText, line1, line2, line3, line4) {
+        if (options.cmSpec && cmSkipSetext(headingText)) { return wholeMatch; }
+        return parseSetextHeading(setextRegexH2, level, wholeMatch, headingText, line1, line2, line3, line4);
+      };
+    }
 
-    text = text.replace(setextRegexH2, function (wholeMatch, headingText, line1, line2, line3, line4) {
-      if (options.cmSpec && cmSkipSetext(headingText)) { return wholeMatch; }
-      return parseSetextHeading(setextRegexH2, options.headerLevelStart + 1, wholeMatch, headingText, line1, line2, line3, line4);
-    });
+    text = text.replace(setextRegexH1, setextReplacer(options.headerLevelStart));
+    text = text.replace(setextRegexH2, setextReplacer(options.headerLevelStart + 1));
 
     let afterEvent = showdown.Event.dispatchEnd('makehtml.heading.setext.onEnd', text, options, globals);
 
     return showdown.helper.hashHTMLBlocks(afterEvent.output, options, globals);
 
 
+    // The greedy 3-line capture (setextRegexH1/H2) over-matches: an underline can appear
+    // directly under lines that are really a *different* block (a thematic break, a list
+    // item, a block quote, or a leaf/container block), which the underline would wrongly
+    // pull into "heading text". `parseSetextHeading` re-litigates those false positives.
+    //
+    // The two false-positive classes are disjoint by line-count and handled by one arm each:
+    //   - a one-line capture  -> resolveOneLinerFalsePositive (HR edge / one-liner list /
+    //                            one-liner block quote, each delegated to its own subparser)
+    //   - a multi-line capture -> resolveMultilineFalsePositive (HR in line1/line2, then a
+    //                            blockGamut reparse with ¨K/¨R sniffing)
+    //
+    // The list/block-quote delegations below are the `!cmSpec` half of the SAME question
+    // that `cmSkipSetext` (above) answers on the `cmSpec` path: "is this underline stealing
+    // a container's lines?". cmSpec skips the match up front and lets the container parsers
+    // claim the lines; the legacy path lets the underline match, then hands the stolen lines
+    // back to the container subparsers here. Merging the two is documented as a later step.
     function parseSetextHeading (pattern, headingLevel, wholeMatch, headingText, line1, line2, line3, line4) {
 
-      // count lines
-      let count = headingText.trim().split('\n').length;
-      let prepend = '';
-      let nPrepend;
       const hrCheckRgx = /^ {0,3}[-_*]([-_*] ?){2,}$/;
+      let count = headingText.trim().split('\n').length,
+          prepend = '';
 
-      // one liner edge cases
       if (count === 1) {
-        // hr
-        // let's find the hr edge case first
+        let oneLiner = resolveOneLinerFalsePositive(line1, line4);
+        // a non-null result means line1 was really an HR/list/block quote — return it verbatim
+        if (oneLiner !== null) {
+          return oneLiner;
+        }
+      } else {
+        let resolved = resolveMultilineFalsePositive(headingText, line1, line2, line3);
+        prepend = resolved.prepend;
+        headingText = resolved.headingText;
+      }
+
+      // trim stuff
+      headingText = headingText.trim();
+
+      // let's check if heading is empty
+      // after looking for blocks, heading text might be empty which is a false positive
+      if (!headingText) {
+        return prepend + line4;
+      }
+
+      // after this, we're pretty sure it's a heading so let's proceed
+      // (the id helper returns null when the headerIds option disables ids)
+      let id = showdown.helper.headingId(headingText, options, globals);
+      return prepend + parseHeader('setext', pattern, wholeMatch, headingText, headingLevel, id, options, globals);
+
+
+      // One-line capture. Returns a finished replacement string when `line1` is really a
+      // thematic break, a one-liner list item, or a one-liner block quote that the greedy
+      // capture mis-swallowed; returns null when it is genuine heading text.
+      function resolveOneLinerFalsePositive (line1, line4) {
+        let prepend;
+
+        // thematic-break edge case (`- - -`): let the horizontalRule parser confirm it
         if (showdown.helper.trimEnd(line1).match(hrCheckRgx)) {
-          // it's the edge case, so it's a false positive
           prepend = showdown.subParser('makehtml.horizontalRule')(line1, options, globals);
           if (prepend !== line1) {
-            // it's an oneliner list
             return prepend.trim() + '\n' + line4;
           }
         }
 
-        // now check if it's an unordered list
+        // one-liner unordered list (`- foo` above an `=` underline): delegate to the list parser
         if (line1.match(/^ {0,3}[-*+][ \t]/)) {
           if (line4.trim().match(/^=+/)) {
             line1 += line4;
           }
           prepend = showdown.subParser('makehtml.list')(line1, options, globals);
           if (prepend !== line1) {
-            // it's an oneliner list
             return prepend.trim() + '\n' + line4;
           }
         }
 
-        // check if it's a blockquote
+        // one-liner block quote (`> foo`): delegate to the block-quote parser
         if (line1.match(/^ {0,3}>[ \t]?[^ \t]/)) {
           if (line4.trim().match(/^=+/)) {
             line1 += line4;
           }
           prepend = showdown.subParser('makehtml.blockquote')(line1, options, globals);
           if (prepend !== line1) {
-            // it's an oneliner blockquote
             return prepend.trim() + '\n' + line4;
           }
         }
 
-        // no edge case let's proceed as usual
-      } else {
-        let multilineText;
+        // no edge case: proceed as a real heading
+        return null;
+      }
 
-        // multiline is a bit trickier
+      // Multi-line capture. Peels any block(s) that precede the true heading text out into
+      // `prepend`, returning the (possibly reduced) heading text alongside. Never short-
+      // circuits — always falls through to the common heading tail above.
+      function resolveMultilineFalsePositive (headingText, line1, line2, line3) {
+        let prepend = '',
+            nPrepend;
+
         // first we must take care of the edge cases of:
         // case1: |  case2:
         // ---    |  ---
@@ -295,11 +351,9 @@
           }
         }
 
-        // all edge cases should be treated now
-        multilineText = line1 + line2 + ((line3) ? line3 : '');
-        //if (line4.trim().match(/^=+/)) {
-        //  multilineText += line4;
-        //}
+        // all edge cases should be treated now: reparse the assembled text and let any
+        // block(s) found before the underline win (they take precedence over the heading)
+        let multilineText = line1 + line2 + ((line3) ? line3 : '');
 
         nPrepend = showdown.subParser('makehtml.blockGamut')(multilineText, options, globals, 'makehtml.heading.setext');
         if (nPrepend !== multilineText) {
@@ -325,21 +379,9 @@
             prepend = newLines.join('\n').trim();
           }
         }
+
+        return { prepend: prepend, headingText: headingText };
       }
-
-      // trim stuff
-      headingText = headingText.trim();
-
-      // let's check if heading is empty
-      // after looking for blocks, heading text might be empty which is a false positive
-      if (!headingText) {
-        return prepend + line4;
-      }
-
-      // after this, we're pretty sure it's a heading so let's proceed
-      // (the id helper returns null when the headerIds option disables ids)
-      let id = showdown.helper.headingId(headingText, options, globals);
-      return prepend + parseHeader('setext', pattern, wholeMatch, headingText, headingLevel, id, options, globals);
     }
 
 

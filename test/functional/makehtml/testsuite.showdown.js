@@ -29,9 +29,6 @@ describe('makeHtml() showdown (vanilla) testsuite', function () {
           // src/ (a later unification increment), not a spec amendment. Example names are
           // `<section>_<positional number>`; re-check them after editing specs/showdown.md.
           //
-          //   Setext headings_31 ............. showdown.md — a line break inside a setext
-          //                                    heading's generated id should become a dash
-          //                                    (id="foo-bar"); it is currently kept literal.
           //   Emphasis and strong emphasis_133 showdown.md — `**foo *bar* baz**`: em
           //                                    nested inside strong is not recognized.
           //   Automatic links_160 ............ showdown.md — `&` in an autolink URL is
@@ -40,7 +37,6 @@ describe('makeHtml() showdown (vanilla) testsuite', function () {
           //                                    6 > 3`) are swallowed by legacy inline HTML
           //                                    span hashing instead of being escaped.
           switch (name) {
-            case 'Setext headings_31':
             case 'Emphasis and strong emphasis_133':
             case 'Automatic links_160':
             case 'Automatic escaping_180':
