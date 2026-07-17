@@ -320,7 +320,6 @@ showdown.Converter = function (converterOptions) {
       gUrls:           {},
       gTitles:         {},
       gDimensions:     {},
-      gListLevel:      0,
       hashLinkCounts:  {},
       converter:       this,
       ghCodeBlocks:    [],

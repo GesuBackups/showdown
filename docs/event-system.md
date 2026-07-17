@@ -338,7 +338,7 @@ plus `attributes`/output-override.
 | `makehtml.footnotes` | ✓ | at `.definition` / `.reference` |
 | `makehtml.githubCodeBlock` | ✓ | ✓ |
 | `makehtml.hardLineBreaks` | ✓ | ✓ (per break, no `text`) |
-| `makehtml.heading` | ✓ (also `.atx` / `.setext` own lifecycle) | at `.atx` / `.setext`; plus the capture-only `.id` hook |
+| `makehtml.heading.atx` / `makehtml.heading.setext` | ✓ (each its own lifecycle) | ✓ per variant; plus the capture-only `makehtml.heading.id` hook |
 | `makehtml.horizontalRule` | ✓ | ✓ (no `text`) |
 | `makehtml.htmlBlock` | ✓ | ✓ (per raw HTML block) |
 | `makehtml.image` | ✓ | at `.inline` / `.reference` |

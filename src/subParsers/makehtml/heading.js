@@ -54,19 +54,6 @@
     return showdown.helper.hashBlock(otp, options, globals);
   }
 
-  showdown.subParser('makehtml.heading', function (text, options, globals) {
-    'use strict';
-
-    let startEvent = showdown.Event.dispatchStart('makehtml.heading.onStart', text, options, globals);
-    text = startEvent.output;
-
-    text = showdown.subParser('makehtml.heading.setext')(text, options, globals);
-    text = showdown.subParser('makehtml.heading.atx')(text, options, globals);
-
-    let afterEvent = showdown.Event.dispatchEnd('makehtml.heading.onEnd', text, options, globals);
-    return afterEvent.output;
-
-  });
 
   // Normalize the `headerIds` option into {enabled, prefix, raw}. Accepts `false`
   // (no ids), an object `{prefix, raw}`, or `true`/undefined (github ids, no prefix).

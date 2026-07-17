@@ -19,7 +19,6 @@ var globals = {
       gUrls:           {},
       gTitles:         {},
       gDimensions:     {},
-      gListLevel:      0,
       hashLinkCounts:  {},
       converter:       converter,
       ghCodeBlocks:    []
@@ -83,7 +82,8 @@ function runTests () {
       showdown.helper.hashPreCodeTags(testMDFile, options, globals);
     })
     .add('headers', function () {
-      showdown.subParser('makehtml.heading')(testMDFile, options, globals);
+      let t = showdown.subParser('makehtml.heading.setext')(testMDFile, options, globals);
+      showdown.subParser('makehtml.heading.atx')(t, options, globals);
     })
     .add('horizontalRule', function () {
       showdown.subParser('makehtml.horizontalRule')(testMDFile, options, globals);
