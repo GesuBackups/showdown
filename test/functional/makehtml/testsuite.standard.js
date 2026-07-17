@@ -19,7 +19,7 @@ describe('makeHtml() standard testsuite', function () {
           let name = testCase.name.replace(/-/g, ' ');
           let number = testCase.number;
           let converter = new showdown.Converter(testCase.options);
-          it(number + ': ' + name, assertion(testCase, converter));
+          it(number + ': ' + name, assertion(testCase, converter, true));
         }
       });
     }

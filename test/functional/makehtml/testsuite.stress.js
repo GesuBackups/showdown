@@ -28,7 +28,7 @@ describe('makeHtml() stress testsuite', function () {
           let name = testCase.name.replace(/-/g, ' ');
           let number = testCase.number;
           let converter = new showdown.Converter(testCase.options);
-          it(number + ': ' + name, assertion(testCase, converter, false));
+          it(number + ': ' + name, assertion(testCase, converter, true));
         }
       });
     }

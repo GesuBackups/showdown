@@ -44,6 +44,6 @@ describe('makeHtml() issues testsuite', function () {
       default:
 
     }
-    it(name, assertion(testsuite[i], converter));
+    it(name, assertion(testsuite[i], converter, true));
   }
 });

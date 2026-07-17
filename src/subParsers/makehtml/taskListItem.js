@@ -6,8 +6,8 @@
  * @license   MIT
  *
  * Given a raw list-item line, matches the leading marker and renders the checkbox, leaving the label
- * text for the caller to parse; gated by `tasklists`. Because both `makehtml.list` and
- * `makehtml.cmList` delegate here, one listener covers task lists in every flavor. Emits lifecycle
+ * text for the caller to parse; gated by `tasklists`. Because `makehtml.list` (one engine for
+ * every flavor) delegates here, a single listener covers task lists in every flavor. Emits lifecycle
  * `onStart`/`onEnd` plus `makehtml.list.taskListItem.checkbox.onCapture`/`onHash` — where `input`
  * and `_wholeMatch` are the full source line and `attributes` are the checkbox attributes.
  */

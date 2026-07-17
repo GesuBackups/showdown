@@ -257,8 +257,8 @@ Might not be run if no regex match found.
 
     !!! note "The `makehtml.list.taskListItem` namespace"
         These checkbox events are nested under the broader **`makehtml.list`** event family.
-        Both list parsers — the default one and the `commonmark`-flavor one — emit the same set,
-        so every event below fires in **every flavor**:
+        A single list sub-parser handles every flavor (the container scanner, with the flavor
+        differences derived as option gates), so every event below fires in **every flavor**:
 
         * **`makehtml.list.{onStart,onCapture,onHash,onEnd}`** — the whole list block.
         * **`makehtml.list.listItem.{onCapture,onHash}`** — each non-task `<li>`.
@@ -267,6 +267,10 @@ Might not be run if no regex match found.
           the event to use to read or rewrite a task **item** (checkbox **and** label).
         * **`makehtml.list.taskListItem.checkbox.{onCapture,onHash}`** — just the checkbox/label
           line (above), via the shared sub-parser.
+
+        The list/item `onCapture` events expose `matches.text` (the raw markdown) and
+        `attributes`, but their `regexp` property is `null` — the container scanner is line-based,
+        not a single regex match, so there is no live regular expression to hand out.
 
 ### onHash
 

@@ -610,7 +610,7 @@ describe('showdown.Event', function () {
       'blockquote', 'cmInline', 'codeBlock', 'codeSpan', 'completeHTMLDocument',
       'disallowedHtmlTags', 'ellipsis', 'emoji', 'emphasisAndStrong', 'footnotes',
       'githubCodeBlock', 'hardLineBreaks', 'htmlBlock',
-      'heading', 'heading.atx', 'heading.setext', 'horizontalRule', 'image', 'link',
+      'heading.atx', 'heading.setext', 'horizontalRule', 'image', 'link',
       'list', 'list.taskListItem.checkbox', 'metadata', 'paragraphs', 'strikethrough',
       'stripLinkDefinitions', 'table', 'underline'
     ];
@@ -622,7 +622,8 @@ describe('showdown.Event', function () {
     ];
 
     // a feature-rich document that, across the two converters below, exercises every makehtml
-    // subparser. The loose list with a heading reaches the `heading` wrapper (list.js); the
+    // subparser. List-item content flows through blockGamut, which dispatches heading.setext and
+    // heading.atx directly (the heading construct is covered by those two variants); the
     // commonmark run reaches cmInline and decodeEntities (which the default flavor skips).
     let richMd = [
       '---', 'title: x', '---', '',
