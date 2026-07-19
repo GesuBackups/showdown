@@ -69,7 +69,18 @@ describe('ReDoS resistance', function () {
     {name: 'table: pipe-heavy row + fake delimiter', input: '|a'.repeat(N) + '\n|--|--|\n', options: {tables: true}},
     {name: 'gh mentions @', input: '@' + 'a'.repeat(N), options: {ghMentions: true}},
     {name: 'simplified autolink www', input: 'www.' + 'a.'.repeat(N), options: {simplifiedAutoLink: true}},
-    {name: 'emoji colons', input: ':'.repeat(N), options: {emoji: true}}
+    {name: 'emoji colons', input: ':'.repeat(N), options: {emoji: true}},
+
+    // --- unified inline engine (the spanGamut inline scan runs for every flavor) scan paths ---
+    // Anchor opens with no matching </a>: the whole-anchor swallow was quadratic (~1.2s)
+    // before the lastIndexOf guard; it must stay near-linear now.
+    {name: 'anchor opens, no </a> (whole-anchor swallow)', input: '<a '.repeat(26666)},
+    {name: 'well-formed anchor opens, no closer', input: '<a href="x">'.repeat(6666) + 'y'},
+    // Simplified-autolink URL scanning: many short naked URLs, and one enormous URL.
+    {name: 'many naked URLs', input: 'http://x.com/a '.repeat(5000), options: {simplifiedAutoLink: true}},
+    {name: 'one huge naked URL', input: 'http://example.com/' + 'a'.repeat(80000), options: {simplifiedAutoLink: true}},
+    // Escaped-delimiter runs exercise the escaped-flanking path in the inline engine.
+    {name: 'escaped-delimiter runs \\_', input: '\\_'.repeat(40000)}
   ];
 
   cases.forEach(function (tc) {

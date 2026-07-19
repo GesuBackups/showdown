@@ -55,11 +55,31 @@ describe('showdown.Converter safeMode option', function () {
     it('should neutralize <svg onload>', function () {
       expect(converter.makeHtml('<svg onload=alert(1)></svg>')).toBe('<p>&lt;svg>&lt;/svg></p>');
     });
-    it('should strip event handlers regardless of separator (space/tab/newline/slash/quote)', function () {
+    it('should leave already-escaped malformed-tag text untouched (no in-place corruption)', function () {
+      // A malformed tag (e.g. `<a/href=…>`, `<img/onerror=…>`) is entity-escaped to inert
+      // `&lt;…&gt;` text upstream. The disallowedHtmlTags safeMode sanitizers operate per real
+      // `<…>` tag only, so this escaped text passes through verbatim — matching it would strip
+      // characters out of the middle of the inert text and corrupt it.
+      let opts = showdown.getDefaultOptions();
+      opts.safeMode = true;
+      let globals = {gHtmlBlocks: [], gHtmlRawBlocks: [], gHtmlSpans: [], ghCodeBlocks: [], converter: new showdown.Converter()},
+          escaped = '&lt;a/href=&quot;javascript:alert(1)&quot;&gt; and &lt;img/onerror=alert(1)&gt;';
+      expect(showdown.subParser('makehtml.disallowedHtmlTags')(escaped, opts, globals)).toBe(escaped);
+    });
+    it('should neutralize an event handler regardless of separator (space/tab/newline/slash/quote)', function () {
+      // Well-formed separators (space/tab/newline, and a quote-adjacent attribute on a tag the
+      // inline engine recognizes) yield a LIVE tag whose on* handler is stripped by the sanitizer.
       expect(converter.makeHtml('<img src=x onerror=alert(1)>')).toBe('<p><img src=x></p>');
       expect(converter.makeHtml('<img src=x\tonerror=alert(1)>')).toBe('<p><img src=x></p>');
-      expect(converter.makeHtml('<img/onerror=alert(1)>')).toBe('<p><img></p>');
+      expect(converter.makeHtml('<img src=x\nonerror=alert(1)>')).toBe('<p><img src=x></p>');
       expect(converter.makeHtml('<a href="x"onmouseover="alert(1)">y</a>')).toBe('<p><a href="x">y</a></p>');
+      // A `/` between the tag name and the first attribute is a malformed separator: the unified
+      // inline engine does NOT recognize this as HTML, so the whole tag is entity-escaped to inert
+      // text VERBATIM (no in-place mangling). The result is XSS-inert — no live element, and the
+      // `onerror` survives only as inert escaped text.
+      let slash = converter.makeHtml('<img/onerror=alert(1)>');
+      expect(slash).toBe('<p>&lt;img/onerror=alert(1)&gt;</p>');
+      expect(slash).not.toMatch(/<img\b/i);
     });
     it('should neutralize dangerous URL schemes in form-action attributes (e.g. <input formaction>)', function () {
       // <input> is not escaped (kept for tasklists), so its formaction must be scheme-checked
@@ -98,12 +118,19 @@ describe('showdown.Converter safeMode option', function () {
         .toBe('<p><code>&lt;a href=&quot;javascript:x&quot;&gt;</code></p>');
     });
     it('should neutralize a dangerous href regardless of the attribute separator (slash / quote-adjacent)', function () {
-      // browsers accept `/` and quote-adjacent separators between attributes, so a href that is
-      // not preceded by whitespace must still be neutralized
-      expect(converter.makeHtml('<a/href="javascript:alert(1)">click</a>')).toContain('href=""');
+      // A quote-adjacent attribute (no whitespace after the previous attribute's closing quote) is
+      // still recognized as HTML, so the tag stays LIVE and its dangerous href is neutralized to "".
       expect(converter.makeHtml('<a id="x"href="javascript:alert(1)">click</a>')).toContain('href=""');
       expect(converter.makeHtml('<a id=\'x\'href=\'javascript:alert(1)\'>click</a>')).toContain('href=""');
-      expect(converter.makeHtml('<area/href="javascript:alert(1)">')).toContain('href=""');
+      // A `/` between the tag name and the first attribute is malformed: the unified inline engine
+      // does not recognize it as HTML, so the whole tag is entity-escaped to inert text. There is
+      // no live element and the `javascript:` scheme survives only as inert escaped text.
+      let aSlash = converter.makeHtml('<a/href="javascript:alert(1)">click</a>');
+      expect(aSlash).toBe('<p>&lt;a/href=&quot;javascript:alert(1)&quot;&gt;click</a></p>');
+      expect(aSlash).not.toMatch(/<a[\s/]/i);
+      let areaSlash = converter.makeHtml('<area/href="javascript:alert(1)">');
+      expect(areaSlash).toBe('<p>&lt;area/href=&quot;javascript:alert(1)&quot;&gt;</p>');
+      expect(areaSlash).not.toMatch(/<area\b/i);
       // control: a safe href adjacent to a preceding attribute must be preserved
       expect(converter.makeHtml('<a id="x"href="https://ok">y</a>')).toContain('href="https://ok"');
     });

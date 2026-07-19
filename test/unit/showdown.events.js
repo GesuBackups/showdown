@@ -40,11 +40,12 @@ describe('showdown.Event', function () {
         { event: 'onHash', text: '    foo\n    bar', result: true },
         { event: 'onHash', text: 'foo', result: false }
       ],
+      // Since the inline layer unified onto spanGamut (U-6), a bare inline code span is recognized
+      // by the spanGamut engine, which fires codeSpan's capture/hash but not its lifecycle
+      // (spanGamut owns the onStart/onEnd for the whole inline pass). The codeSpan subparser's own
+      // onStart/onEnd still fire when it is invoked directly (table cell splitting) — exercised by
+      // the coverage sweep below.
       codeSpan: [
-        { event: 'onStart', text: '`foo`', result: true },
-        { event: 'onStart', text: 'foo', result: true },
-        { event: 'onEnd', text: '`foo`', result: true },
-        { event: 'onEnd', text: 'foo', result: true },
         { event: 'onCapture', text: '`foo`', result: true },
         { event: 'onCapture', text: 'foo', result: false },
         { event: 'onHash', text: '`foo`', result: true },
@@ -68,43 +69,29 @@ describe('showdown.Event', function () {
         { event: 'onHash', text: ':blablablablabla:', result: false }, // this emoji does not exist
         { event: 'onHash', text: 'smile', result: false }
       ],
-      emphasisAndStrong: [
-        { event: 'onStart', text: '*foo*', result: true },
-        { event: 'onStart', text: '**foo**', result: true },
-        { event: 'onStart', text: '***foo***', result: true },
-        { event: 'onStart', text: 'foo', result: true },
-        { event: 'onEnd', text: '*foo*', result: true },
-        { event: 'onEnd', text: '**foo**', result: true },
-        { event: 'onEnd', text: '***foo***', result: true },
-        { event: 'onEnd', text: 'foo', result: true }
-      ],
-      'emphasisAndStrong.emphasis': [
+      // Since the inline layer unified onto spanGamut (U-6), emphasis is resolved by spanGamut's
+      // delimiter-stack pass, which fires the SEPARATE makehtml.emphasis / makehtml.strong
+      // families (capture/hash) instead of the retired makehtml.emphasisAndStrong family. There
+      // is no combined `***foo***` event any more: `***foo***` is `<em><strong>foo</strong></em>`,
+      // so it fires BOTH a strong capture (inner `<strong>`) and an emphasis capture (outer
+      // `<em>`). The lifecycle for the pass belongs to spanGamut (checked in taxonomy coverage).
+      emphasis: [
         { event: 'onCapture', text: '*foo*', result: true },
-        { event: 'onCapture', text: '**foo**', result: false },
-        { event: 'onCapture', text: '***foo***', result: false },
-        { event: 'onCapture', text: 'foo', result: false },
-        { event: 'onHash', text: '*foo*', result: true },
-        { event: 'onHash', text: '**foo**', result: false },
-        { event: 'onHash', text: '***foo***', result: false },
-        { event: 'onHash', text: 'foo', result: false }
-      ],
-      'emphasisAndStrong.strong': [
-        { event: 'onCapture', text: '*foo*', result: false },
-        { event: 'onCapture', text: '**foo**', result: true },
-        { event: 'onCapture', text: '***foo***', result: false },
-        { event: 'onCapture', text: 'foo', result: false },
-        { event: 'onHash', text: '*foo*', result: false },
-        { event: 'onHash', text: '**foo**', result: true },
-        { event: 'onHash', text: '***foo***', result: false },
-        { event: 'onHash', text: 'foo', result: false }
-      ],
-      'emphasisAndStrong.emphasisAndStrong': [
-        { event: 'onCapture', text: '*foo*', result: false },
         { event: 'onCapture', text: '**foo**', result: false },
         { event: 'onCapture', text: '***foo***', result: true },
         { event: 'onCapture', text: 'foo', result: false },
-        { event: 'onHash', text: '*foo*', result: false },
+        { event: 'onHash', text: '*foo*', result: true },
         { event: 'onHash', text: '**foo**', result: false },
+        { event: 'onHash', text: '***foo***', result: true },
+        { event: 'onHash', text: 'foo', result: false }
+      ],
+      strong: [
+        { event: 'onCapture', text: '*foo*', result: false },
+        { event: 'onCapture', text: '**foo**', result: true },
+        { event: 'onCapture', text: '***foo***', result: true },
+        { event: 'onCapture', text: 'foo', result: false },
+        { event: 'onHash', text: '*foo*', result: false },
+        { event: 'onHash', text: '**foo**', result: true },
         { event: 'onHash', text: '***foo***', result: true },
         { event: 'onHash', text: 'foo', result: false }
       ],
@@ -118,12 +105,17 @@ describe('showdown.Event', function () {
         { event: 'onHash', text: '```\nfoo\n```', result: true },
         { event: 'onHash', text: 'foo', result: false }
       ],
+      // The hardLineBreaks subparser still runs (end of spanGamut) so its lifecycle fires for any
+      // text, but since the inline unification (U-6) a top-level hard break (`foo  \nbar`) is turned
+      // into the hashed <br /> by the inline scan's own newline handling, so the trailing
+      // hardLineBreaks pass no longer sees the `  \n` and its capture/hash do not fire for it (this
+      // already held under the commonmark flavor; the flip makes the default path match).
       hardLineBreaks: [
         { event: 'onStart', text: 'foo', result: true },
         { event: 'onEnd', text: 'foo', result: true },
-        { event: 'onCapture', text: 'foo  \nbar', result: true },
+        { event: 'onCapture', text: 'foo  \nbar', result: false },
         { event: 'onCapture', text: 'foo', result: false },
-        { event: 'onHash', text: 'foo  \nbar', result: true },
+        { event: 'onHash', text: 'foo  \nbar', result: false },
         { event: 'onHash', text: 'foo', result: false }
       ],
       'heading.atx': [
@@ -178,12 +170,12 @@ describe('showdown.Event', function () {
         { event: 'onHash', text: '---', result: true },
         { event: 'onHash', text: 'foo', result: false }
       ],
-      image: [
-        { event: 'onStart', text: '![foo](bar.jpg)', result: true },
-        { event: 'onStart', text: 'foo', result: true },
-        { event: 'onEnd', text: '![foo](bar.jpg)', result: true },
-        { event: 'onEnd', text: 'foo', result: true }
-      ],
+      // Since the inline layer unified onto spanGamut (U-6), links and images are recognized by the
+      // spanGamut engine, which fires the per-variant capture/hash families below (image.inline /
+      // image.reference / link.inline / link.reference) but not the image/link lifecycle — the
+      // legacy image.js / link.js subparsers are no longer on the inline path (removed in U-6c). The
+      // angle-bracket autolink family (link.angleBrackets) was PORTED onto spanGamut, not retired:
+      // spanGamut recognizes `<url>` autolinks inline and fires link.angleBrackets capture/hash for them.
       'image.inline': [
         { event: 'onCapture', text: '![foo](bar.jpg)', result: true },
         { event: 'onCapture', text: 'foo', result: false },
@@ -195,12 +187,6 @@ describe('showdown.Event', function () {
         { event: 'onCapture', text: 'foo', result: false },
         { event: 'onHash', text: '![foo][1]\n\n[1]: bar.jpg', result: true },
         { event: 'onHash', text: 'foo', result: false }
-      ],
-      link: [
-        { event: 'onStart', text: '[foo](bar.jpg)', result: true },
-        { event: 'onStart', text: 'foo', result: true },
-        { event: 'onEnd', text: '[foo](bar.jpg)', result: true },
-        { event: 'onEnd', text: 'foo', result: true }
       ],
       'link.angleBrackets': [
         { event: 'onCapture', text: '<https://foo.com>', result: true },
@@ -604,13 +590,19 @@ describe('showdown.Event', function () {
 
     // Only registered subparsers that emit lifecycle events remain here. The 13 demoted
     // mechanism passes (encode*/escape*/hash*/unhash*) are now showdown.helper.* functions
-    // with no events; the two dispatchers (blockGamut/spanGamut) and decodeEntities were
-    // stripped of their events in D10 — so none of them appear below.
+    // with no events; blockGamut (dispatcher) and decodeEntities were stripped of their events in
+    // D10 — so they do not appear below. spanGamut DOES appear: it is no longer an event-less
+    // dispatcher but the unified inline engine, and owns the inline-pass onStart/onEnd lifecycle.
+    // image/link are absent: since the inline layer unified onto spanGamut (U-6) the legacy
+    // image.js / link.js subparsers are off the inline path (they no longer emit lifecycle events);
+    // spanGamut owns links/images now and fires the image.<variant>/link.<variant> capture families
+    // instead (covered by the event contract conformance suite). codeSpan remains: it is still
+    // invoked directly by table.js cell splitting, so its own lifecycle fires there.
     let makehtmlSubparsers = [
-      'blockquote', 'cmInline', 'codeBlock', 'codeSpan', 'completeHTMLDocument',
-      'disallowedHtmlTags', 'ellipsis', 'emoji', 'emphasisAndStrong', 'footnotes',
+      'blockquote', 'spanGamut', 'codeBlock', 'codeSpan', 'completeHTMLDocument',
+      'disallowedHtmlTags', 'ellipsis', 'emoji', 'footnotes',
       'githubCodeBlock', 'hardLineBreaks', 'htmlBlock',
-      'heading.atx', 'heading.setext', 'horizontalRule', 'image', 'link',
+      'heading.atx', 'heading.setext', 'horizontalRule',
       'list', 'list.taskListItem.checkbox', 'metadata', 'paragraphs', 'strikethrough',
       'stripLinkDefinitions', 'table', 'underline'
     ];
@@ -624,7 +616,7 @@ describe('showdown.Event', function () {
     // a feature-rich document that, across the two converters below, exercises every makehtml
     // subparser. List-item content flows through blockGamut, which dispatches heading.setext and
     // heading.atx directly (the heading construct is covered by those two variants); the
-    // commonmark run reaches cmInline and decodeEntities (which the default flavor skips).
+    // commonmark run additionally reaches decodeEntities (which the default flavor skips).
     let richMd = [
       '---', 'title: x', '---', '',
       '# ATX heading', '',
@@ -734,9 +726,11 @@ describe('showdown.Event', function () {
       { event: 'makehtml.link.autoLink', hasText: true },
       { event: 'makehtml.image.inline', hasText: true },
       { event: 'makehtml.image.reference', hasText: true },
-      { event: 'makehtml.emphasisAndStrong.emphasis', hasText: true },
-      { event: 'makehtml.emphasisAndStrong.strong', hasText: true },
-      { event: 'makehtml.emphasisAndStrong.emphasisAndStrong', hasText: true },
+      // Since the inline layer unified onto spanGamut (U-6), the inline layer fires the SEPARATE
+      // emphasis/strong capture families for every flavor. The combined makehtml.emphasisAndStrong
+      // family (including the `***foo***` combined event) is retired.
+      { event: 'makehtml.emphasis', hasText: true },
+      { event: 'makehtml.strong', hasText: true },
       { event: 'makehtml.list', hasText: true },
       { event: 'makehtml.list.listItem', hasText: true },
       { event: 'makehtml.list.taskListItem', hasText: true },
@@ -859,8 +853,8 @@ describe('showdown.Event', function () {
         'makehtml.heading.setext', 'makehtml.blockquote', 'makehtml.codeBlock',
         'makehtml.githubCodeBlock', 'makehtml.metadata', 'makehtml.table', 'makehtml.table.header',
         'makehtml.table.cell', 'makehtml.link.inline', 'makehtml.link.reference',
-        'makehtml.image.inline', 'makehtml.emphasisAndStrong.emphasis',
-        'makehtml.emphasisAndStrong.strong', 'makehtml.list', 'makehtml.list.listItem',
+        'makehtml.image.inline', 'makehtml.emphasis',
+        'makehtml.strong', 'makehtml.list', 'makehtml.list.listItem',
         'makehtml.list.taskListItem', 'makehtml.list.taskListItem.checkbox',
         'makehtml.stripLinkDefinitions', 'makehtml.paragraphs', 'makehtml.htmlBlock',
         'makehtml.footnotes.definition', 'makehtml.footnotes.reference',
@@ -960,10 +954,11 @@ describe('showdown.Event', function () {
       '    indented code', '', '<div>raw block</div>', '', '> quote', '', '- item', ''
     ].join('\n');
 
-    // The 13 demoted mechanism passes + the two dispatchers + decodeEntities + the deleted
+    // The 13 demoted mechanism passes + blockGamut (dispatcher) + decodeEntities + the deleted
     // hashElement/runExtension: none of these may emit ANY of the four events, in any flavor.
+    // (spanGamut is NOT here: it is the inline engine now and owns the inline-pass lifecycle.)
     let noEventNames = [
-      'blockGamut', 'spanGamut', 'decodeEntities',
+      'blockGamut', 'decodeEntities',
       'encodeAmpsAndAngles', 'encodeBackslashEscapes', 'encodeCode',
       'escapeSpecialCharsWithinTagAttributes', 'unescapeSpecialChars',
       'hashBlock', 'hashCodeTags', 'hashPreCodeTags', 'hashHTMLBlocks',
@@ -989,8 +984,8 @@ describe('showdown.Event', function () {
       expect(fired.onHash).toBeUndefined();
     });
 
-    it('cmInline is lifecycle-only (onStart/onEnd, no capture/hash)', function () {
-      let fired = firedPhases('cmInline', showdown.getFlavorOptions('commonmark'), richMd);
+    it('spanGamut is lifecycle-only (onStart/onEnd, no capture/hash)', function () {
+      let fired = firedPhases('spanGamut', showdown.getFlavorOptions('commonmark'), richMd);
       expect(fired.onStart).toBe(true);
       expect(fired.onEnd).toBe(true);
       expect(fired.onCapture).toBeUndefined();
@@ -1287,12 +1282,12 @@ describe('showdown.Event', function () {
     });
   });
 
-  // D5: cmInline's own CommonMark links/images (built by buildLink/buildImage under cmSpec) now
-  // dispatch the SAME event families as link.js/image.js — makehtml.link.<variant>.* /
+  // D5: the spanGamut engine's own CommonMark links/images (built by buildLink/buildImage under
+  // cmSpec) now dispatch the SAME event families as link.js/image.js — makehtml.link.<variant>.* /
   // makehtml.image.<variant>.* — so listener extensions behave identically across flavors. These
   // tests exercise the commonmark flavor specifically (the generic conformance/coverage suites
   // above also cover them, but the cm* exemption ended for what D5 touched, so pin them here).
-  describe('cmInline link/image events (commonmark flavor)', function () {
+  describe('spanGamut link/image events (commonmark flavor)', function () {
 
     function cm (register) {
       let conv = new showdown.Converter(showdown.getFlavorOptions('commonmark'));

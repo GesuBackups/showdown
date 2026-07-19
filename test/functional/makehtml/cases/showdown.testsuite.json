@@ -838,7 +838,7 @@
   },
   {
     "markdown": "*single asterisks*\n\n_single underscores_\n\n**double asterisks**\n\n__double underscores__\n\n***triple asterisks***\n\n___triple underscores___\n",
-    "html": "<p><em>single asterisks</em></p>\n<p><em>single underscores</em></p>\n<p><strong>double asterisks</strong></p>\n<p><strong>double underscores</strong></p>\n<p><strong><em>triple asterisks</em></strong></p>\n<p><strong><em>triple underscores</em></strong></p>\n",
+    "html": "<p><em>single asterisks</em></p>\n<p><em>single underscores</em></p>\n<p><strong>double asterisks</strong></p>\n<p><strong>double underscores</strong></p>\n<p><em><strong>triple asterisks</strong></em></p>\n<p><em><strong>triple underscores</strong></em></p>\n",
     "section": "Emphasis and strong emphasis",
     "number": 128
   },
@@ -1016,7 +1016,7 @@
   },
   {
     "markdown": "![foo](</url/with spaces.png>)\n",
-    "html": "<p><img src=\"/url/with spaces.png\" alt=\"foo\" /></p>\n",
+    "html": "<p><img src=\"/url/with%20spaces.png\" alt=\"foo\" /></p>\n",
     "section": "Images",
     "number": 155
   },

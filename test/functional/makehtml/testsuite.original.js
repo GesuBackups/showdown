@@ -44,10 +44,10 @@ describe('makeHtml() original testsuite', function () {
           //                                 not starting at 1
           //   Lists_77 .................... showdown starts a new list on marker type change;
           //                                 original types the list by its first marker
-          //   Automatic links_110 ......... showdown does not entity-encode & in autolink URLs
-          //   Automatic escaping_115 ...... `< 5 and 6 >` is swallowed by the legacy inline
-          //                                 HTML span hashing and emitted raw; original
-          //                                 escapes the bare `<`
+          //   Automatic escaping_115 ...... original.md leaves a bare `>` unchanged (`4 < 5 and 6 > 3`
+          //                                 keeps its `>`); showdown escapes both bare angle brackets
+          //                                 (`&lt;`/`&gt;`) for every flavor under the unified inline
+          //                                 engine
           switch (name) {
             case 'Automatic links_111':
             case 'Backslash escapes_4':
@@ -60,7 +60,6 @@ describe('makeHtml() original testsuite', function () {
             case 'Lists_76':
             case 'Lists_83':
             case 'Lists_77':
-            case 'Automatic links_110':
             case 'Automatic escaping_115':
               continue;
           }

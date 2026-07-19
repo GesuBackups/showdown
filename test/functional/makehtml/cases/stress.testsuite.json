@@ -162,7 +162,7 @@
   {
     "name": "unclosed-dquote",
     "markdown": "<a href=\"unclosed>text",
-    "html": "<p><a href=\"unclosed>text</p>",
+    "html": "<p>&lt;a href=&quot;unclosed&gt;text</p>",
     "section": "malformed-html-unclosed-attr",
     "number": 21,
     "options": {}
@@ -218,7 +218,7 @@
   {
     "name": "space-in-angle",
     "markdown": "< >",
-    "html": "<p>< ></p>",
+    "html": "<p>&lt; &gt;</p>",
     "section": "malformed-html-garbage",
     "number": 28,
     "options": {}
@@ -234,7 +234,7 @@
   {
     "name": "slash-slash",
     "markdown": "<//>",
-    "html": "<p><//></p>",
+    "html": "<p>&lt;//&gt;</p>",
     "section": "malformed-html-garbage",
     "number": 30,
     "options": {}
@@ -242,7 +242,7 @@
   {
     "name": "bang",
     "markdown": "<!>",
-    "html": "<p><!></p>",
+    "html": "<p>&lt;!&gt;</p>",
     "section": "malformed-html-garbage",
     "number": 31,
     "options": {}
@@ -266,7 +266,7 @@
   {
     "name": "eq-tag",
     "markdown": "<=x>",
-    "html": "<p><=x></p>",
+    "html": "<p>&lt;=x&gt;</p>",
     "section": "malformed-html-garbage",
     "number": 34,
     "options": {}
@@ -282,7 +282,7 @@
   {
     "name": "bang-dash",
     "markdown": "<!-x->",
-    "html": "<p><!-x-></p>",
+    "html": "<p>&lt;!-x-&gt;</p>",
     "section": "malformed-html-garbage",
     "number": 36,
     "options": {}
@@ -314,7 +314,7 @@
   {
     "name": "numeric-tag",
     "markdown": "<123>x</123>",
-    "html": "<p><123>x</123></p>",
+    "html": "<p>&lt;123&gt;x&lt;/123&gt;</p>",
     "section": "malformed-html-weird-tags",
     "number": 40,
     "options": {}
@@ -322,7 +322,7 @@
   {
     "name": "namespaced",
     "markdown": "<a:b:c>x</a:b:c>",
-    "html": "<p><a:b:c>x</a:b:c></p>",
+    "html": "<p>&lt;a:b:c&gt;x&lt;/a:b:c&gt;</p>",
     "section": "malformed-html-weird-tags",
     "number": 41,
     "options": {}
@@ -330,7 +330,7 @@
   {
     "name": "underscore-tag",
     "markdown": "<_>x</_>",
-    "html": "<p><_>x</_></p>",
+    "html": "<p>&lt;<em>&gt;x&lt;/</em>&gt;</p>",
     "section": "malformed-html-weird-tags",
     "number": 42,
     "options": {}
@@ -346,7 +346,7 @@
   {
     "name": "dot-tag",
     "markdown": "<a.b>x</a.b>",
-    "html": "<p><a.b>x</a.b></p>",
+    "html": "<p>&lt;a.b&gt;x&lt;/a.b&gt;</p>",
     "section": "malformed-html-weird-tags",
     "number": 44,
     "options": {}
@@ -402,7 +402,7 @@
   {
     "name": "cdata",
     "markdown": "<![CDATA[x<y>z]]>",
-    "html": "<p>&lt;![CDATA[x<y>z]]&gt;</p>",
+    "html": "<p><![CDATA[x<y>z]]></p>",
     "section": "html-comments-cdata",
     "number": 51,
     "options": {}
@@ -474,7 +474,7 @@
   {
     "name": "space-br",
     "markdown": "< br/>",
-    "html": "<p>< br/></p>",
+    "html": "<p>&lt; br/&gt;</p>",
     "section": "html-self-closing",
     "number": 60,
     "options": {}
@@ -482,7 +482,7 @@
   {
     "name": "double-slash",
     "markdown": "<br//>",
-    "html": "<p><br//></p>",
+    "html": "<p>&lt;br//&gt;</p>",
     "section": "html-self-closing",
     "number": 61,
     "options": {}
@@ -546,7 +546,7 @@
   {
     "name": "empty-image",
     "markdown": "![]()",
-    "html": "<p>!<a href=\"\"></a></p>",
+    "html": "<p><img src=\"\" alt=\"\" /></p>",
     "section": "markdown-empty-constructs",
     "number": 69,
     "options": {}
@@ -578,7 +578,7 @@
   {
     "name": "title-only",
     "markdown": "[](\"t\")",
-    "html": "<p><a href=\"\" title=\"t\"></a></p>",
+    "html": "<p><a href=\"%22t%22\"></a></p>",
     "section": "markdown-empty-constructs",
     "number": 73,
     "options": {}
@@ -730,7 +730,7 @@
   {
     "name": "nested-emph",
     "markdown": "*a_b*c_",
-    "html": "<p>*a<em>b*c</em></p>",
+    "html": "<p><em>a_b</em>c_</p>",
     "section": "markdown-unbalanced",
     "number": 92,
     "options": {}
@@ -1066,7 +1066,7 @@
   {
     "name": "bad-hex",
     "markdown": "&#xZZ;",
-    "html": "<p>&#xZZ;</p>",
+    "html": "<p>&amp;#xZZ;</p>",
     "section": "markdown-entities",
     "number": 134,
     "options": {}
@@ -1090,7 +1090,7 @@
   {
     "name": "huge-codepoint",
     "markdown": "&#999999999;",
-    "html": "<p>&#999999999;</p>",
+    "html": "<p>&amp;#999999999;</p>",
     "section": "markdown-entities",
     "number": 137,
     "options": {}
@@ -1833,7 +1833,7 @@
   {
     "name": "anchor-slash-sep",
     "markdown": "<a/href=\"javascript:alert(1)\">x</a>",
-    "html": "<p><a/href=\"\">x</a></p>",
+    "html": "<p>&lt;a/href=&quot;javascript:alert(1)&quot;&gt;x</a></p>",
     "section": "safemode-malformed",
     "number": 209,
     "options": {
@@ -1863,7 +1863,7 @@
   {
     "name": "area-slash-sep",
     "markdown": "<area/href=\"javascript:alert(1)\">",
-    "html": "<p><area/href=\"\"></p>",
+    "html": "<p>&lt;area/href=&quot;javascript:alert(1)&quot;&gt;</p>",
     "section": "safemode-malformed",
     "number": 212,
     "options": {
@@ -1903,7 +1903,7 @@
   {
     "name": "button-formaction",
     "markdown": "<button formaction=\"javascript:alert(1)\">x</button>",
-    "html": "<p>&lt;button formaction=\"javascript:alert(1)\">x&lt;/button></p>",
+    "html": "<p>&lt;button formaction=\"\">x&lt;/button></p>",
     "section": "safemode-malformed",
     "number": 216,
     "options": {

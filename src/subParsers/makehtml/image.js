@@ -1,326 +1,70 @@
 /**
  * @file      makehtml/image.js
- * @summary   Converts Markdown image syntax `![alt](url)` / reference images into `<img>` tags.
+ * @summary   Markdown images (`![..](..)` + reference forms) in the unified inline scan (CommonMark spec §6.4).
  * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
  * @copyright 2018-2026 ShowdownJS
  * @license   MIT
  *
- * Handles inline, crazy-bracket, base64, reference and shortcut-reference forms, with optional
- * dimension parsing (`=WxH`) and a CommonMark balanced-paren scanner in cmSpec mode; short-circuits
- * when no `]` is present (ReDoS guard). Emits capture events at `.inline`/`.reference` with the
- * `<img>` `attributes`.
+ * A markdown image `![..]` is recognized by the shared bracket scan in link.js — the `![` push and
+ * the `]` close-bracket resolution are common to links and images. This file owns only what an image
+ * renders as: the `<img>` builder.
+ *
+ * `makehtml.inline.image.build` is an aux-builder entry (like emphasis's `.build`): it is NOT
+ * dispatched by the scanner's character loop. link.js invokes it at close-bracket time for a `![`
+ * opener, with the scan state plus the resolved pieces —
+ * (scan, options, globals, innerHTML, dest, title, width, height, variant, wholeMatch, rawLabel).
+ * It renders and hashes the `<img>` span and returns the placeholder. It fires the
+ * `makehtml.image.<variant>.*` (variant `inline`/`reference`) capture family, so listener extensions
+ * work identically across flavors; listener-free conversions are byte-identical.
  */
 
+/* jshint esnext: false, esversion: 9 */
 
-showdown.subParser('makehtml.image', function (text, options, globals) {
+showdown.subParser('makehtml.inline.image.build', function (scan, options, globals, innerHTML, dest, title, width, height, variant, wholeMatch, rawLabel) {
   'use strict';
 
-  let startEvent = showdown.Event.dispatchStart('makehtml.image.onStart', text, options, globals);
-  text = startEvent.output;
-
-  let inlineRegExp      = /!\[([^\]]*?)][ \t]*\([ \t]?<?(\S+?(?:\(\S{0,200}?\)\S{0,200}?)?)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*(?:(["'])([^"]*?)\5)?[ \t]?\)/g,
-      crazyRegExp       = /!\[([^\]]*?)][ \t]*\([ \t]?<([^>]*)>(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*(?:(["'])([^"]*?)\5)?[ \t]?\)/g,
-      base64RegExp      = /!\[([^\]]*?)][ \t]*\([ \t]?<?(data:.+?\/.+?;base64,[A-Za-z\d+/=\n]+?)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*(?:(["'])([^"]*?)\6)?[ \t]?\)/g,
-      referenceRegExp   = /!\[([^\]]*?)] ?(?:\n *)?\[([\s\S]*?)]/g,
-      refShortcutRegExp = /!\[([^[\]]+)]/g;
-
-  // Every markdown image syntax requires a closing ']'. When there is none there is nothing to
-  // match, so skip the (backtracking-prone) passes. This also neutralizes pathological inputs
-  // such as '!['.repeat(n), whose alt-text scan would otherwise cost O(n^2) looking for a ']'.
-  if (text.indexOf(']') !== -1) {
-  // First, handle reference-style labeled images: ![alt text][id]
-    text = text.replace(referenceRegExp, function (wholeMatch, altText, linkId) {
-      return writeImageTag ('reference', referenceRegExp, wholeMatch, altText, null, linkId);
-    });
-
-    // Next, handle inline images:  ![alt text](url =<width>x<height> "optional title")
-    if (options.cmSpec) {
-    // CommonMark inline-image parsing, symmetric to the link scanner: balanced-paren
-    // and `<...>` destinations, titles, backslash escapes, arbitrary label nesting.
-      text = parseCmInlineImages(text);
-    } else if (text.indexOf(')') !== -1) {
-    // Every legacy inline-image syntax ends in ')'. Without one there is nothing to match, so
-    // skip these passes — this neutralizes inputs like '![a](' + 'a('.repeat(n) whose
-    // destination scan would otherwise backtrack quadratically looking for a ')'.
-    // base64 encoded images
-      text = text.replace(base64RegExp, function (wholeMatch, altText, url, width, height, m5, title) {
-        url = url.replace(/\s/g, '');
-        return writeImageTag ('inline', base64RegExp, wholeMatch, altText, url, null, width, height, title);
-      });
-
-      // cases with crazy urls like ./image/cat1).png
-      text = text.replace(crazyRegExp, function (wholeMatch, altText, url, width, height, m5, title) {
-        url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
-        return writeImageTag ('inline', crazyRegExp, wholeMatch, altText, url, null, width, height, title);
-      });
-
-      // normal cases
-      text = text.replace(inlineRegExp, function (wholeMatch, altText, url, width, height, m5, title) {
-        url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
-        return writeImageTag ('inline', inlineRegExp, wholeMatch, altText, url, null, width, height, title);
-      });
-    }
-
-    // handle reference-style shortcuts: ![img text]
-    text = text.replace(refShortcutRegExp, function (wholeMatch, altText) {
-      return writeImageTag ('reference', refShortcutRegExp, wholeMatch, altText);
-    });
-  }
-
-  let afterEvent = showdown.Event.dispatchEnd('makehtml.image.onEnd', text, options, globals);
-  return afterEvent.output;
-
-
-
-  /**
-   * @param {string} subEvtName
-   * @param {RegExp} pattern
-   * @param {string} wholeMatch
-   * @param {string} altText
-   * @param {string|null} [url]
-   * @param {string|null} [linkId]
-   * @param {string|null} [width]
-   * @param {string|null} [height]
-   * @param {string|null} [title]
-   * @returns {string}
-   */
-  function writeImageTag (subEvtName, pattern, wholeMatch, altText, url, linkId, width, height, title) {
-
-    let gUrls    = globals.gUrls,
-        gTitles  = globals.gTitles,
-        gDims    = globals.gDimensions,
-        matches = {
-          _wholeMatch: wholeMatch,
-          // the alt text is an image's main captured content, so it lives under `text`
-          // (mutable + honored below); the resolved src/title/etc travel in attributes
-          text: altText,
-          _linkId: linkId,
-          _url: url,
-          _width: width,
-          _height: height,
-          _title: title
-        },
-        otp,
-        attributes;
-
-    if (linkId) {
-      // one label normalization for all flavors (matches stripLinkDefinitions storage)
-      linkId = showdown.helper.cmNormalizeLabel(linkId);
-    } else {
-      linkId = null;
-    }
-
-    if (!title) {
-      title = null;
-    }
-    // Special case for explicit empty url
-    if (wholeMatch.search(/\(<?\s*>? ?(['"].*['"])?\)$/m) > -1) {
-      url = '';
-
-    } else if (showdown.helper.isUndefined(url) || url === '' || url === null) {
-      if (linkId === '' || linkId === null) {
-        // shortcut/collapsed reference: fold the alt text as the label
-        linkId = showdown.helper.cmNormalizeLabel(altText);
-      }
-      if (!showdown.helper.isUndefined(gUrls[linkId])) {
-        url = gUrls[linkId];
-        if (!showdown.helper.isUndefined(gTitles[linkId])) {
-          title = gTitles[linkId];
-        }
-        if (!showdown.helper.isUndefined(gDims[linkId])) {
-          width = gDims[linkId].width;
-          height = gDims[linkId].height;
-        }
-      } else {
-        return wholeMatch;
-      }
-    }
-
-    // safeMode: neutralize dangerous URL schemes; data:image/* stays allowed so
-    // inline base64 images keep working
-    if (options.safeMode && !showdown.helper.isSafeUrl(url, {allowDataImage: true})) {
-      url = '';
-    }
-
-    if (options.cmSpec) {
-      // CommonMark: the alt text is the plain-text rendering of the label, with
-      // inline markup stripped (`![foo *bar*]` -> alt="foo bar").
-      altText = flattenAltText(altText);
-    }
-    altText = altText
+  let alt;
+  if (options.cmSpec) {
+    // CommonMark: alt text is the plain-text rendering of the label (markup stripped); the
+    // inner spans are hashed, so restore them before flattening.
+    alt = showdown.helper.unhashHTMLSpans(innerHTML, options, globals)
+      .replace(/<img\b[^>]*?\salt="([^"]*)"[^>]*?\/?>/g, '$1')
+      .replace(/<[^>]*>/g, '');
+  } else {
+    // Showdown flavors (legacy image.js parity): the alt is the RAW label text with inline
+    // markup left literal — emphasis/links inside `![...]` are NOT processed into the alt, so
+    // e.g. `![a_b_c]` keeps its underscores instead of emphasizing them away. Mirrors
+    // image.js's non-cmSpec altText handling exactly (backslash escapes resolved to
+    // placeholders, then `"` and `* _ : ~` escaped), the whole `<img>` being hashed below.
+    alt = showdown.helper.encodeBackslashEscapes(rawLabel)
       .replace(/"/g, '&quot;')
-      //altText = showdown.helper.escapeCharacters(altText, '*_', false);
       .replace(showdown.helper.regexes.asteriskDashTildeAndColon, showdown.helper.escapeCharactersCallback);
-    //url = showdown.helper.escapeCharacters(url, '*_', false);
-    if (options.cmSpec) {
-      url = showdown.helper.cmNormalizeURL(url);
-    }
-    url = url.replace(showdown.helper.regexes.asteriskDashTildeAndColon, showdown.helper.escapeCharactersCallback);
-    // escape characters that would otherwise break out of the quoted src attribute
-    // (a `"` in the URL is an attribute-injection vector). cmSpec flavors already
-    // percent-encode the URL above, so this is a no-op there.
-    url = url
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-
-    if (title && showdown.helper.isString(title)) {
-      if (options.cmSpec) {
-        title = showdown.helper.cmEscapeTitle(title);
-      } else {
-        title = title
-          .replace(/"/g, '&quot;');
-      }
-      title = title.replace(showdown.helper.regexes.asteriskDashTildeAndColon, showdown.helper.escapeCharactersCallback);
-    }
-
-    // Image dimensions are a non-standard extension: only honor them when
-    // parseImgDimensions is enabled. The `=WxH` syntax is still consumed by the
-    // regex (so it never leaks into the output), but the width/height attributes
-    // are dropped when the option is off - matching the reference-definition path,
-    // which only stores dimensions in gDimensions when the option is on.
-    if (options.parseImgDimensions && width) {
-      width  = (width === '*') ? 'auto' : width;
-    } else {
-      width = null;
-    }
-
-    if (options.parseImgDimensions && height) {
-      height = (height === '*') ? 'auto' : height;
-    } else {
-      height = null;
-    }
-
-    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.image.' + subEvtName + '.onCapture', wholeMatch, {
-      regexp: pattern,
-      matches: matches,
-      attributes: {
-        src: url,
-        alt: altText,
-        title: title,
-        width: width,
-        height: height
-      }
-    }, options, globals);
-    // if something was passed as output, it takes precedence
-    // and will be used as output
-    if (captureStartEvent.output && captureStartEvent.output !== '') {
-      otp = captureStartEvent.output;
-    } else {
-      attributes = captureStartEvent.attributes;
-      // honor a listener that rewrote the alt text via matches.text (the default `alt`
-      // attribute was already escaped above; re-escape only the listener's replacement)
-      if (captureStartEvent.matches.text !== matches.text) {
-        attributes.alt = captureStartEvent.matches.text
-          .replace(/"/g, '&quot;')
-          .replace(showdown.helper.regexes.asteriskDashTildeAndColon, showdown.helper.escapeCharactersCallback);
-      }
-      otp = '<img' + showdown.helper._populateAttributes(attributes) + ' />';
-    }
-
-    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.image.' + subEvtName + '.onHash', otp, options, globals);
-    otp = beforeHashEvent.output;
-
-    return otp;
+  }
+  // safeMode: neutralize dangerous URL schemes; data:image/* stays allowed
+  let src = (options.safeMode && !showdown.helper.isSafeUrl(dest, {allowDataImage: true})) ? '' : scan.normalizeDest(dest);
+  let attributes = {src: src, alt: alt};
+  scan.buildTitleAttr(attributes, title);
+  // width/height gating copied from writeImageTag in image.js (parseImgDimensions)
+  if (options.parseImgDimensions) {
+    if (width)  { attributes.width  = (width  === '*') ? 'auto' : width; }
+    if (height) { attributes.height = (height === '*') ? 'auto' : height; }
   }
 
-  /**
-   * CommonMark inline-image scanner. Finds `![label](destination "title")` spans,
-   * matching the label by counting nested brackets and parsing the destination and
-   * title with the shared cursor-based helpers.
-   * @param {string} str
-   * @returns {string}
-   */
-  function parseCmInlineImages (str) {
-    let inlineImgRegexp = /!\[[\s\S]*?]\([\s\S]*?\)/, // representative pattern (event metadata only)
-        n = str.length,
-        out = '',
-        last = 0,
-        i = 0;
-    while (i < n) {
-      if (str.charAt(i) !== '!' || str.charAt(i + 1) !== '[') { i++; continue; }
-      let depth = 1, k = i + 2, labelEnd = -1;
-      while (k < n) {
-        let c = str.charAt(k);
-        if (c === '\\' && k + 1 < n) { k += 2; continue; }
-        if (c === '[') { depth++; } else if (c === ']') {
-          depth--;
-          if (depth === 0) { labelEnd = k; break; }
-        }
-        k++;
-      }
-      if (labelEnd !== -1 && str.charAt(labelEnd + 1) === '(') {
-        let parsed = parseCmImgDestTitle(str, labelEnd + 2);
-        if (parsed) {
-          let label = str.slice(i + 2, labelEnd),
-              url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, parsed.url);
-          out += str.slice(last, i);
-          out += writeImageTag('inline', inlineImgRegexp, str.slice(i, parsed.end + 1), label, url, null, null, null, parsed.title);
-          i = parsed.end + 1;
-          last = i;
-          continue;
-        }
-      }
-      i++;
-    }
-    out += str.slice(last);
-    return out;
-  }
+  let capture = showdown.Event.dispatchCapture('makehtml.image.' + variant + '.onCapture', wholeMatch, {
+    regexp: null,
+    matches: {_wholeMatch: wholeMatch, _url: dest, _title: title, _width: width, _height: height, text: alt},
+    attributes: attributes
+  }, options, globals);
 
-  /**
-   * Parse an image destination and optional title starting just after the opening
-   * `(`. Returns `{url, title, end}` (end = index of the closing `)`) or `null`.
-   * @param {string} str
-   * @param {number} j
-   * @returns {{url: string, title: (string|null), end: number}|null}
-   */
-  function parseCmImgDestTitle (str, j) {
-    let n = str.length,
-        isWs = function (c) { return c === ' ' || c === '\t' || c === '\n'; };
-    while (j < n && isWs(str.charAt(j))) { j++; }
-    let dest = showdown.helper.cmScanDestination(str, j);
-    if (!dest) { return null; }
-    j = dest.end;
-    let hadWs = false;
-    while (j < n && isWs(str.charAt(j))) { hadWs = true; j++; }
-    let title = null,
-        tc = str.charAt(j);
-    if (j < n && (tc === '"' || tc === '\'' || tc === '(')) {
-      if (!hadWs) { return null; }
-      let t = showdown.helper.cmScanTitle(str, j);
-      if (!t) { return null; }
-      title = t.title;
-      j = t.end;
-    }
-    while (j < n && isWs(str.charAt(j))) { j++; }
-    if (j >= n || str.charAt(j) !== ')') { return null; }
-    return {url: dest.url, title: title, end: j};
+  let otp;
+  if (capture.output && capture.output !== '') {
+    otp = capture.output;
+  } else {
+    attributes = capture.attributes;
+    // honor a listener that rewrote the alt text via matches.text
+    if (capture.matches.text !== alt) { attributes.alt = capture.matches.text; }
+    otp = '<img' + showdown.helper._populateAttributes(attributes) + ' />';
   }
-
-  /**
-   * Produce the plain-text rendering of an image label for the `alt` attribute,
-   * per CommonMark: inline markup is processed and then flattened to text. Nested
-   * images contribute their own alt text; links and emphasis contribute their
-   * text content.
-   * @param {string} t
-   * @returns {string}
-   */
-  function flattenAltText (t) {
-    t = showdown.subParser('makehtml.codeSpan')(t, options, globals);
-    t = showdown.subParser('makehtml.image')(t, options, globals);
-    t = showdown.subParser('makehtml.link')(t, options, globals);
-    t = showdown.subParser('makehtml.emoji')(t, options, globals);
-    t = showdown.subParser('makehtml.underline')(t, options, globals);
-    t = showdown.subParser('makehtml.emphasisAndStrong')(t, options, globals);
-    t = showdown.subParser('makehtml.strikethrough')(t, options, globals);
-    t = showdown.subParser('makehtml.ellipsis')(t, options, globals);
-    // restore hashed spans (e.g. produced by nested images/links) so we can read them
-    t = showdown.helper.unhashHTMLSpans(t, options, globals);
-    // a nested image contributes its alt text; every other tag contributes its
-    // text content, so replace images by their alt then strip the remaining tags
-    t = t.replace(/<img\b[^>]*?\salt="([^"]*)"[^>]*?\/?>/g, '$1');
-    t = t.replace(/<[^>]*>/g, '');
-    return t;
-  }
-
+  let hash = showdown.Event.dispatchHash('makehtml.image.' + variant + '.onHash', otp, options, globals);
+  return scan.hashSpan(hash.output);
 });

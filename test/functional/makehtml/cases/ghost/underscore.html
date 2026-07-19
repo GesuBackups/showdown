@@ -1,7 +1,7 @@
 <p>foo_bar_baz foo_bar_baz_bar_foo <em>foo_bar baz_bar</em> baz_foo</p>
 <p><em>baz_bar_foo</em></p>
 <p><strong>baz_bar_foo</strong></p>
-<p><strong><em>baz_bar_foo</em></strong></p>
+<p><em><strong>baz_bar_foo</strong></em></p>
 <p>baz bar foo <em>baz_bar_foo foo bar baz</em> and foo</p>
 <p>foo_bar_baz foo_bar_baz_bar_foo _foo_bar baz_bar_ baz_foo</p>
 <p><code>foo_bar_baz foo_bar_baz_bar_foo _foo_bar baz_bar_ baz_foo</code></p>
@@ -13,8 +13,8 @@
 <pre><code class="language-html">foo_bar_baz foo_bar_baz_bar_foo _foo_bar baz_bar_ baz_foo</code></pre>
 <pre class="lang-html"><code class="language-html">foo_bar_baz foo_bar_baz_bar_foo _foo_bar baz_bar_ baz_foo</code></pre>
 <script>
-    var strike = "foo_bar_baz foo_bar_baz_bar_foo _foo_bar baz_bar_ baz_foo";
-    var foo_bar_baz_bar_foo = "foo_bar_";
+var strike = "foo_bar_baz foo_bar_baz_bar_foo _foo_bar baz_bar_ baz_foo";
+var foo_bar_baz_bar_foo = "foo_bar_";
 </script>
 <p><a href="http://myurl.com/foo_bar_baz_bar_foo">foo_bar_baz foo_bar_baz_bar_foo <em>foo_bar baz_bar</em> baz_foo</a></p>
 <p><a href="http://myurl.com/foo_bar_baz_bar_foo" title="foo_bar_baz foo_bar_baz_bar_foo _foo_bar baz_bar_ baz_foo">foo_bar_baz foo_bar_baz_bar_foo _foo_bar baz_bar_ baz_foo</a></p>
@@ -26,7 +26,7 @@
 <li>foo_bar_baz foo_bar_baz_bar_foo <em>foo_bar baz_bar</em> baz_foo</li>
 </ol>
 <blockquote>
-<p>blockquote foo_bar_baz foo_bar_baz_bar_foo <em>foo_bar baz_bar</em> baz_foo</p>
+  <p>blockquote foo_bar_baz foo_bar_baz_bar_foo <em>foo_bar baz_bar</em> baz_foo</p>
 </blockquote>
 <ul>
 <li>foo_bar_baz foo_bar_baz_bar_foo <em>foo_bar baz_bar</em> baz_foo</li>

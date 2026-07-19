@@ -23,25 +23,6 @@ describe('makeHtml() showdown (vanilla) testsuite', function () {
           let testCase = testsuite[section][i];
           let name = testCase.name;
           let number = testCase.number;
-          // The cases below are the four behaviors the showdown.md spec deliberately
-          // documents but the current implementation does not yet match — the vanilla
-          // "known-gap" to-do list (the executable analogue of #1043). Each needs a fix in
-          // src/ (a later unification increment), not a spec amendment. Example names are
-          // `<section>_<positional number>`; re-check them after editing specs/showdown.md.
-          //
-          //   Emphasis and strong emphasis_133 showdown.md — `**foo *bar* baz**`: em
-          //                                    nested inside strong is not recognized.
-          //   Automatic links_160 ............ showdown.md — `&` in an autolink URL is
-          //                                    not entity-encoded in the href/text.
-          //   Automatic escaping_180 ......... showdown.md — bare `<`/`>` (`4 < 5 and
-          //                                    6 > 3`) are swallowed by legacy inline HTML
-          //                                    span hashing instead of being escaped.
-          switch (name) {
-            case 'Emphasis and strong emphasis_133':
-            case 'Automatic links_160':
-            case 'Automatic escaping_180':
-              continue;
-          }
           // each case carries the converter options it needs in the fixture (vanilla defaults
           // otherwise)
           let converter = new showdown.Converter(testCase.options);

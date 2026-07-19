@@ -1012,11 +1012,16 @@ describe('helpers mechanisms', function () {
   });
 
   describe('hashHTMLSpans() / unhashHTMLSpans()', function () {
-    it('should hash inline spans to ¨C<n>C placeholders and round-trip back', function () {
+    it('should hash whole <tag>…</tag> spans to ¨C<n>C placeholders and round-trip back', function () {
       let globals = mkGlobals(),
           hashed = showdown.helper.hashHTMLSpans('a <span>x</span> b <br/> c', options, globals);
       expect(hashed).toMatch(/¨C\d+C/);
-      expect(globals.gHtmlSpans.length).toBe(2);
+      // Only whole open/close spans (`<span>x</span>`) are hashed. Source raw-HTML recognition —
+      // including lone self-closing/opening tags like `<br/>` — moved into the unified inline scan, so
+      // this pass no longer hashes a bare `<br/>`; it is left in place for encodeAmpsAndAngles.
+      expect(globals.gHtmlSpans.length).toBe(1);
+      expect(globals.gHtmlSpans[0]).toBe('<span>x</span>');
+      expect(hashed).toContain('<br/>');
       expect(showdown.helper.unhashHTMLSpans(hashed, options, globals))
         .toBe('a <span>x</span> b <br/> c');
     });

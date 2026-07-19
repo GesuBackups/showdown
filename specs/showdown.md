@@ -2139,8 +2139,8 @@ ___triple underscores___
 <p><em>single underscores</em></p>
 <p><strong>double asterisks</strong></p>
 <p><strong>double underscores</strong></p>
-<p><strong><em>triple asterisks</em></strong></p>
-<p><strong><em>triple underscores</em></strong></p>
+<p><em><strong>triple asterisks</strong></em></p>
+<p><em><strong>triple underscores</strong></em></p>
 ````````````````````````````````
 
 (But see [Underline](#underline-option-underline), which repurposes
@@ -2431,7 +2431,7 @@ URIs are supported:
 ```````````````````````````````` example
 ![foo](</url/with spaces.png>)
 .
-<p><img src="/url/with spaces.png" alt="foo" /></p>
+<p><img src="/url/with%20spaces.png" alt="foo" /></p>
 ````````````````````````````````
 
 ### Image dimensions (option: `parseImgDimensions`)

@@ -1,20 +1,59 @@
 /**
  * @file      helpers/commonmark.js
- * @summary   CommonMark-specific text processing: entity decoding, URL/title normalization, label folding and scanners.
+ * @summary   CommonMark-specific text processing: entity decoding, URL/title normalization, label folding, scanners and the flanking character classifiers.
  * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
  * @copyright 2018-2026 ShowdownJS
  * @license   MIT
  *
- * `cmDecodeEntities`, `cmEncodeURI`, `cmNormalizeURL`, `cmEscapeTitle`, `cmNormalizeLabel` and the
- * link-destination/title scanners (`cmScanDestination`/`cmScanTitle`). Load-order safe: every
- * reference to another helper (`htmlEntities`, `caseFold`, `unescapePlaceholders`) happens inside
- * function bodies (call time), never at load time.
+ * `cmDecodeEntities`, `cmEncodeURI`, `cmNormalizeURL`, `cmEscapeTitle`, `cmNormalizeLabel`, the
+ * link-destination/title scanners (`cmScanDestination`/`cmScanTitle`) and the CommonMark character
+ * classifiers used by the emphasis flanking rules (`isAsciiPunct`/`isPunct`/`isWhitespace`).
+ * Load-order safe: every reference to another helper (`htmlEntities`, `caseFold`,
+ * `unescapePlaceholders`) happens inside function bodies (call time), never at load time.
  */
+
+/* jshint esnext: false, esversion: 9 */
+// (esversion 9 enables the \p{...} Unicode property escapes used for CommonMark flanking rules)
 
 // Guarded ampersand: a bare `&` that does NOT already begin an entity reference. Shared by
 // cmNormalizeURL and cmEscapeTitle (both HTML-escape residual bare ampersands the same way).
 // File-local const (load-order safe: only read inside function bodies below, at call time).
 const cmGuardedAmpersand = /&(?![a-zA-Z#0-9]+;)/g;
+
+// CommonMark punctuation = ASCII punctuation + Unicode P and S categories. The authoritative copy
+// of this class lives here with its three classifiers (the delimiter-stack engine reaches them only
+// through the showdown.helper.* functions below, at call time). File-local const (load-order safe).
+const cmAsciiPunct = /[!-/:-@[-`{-~]/;
+
+/**
+ * True when `ch` is an ASCII punctuation character (and defined). Used for
+ * backslash-escapability and as one input to the flanking rules.
+ * @param {string|undefined} ch
+ * @returns {boolean}
+ */
+showdown.helper.isAsciiPunct = function (ch) {
+  return ch !== undefined && cmAsciiPunct.test(ch);
+};
+
+/**
+ * CommonMark "punctuation": ASCII punctuation plus the Unicode P (punctuation) and
+ * S (symbol) general categories.
+ * @param {string|undefined} ch
+ * @returns {boolean}
+ */
+showdown.helper.isPunct = function (ch) {
+  return ch !== undefined && (cmAsciiPunct.test(ch) || /[\p{P}\p{S}]/u.test(ch));
+};
+
+/**
+ * CommonMark "whitespace" for the flanking rules: undefined (string edge), any JS
+ * `\s` whitespace, or any Unicode Z (separator) character.
+ * @param {string|undefined} ch
+ * @returns {boolean}
+ */
+showdown.helper.isWhitespace = function (ch) {
+  return ch === undefined || /\s/.test(ch) || /\p{Z}/u.test(ch);
+};
 
 /**
  * The single character-reference decoder backing both `cmDecodeEntities` (raw output) and the
@@ -144,7 +183,7 @@ showdown.helper.cmEscapeTitle = function (title) {
 showdown.helper.cmNormalizeLabel = function (label) {
   // CommonMark matches labels by case-fold + whitespace collapse only; raw backslash
   // escapes are NOT resolved (`[foo\!]` does not match a `[foo!]` definition), which is
-  // why cmInline passes the raw source label. The `¨E<code>E` replace below only restores
+  // why the inline link construct passes the raw source label. The `¨E<code>E` replace below only restores
   // placeholders produced earlier in the pipeline, so definition and use labels that went
   // through the same escaping normalize identically.
   return showdown.helper.caseFold(showdown.helper.unescapePlaceholders(label)

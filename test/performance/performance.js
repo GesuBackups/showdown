@@ -45,9 +45,6 @@ function runTests () {
     .add('hashHTMLBlocks', function () {
       showdown.helper.hashHTMLBlocks(testMDFile, options, globals);
     })
-    .add('anchors', function () {
-      showdown.subParser('makehtml.link')(testMDFile, options, globals);
-    })
     .add('blockQuotes', function () {
       showdown.subParser('makehtml.blockquote')(testMDFile, options, globals);
     })
@@ -87,12 +84,6 @@ function runTests () {
     })
     .add('horizontalRule', function () {
       showdown.subParser('makehtml.horizontalRule')(testMDFile, options, globals);
-    })
-    .add('images', function () {
-      showdown.subParser('makehtml.image')(testMDFile, options, globals);
-    })
-    .add('italicsAndBold', function () {
-      showdown.subParser('makehtml.emphasisAndStrong')(testMDFile, options, globals);
     })
     .add('lists', function () {
       showdown.subParser('makehtml.list')(testMDFile, options, globals);

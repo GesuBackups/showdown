@@ -45,14 +45,48 @@ kinds of pass:
 
 Two further passes emit no events even though they are registered sub-parsers:
 
-* the inline/block **dispatchers** `spanGamut` and `blockGamut` — they only route text through
-  the constructs above and match nothing themselves (the document-level events below cover
-  whole-text hooks);
+* the block **dispatcher** `blockGamut` — it only routes text through the constructs above and
+  matches nothing itself (the document-level events below cover whole-text hooks). Its inline
+  counterpart `spanGamut` used to be event-less too, but it is now the unified inline engine and
+  owns the inline-pass lifecycle (`makehtml.spanGamut` onStart/onEnd) — see the family list below;
 * **`decodeEntities`** — its output is bare characters, so per-entity events would be noise.
 
 The one deliberate exception to "mechanisms have no events": **`heading.id`** is a helper, but
 it still emits a single `makehtml.heading.id.onCapture` event so extensions can implement
 custom slug generation (see below).
+
+### The `makehtml.inline.*` namespace
+
+The inline constructs — links, images, emphasis/strong, code spans, autolinks, raw HTML, character
+references, backslash escapes, hard breaks, emoji and naked URLs — are recognized together in a
+single positional pass, the `spanGamut` inline scan. Each construct lives in its own file and is
+registered under the `makehtml.inline.*` namespace (`makehtml.inline.link`, `makehtml.inline.image`,
+`makehtml.inline.emphasis`, `makehtml.inline.codeSpan`, `makehtml.inline.autolink`,
+`makehtml.inline.rawHtml`, `makehtml.inline.entity`, `makehtml.inline.backslash`,
+`makehtml.inline.hardBreak`, `makehtml.inline.emoji`, `makehtml.inline.nakedUrl`, …). These are
+**construct** sub-parsers, but their **calling convention differs from every other sub-parser**:
+instead of `(text, options, globals)` they are called `(scan, options, globals)`, where `scan` is
+the engine's scan state — the source string, the char cursor, the output node list and the append /
+hash / render helpers. A handler either **consumes** (appends its output to the node list and returns
+the new cursor index) or **declines** (returns `null`, and the scanner falls through to the next
+candidate or to literal text). A text→text pass cannot express the cross-construct precedence
+CommonMark requires (a link cannot contain a link; code spans / autolinks / raw HTML bind before
+link brackets; emphasis interleaves with brackets), which is why the scan state is threaded through
+rather than a plain string.
+
+A few auxiliary entries in the namespace are not scan handlers: `makehtml.inline.emphasis.build`
+renders one paired-delimiter span from inside the delimiter algorithm; `makehtml.inline.link` also
+owns the `.wholeAnchor` variant (the Showdown whole-`<a>` swallow); and the two **text-convention
+post-scan passes** — `makehtml.inline.ghMentions` and `makehtml.inline.nakedUrl.linkify` — run over
+the *serialized* scan output (and over emphasis inner content) as ordinary text→text passes, because
+`@mentions` and GFM naked-URL/mail linking are conventions layered on top of the scan, not scan
+constructs. These aux entries are documented in their owning files.
+
+Despite the file-layout change, the **event contract is unchanged**: these constructs emit exactly
+the same capture/hash families as before the decomposition — `makehtml.link.*`, `makehtml.image.*`,
+`makehtml.emphasis.*`, `makehtml.strong.*`, `makehtml.codeSpan.*`, `makehtml.link.angleBrackets.*` —
+so listener extensions behave identically across every flavor. The decomposition changed where the
+code lives, not what events fire.
 
 ## Event Object
 
@@ -334,7 +368,8 @@ plus `attributes`/output-override.
 | `makehtml.disallowedHtmlTags` | ✓ | ✓ (per neutralized tag) |
 | `makehtml.ellipsis` | ✓ | ✓ |
 | `makehtml.emoji` | ✓ | ✓ |
-| `makehtml.emphasisAndStrong` | ✓ | at `.emphasis` / `.strong` / `.emphasisAndStrong` |
+| `makehtml.emphasis` | — | ✓ (emitted by `spanGamut` for each `<em>` span — the inline emphasis family for **every** flavor) |
+| `makehtml.strong` | — | ✓ (emitted by `spanGamut` for each `<strong>` span — the inline strong family for **every** flavor) |
 | `makehtml.footnotes` | ✓ | at `.definition` / `.reference` |
 | `makehtml.githubCodeBlock` | ✓ | ✓ |
 | `makehtml.hardLineBreaks` | ✓ | ✓ (per break, no `text`) |
@@ -342,7 +377,7 @@ plus `attributes`/output-override.
 | `makehtml.horizontalRule` | ✓ | ✓ (no `text`) |
 | `makehtml.htmlBlock` | ✓ | ✓ (per raw HTML block) |
 | `makehtml.image` | ✓ | at `.inline` / `.reference` |
-| `makehtml.link` | ✓ | at `.inline` / `.reference` / `.angleBrackets` / `.autoLink` |
+| `makehtml.link` | ✓ | at `.inline` / `.reference` / `.angleBrackets` / `.autoLink` (since U-6 the inline path routes through `spanGamut`, which emits `.inline` / `.reference` for `[..](..)`/reference links, `.autoLink` for `simplifiedAutoLink` naked URLs, and `.angleBrackets` for `<url>` angle autolinks — the `.angleBrackets` family was ported onto `spanGamut`, not retired) |
 | `makehtml.list` | ✓ | ✓; plus `.listItem`, `.taskListItem`, `.taskListItem.checkbox` (checkbox also has its own lifecycle) |
 | `makehtml.metadata` | ✓ | ✓ |
 | `makehtml.paragraphs` | ✓ | ✓ (per paragraph, `regexp` is `null`) |
@@ -351,11 +386,24 @@ plus `attributes`/output-override.
 | `makehtml.table` | ✓ | ✓; plus `.header` / `.cell` capture |
 | `makehtml.underline` | ✓ | ✓ |
 | `makehtml.completeHTMLDocument` | ✓ | — (document wrapper, lifecycle only) |
-| `makehtml.cmInline` | ✓ | — (the `commonmark`/`github`-flavor inline engine; lifecycle only as a family — the links and images it builds emit the regular `makehtml.link.{inline,reference,autoLink}.*` / `makehtml.image.{inline,reference}.*` capture events, so link/image listeners behave identically across flavors) |
+| `makehtml.spanGamut` | ✓ | — (the **unified inline engine for every flavor** since U-6; lifecycle only as a family — the links and images it builds emit the regular `makehtml.link.{inline,reference,angleBrackets,autoLink}.*` / `makehtml.image.{inline,reference}.*` capture events, so link/image listeners behave identically across flavors. It also emits `makehtml.codeSpan.*` for the code spans it builds and the separate `makehtml.emphasis.*` / `makehtml.strong.*` capture families for the `<em>` / `<strong>` spans it builds) |
 | *(document level)* `makehtml.onStart` / `.onPreParse` / `.onEnd` | — | — (see [below](#makehtml-document-level-events)) |
 
-`decodeEntities`, the dispatchers (`blockGamut`, `spanGamut`) and every `showdown.helper.*`
-mechanism emit **no events** — see the [taxonomy](#sub-parser-taxonomy-constructs-vs-mechanisms).
+`decodeEntities`, the block dispatcher `blockGamut` and every `showdown.helper.*` mechanism emit
+**no events** — see the [taxonomy](#sub-parser-taxonomy-constructs-vs-mechanisms). (`spanGamut` is the
+exception among the old dispatchers: it is the inline engine now and owns the inline-pass lifecycle.)
+
+> **Retired (U-6):** the combined `makehtml.emphasisAndStrong` family — including its `.emphasis`,
+> `.strong` and combined `.emphasisAndStrong` captures — no longer fires. Since the inline layer was
+> unified onto `spanGamut` for every flavor, emphasis is resolved on one delimiter-stack pass that
+> emits the **separate** `makehtml.emphasis.*` and `makehtml.strong.*` families. `***foo***` is
+> `<em><strong>foo</strong></em>`, so it fires a `strong` capture (inner) then an `emphasis` capture
+> (outer) — there is no combined single event. Listeners on `makehtml.emphasisAndStrong.*` must move
+> to `makehtml.emphasis.*` / `makehtml.strong.*`.
+>
+> **Renamed (U-6e):** the inline engine's lifecycle family `makehtml.cmInline.*` is now
+> `makehtml.spanGamut.*` (the `cmInline` sub-parser was absorbed into `spanGamut`). Listeners on
+> `makehtml.cmInline.onStart` / `.onEnd` must move to `makehtml.spanGamut.onStart` / `.onEnd`.
 
 Notable per-construct events:
 

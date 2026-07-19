@@ -1516,16 +1516,15 @@ un_frigging_believable
 <p>un<em>frigging</em>believable</p>
 ````````````````````````````````
 
-Strong emphasis is matched before emphasis, so triple delimiters produce
-emphasis nested in strong emphasis:
+Triple delimiters produce strong emphasis nested inside emphasis:
 
 ```````````````````````````````` example
 ***foo***
 
 ___foo___
 .
-<p><strong><em>foo</em></strong></p>
-<p><strong><em>foo</em></strong></p>
+<p><em><strong>foo</strong></em></p>
+<p><em><strong>foo</strong></em></p>
 ````````````````````````````````
 
 Emphasis and strong emphasis may span multiple words and may nest:

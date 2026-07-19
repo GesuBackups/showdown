@@ -5,9 +5,9 @@
  * @copyright 2018-2026 ShowdownJS
  * @license   MIT
  *
- * Runs before emphasis (and before `cmInline` in cmSpec mode) so it claims the underscores first
- * and escapes the remaining `_`; honors `literalMidWordUnderscores`. Emits the `makehtml.underline.*`
- * event family.
+ * Runs before the unified inline scan (as the first pipeline step in spanGamut.js) so it claims the
+ * underscores first and escapes the remaining `_`; honors `literalMidWordUnderscores`. Emits the
+ * `makehtml.underline.*` event family.
  */
 
 showdown.subParser('makehtml.underline', function (text, options, globals) {

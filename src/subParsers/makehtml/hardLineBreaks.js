@@ -8,6 +8,10 @@
  * Supports the vanilla (`  \n`) and GFM `simpleLineBreaks` styles plus `\`+newline. A break has no
  * inner content, so its per-break capture events carry only `_wholeMatch`; `attributes` apply to the
  * emitted `<br>`. Emits the `makehtml.hardLineBreaks.*` event family.
+ *
+ * This file owns both forms of the construct: the whole-text `makehtml.hardLineBreaks` pass above and
+ * the `makehtml.inline.hardBreak` scan handler below (called from the single-pass inline scanner in
+ * spanGamut.js; see entity.js for the scan-convention explanation).
  */
 
 showdown.subParser('makehtml.hardLineBreaks', function (text, options, globals) {
@@ -63,4 +67,31 @@ showdown.subParser('makehtml.hardLineBreaks', function (text, options, globals) 
     return beforeHashEvent.output + '\n';
   }
 
+});
+
+// The `\n` scan handler for the unified inline scanner in spanGamut.js. Always consumes (the engine's
+// `\n` dispatch is unconditional): a text tail with two+ trailing spaces or a trailing `\` becomes a
+// hashed `<br />` (hashed so the later encodeAmpsAndAngles pass leaves it intact), otherwise the
+// trailing spaces are trimmed and a literal newline is emitted. Reads/mutates the output list tail
+// via scan.list; see entity.js for the scan-convention explanation.
+// eslint-disable-next-line no-unused-vars -- `options`/`globals` are unused here but kept for the makehtml.inline.* (scan, options, globals) calling convention
+showdown.subParser('makehtml.inline.hardBreak', function (scan, options, globals) {
+  'use strict';
+
+  let stack = scan.list,
+      i = scan.pos;
+  // hard line break: two+ trailing spaces or a backslash before the newline.
+  // The <br /> is hashed so the later encodeAmpsAndAngles pass leaves it intact.
+  let n = stack.tail;
+  if (n && n.type === 'text' && !n.raw && / {2,}$/.test(n.literal)) {
+    n.literal = n.literal.replace(/ +$/, '');
+    scan.appendRaw(scan.hashSpan('<br />') + '\n');
+  } else if (n && n.type === 'text' && !n.raw && /\\$/.test(n.literal)) {
+    n.literal = n.literal.slice(0, -1);
+    scan.appendRaw(scan.hashSpan('<br />') + '\n');
+  } else {
+    if (n && n.type === 'text' && !n.raw) { n.literal = n.literal.replace(/ +$/, ''); }
+    scan.appendText('\n');
+  }
+  return i + 1;
 });
