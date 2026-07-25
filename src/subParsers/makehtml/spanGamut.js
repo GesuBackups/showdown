@@ -6,7 +6,7 @@
  * @license   MIT
  *
  * The inline layer for every flavor. It runs a short pipeline — `underline`, then a single-pass
- * scan, then the Showdown-only extras (emoji, strikethrough, ellipsis) and the final
+ * scan, then the Showdown-only extras (emoji, strikethrough) and the final
  * hashing/encoding passes. The scan resolves code spans, backslash escapes, character references,
  * autolinks, raw HTML, links, images and emphasis together on one delimiter stack, so the
  * cross-construct precedence rules CommonMark requires — a link cannot contain a link; code spans /
@@ -243,7 +243,7 @@ DelimiterStack.prototype = {
    * The scan injects its two hooks:
    *  - `buildWrapped(tagOpen, tagClose, opener, closer)` renders the enclosed nodes and
    *    returns the final (usually hashed) wrapped literal — this is where the scan runs its
-   *    GFM-inline-links pass + emoji/strikethrough/ellipsis over the inner content.
+   *    GFM-inline-links pass + emoji/strikethrough over the inner content.
    *  - `rawWrap` marks the spliced-in wrap node as raw (the scan renders raw nodes verbatim).
    * @param {{}|null} stackBottom
    * @param {function(string, string, {}, {}):string} buildWrapped
@@ -324,37 +324,54 @@ DelimiterStack.prototype = {
 showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
   'use strict';
 
-  // underline runs BEFORE the inline scan (mirroring the legacy order, where underline runs
-  // before emphasisAndStrong): it claims `__`/`___` as `<u>` and escapes any remaining
-  // `_`, so the scan doesn't consume those underscores as emphasis. The scan then hashes
-  // the raw `<u>` tags as CommonMark raw HTML and leaves the escaped `_` placeholders be.
-  text = showdown.subParser('makehtml.underline')(text, options, globals);
+  // Underline (option) is scan-native: the scan hands each `_` run to the underline handler FIRST
+  // (before emphasis) so it either claims a `__`/`___` region as `<u>` — rendering the inner via a
+  // nested sub-scan — or consumes the run as inert literal text, never letting `_` reach the emphasis
+  // stack (reproducing the retired whole-text pass's "escape every remaining `_`" rule, without
+  // escaping the underscores inside protected constructs the pass used to corrupt). `*` is unaffected.
+  const underlineOn = !!options.underline;
 
   // Scan triggers for the atomic-token recognizers (consumeEmoji / naked URL). Kept as
   // locals so the tokenizer's hot loop only tests them when the relevant option is enabled.
-  // Both are `!cmSpec`-gated: under cmSpec/gfm the CommonMark flanking rules already leave
-  // emoji-name / URL underscores intact, so these Showdown-only recognizers are unnecessary
-  // there and skipping them keeps cmSpec output byte-identical by construction.
-  const emojiOn = !options.cmSpec && !!options.emoji,
-      autoLinkOn = !options.cmSpec && !!options.simplifiedAutoLink;
+  // autoLink is `!cmSpec`-gated: under cmSpec/gfm the CommonMark flanking rules already leave
+  // URL underscores intact, so the Showdown-only recognizer is unnecessary there and skipping
+  // it keeps cmSpec output byte-identical by construction.
+  // Emoji (option) is scan-native: the scan performs the `:name:` SUBSTITUTION inline for every
+  // flavor, before link/image bracket resolution and emphasis/strikethrough pairing (so it applies
+  // inside resolving labels and spans too). Not `!cmSpec`-gated — like ellipsis/strikethrough the
+  // substitution is flavor-independent (the retired whole-text pass handled cmSpec post-scan).
+  const emojiOn = !!options.emoji,
+      autoLinkOn = !options.cmSpec && !!options.simplifiedAutoLink,
+      // Ellipsis (option) is scan-native: the scan consumes `...` -> `…` inline for every flavor,
+      // before link/image bracket resolution (so it applies inside resolving labels too). Unlike
+      // emoji/autolink this is NOT `!cmSpec`-gated — the ellipsis substitution is flavor-independent.
+      ellipsisOn = !!options.ellipsis,
+      // Strikethrough (option) is scan-native: the scan consumes `~` runs as delimiter-like nodes and
+      // a pairing pass (run AFTER emphasis resolution, see strikethrough.js) reproduces the historical
+      // whole-text regex. Not `!cmSpec`-gated — like ellipsis it is flavor-independent (strikethrough
+      // is off by default under cmSpec, but when enabled it pairs the same way, which is what lets the
+      // label-range pairing in link.js apply for every flavor).
+      strikethroughOn = !!options.strikethrough,
+      // ghMentions (option) is scan-native: the scan hands each `@` to the ghMentions handler, which
+      // links `@username` inline (before emphasis/bracket resolution) or declines to plain text. See
+      // ghMentions.js for the boundary/bracket rules. There is no post-scan mention pass any more.
+      ghMentionsOn = !!options.ghMentions;
 
   let startEvent = showdown.Event.dispatchStart('makehtml.spanGamut.onStart', text, options, globals);
   text = startEvent.output;
 
   text = parseCmInline(text);
 
-  // ghMentions and simplifiedAutoLink (GFM extensions) are applied to the serialized
-  // inline output and to emphasis inner content (see parseCmInline) so URLs and mentions
-  // inside emphasis are linked too. Real links, images and code spans are hashed by
-  // parseCmInline, so they are protected from these regexes. Both passes live in their own
-  // construct subparsers (ghMentions.js / nakedUrl.js) and emit their anchors through the shared
-  // showdown.helper.* GFM anchor machinery, same as link.js.
+  // simplifiedAutoLink (GFM extension) is applied to the serialized inline output and to emphasis
+  // inner content (see parseCmInline) so naked URLs / mail inside emphasis are linked too. Real
+  // links, images and code spans are hashed by parseCmInline, so they are protected from this
+  // regex. The pass lives in its own construct subparser (nakedUrl.js) and emits its anchors
+  // through the shared showdown.helper.* GFM anchor machinery, same as link.js. (ghMentions is now
+  // scan-native — resolved during parseCmInline — so it is no longer part of this overlay.)
   text = applyGfmInlineLinks(text);
 
   function applyGfmInlineLinks (text) {
-    // 5. Handle GithubMentions (if option is enabled)
-    text = showdown.subParser('makehtml.inline.ghMentions')(text, options, globals);
-    // 8. Handle naked links / mail (if option is enabled)
+    // Handle naked links / mail (if option is enabled)
     text = showdown.subParser('makehtml.inline.nakedUrl.linkify')(text, options, globals);
     return text;
   }
@@ -362,16 +379,33 @@ showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
   let afterEvent = showdown.Event.dispatchEnd('makehtml.spanGamut.onEnd', text, options, globals);
   text = afterEvent.output;
 
-  text = showdown.subParser('makehtml.emoji')(text, options, globals);
-  text = showdown.subParser('makehtml.strikethrough')(text, options, globals);
-  text = showdown.subParser('makehtml.ellipsis')(text, options, globals);
+  // Emoji and strikethrough are scan-native now (resolved during parseCmInline — emoji is substituted
+  // inline, strikethrough by the pairing pass; see the scan-end call below), so there are no whole-text
+  // emoji / strikethrough passes here any more.
 
-  // hash the raw HTML these extras produce (e.g. strikethrough's `<del>`, image-based
-  // emoji's `<img>`) before encodeAmpsAndAngles, otherwise their `<`/`>` get escaped to
-  // `&lt;`/`&gt;`.
+  // ---- serialized-text tail: a three-pass epilogue (F7 audit: all three live, none removable) -------
+  //
+  // 1. hashHTMLSpans — kept for the EVENT CONTRACT, not for the fixtures. Every HTML span the scan's own
+  //    constructs emit is already hashed in-scan via scan.hashSpan (link / image / codeSpan / rawHtml /
+  //    autolink, plus the extras: strikethrough's `<del>`, image-emoji's `<img>`, underline's `<u>`,
+  //    emphasis / strong), and nakedUrl.linkify hashes its anchors inside writeAnchorTag — so NO fixture
+  //    reaches here carrying raw `<tag>…</tag>` (removing this pass is byte-identical across every fixture
+  //    and both byte-identity docs). Its sole remaining feeder is LISTENER OUTPUT: a listener on
+  //    makehtml.spanGamut.onEnd (dispatched just above) may append raw HTML to `text`, which must be
+  //    hash-protected here before encodeAmpsAndAngles escapes its `<`/`>`/`&`. That event surface is not
+  //    exercised by the fixtures, so the pass stays to honor the contract.
   text = showdown.helper.hashHTMLSpans(text, options, globals);
 
+  // 2. encodeAmpsAndAngles — live. Text nodes were already entity-escaped at render time (renderNode
+  //    runs escapeHTMLEntities on every non-raw node), so this acts on RAW-node content: the nakedUrl
+  //    scan recognizer appends a bare URL run verbatim (with a literal `&`), and when nakedUrl.linkify
+  //    declines to link it that `&` must be encoded to `&amp;` here (this also covers bare `&`/`<`/`>`
+  //    in listener output).
   text = showdown.helper.encodeAmpsAndAngles(text, options, globals);
+
+  // 3. hardLineBreaks (trailing pass) — live and fixture-exercised. The in-scan hardBreak handler only
+  //    emits `<br />` for `  \n` / `\\\n`; the GFM `simpleLineBreaks` option turns every remaining soft
+  //    `\n` into `<br />`, which only this trailing pass does (the simpleLineBreaks fixtures depend on it).
   text = showdown.subParser('makehtml.hardLineBreaks')(text, options, globals);
 
   return text;
@@ -402,6 +436,15 @@ showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
     function appendRaw (html) {
       return stack.appendRaw(html);
     }
+    // Run a FRESH nested inline scan over `sliceStr` and return its rendered HTML. Engine
+    // primitive for constructs (e.g. underline) that resolve a syntactic region and then need
+    // its inner Markdown scanned in isolation. The nested scan gets its own node list, delimiter
+    // stack, bracket stack and memos; it runs the same scan CORE only — no pipeline extras, no
+    // GFM overlay, no lifecycle events — so it terminates (the slice is strictly shorter than the
+    // region that produced it) and stays free of the outer pass's side effects.
+    function subParse (sliceStr) {
+      return parseCmInline(sliceStr);
+    }
     // render one node: raw nodes emit verbatim, text nodes are HTML-escaped
     function renderNode (n) {
       return n.raw ? n.literal : showdown.helper.escapeHTMLEntities(n.literal);
@@ -419,12 +462,13 @@ showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
       pos: 0,
       appendText: appendText,
       appendRaw: appendRaw,
+      subParse: subParse,   // run a fresh nested inline scan over a slice, returning rendered HTML
       hashSpan: hashSpan,   // hash a finished HTML span to a ¨C<n>C placeholder
       list: stack,          // the output node list (constructs may inspect/adjust the tail, e.g. hard breaks trimming trailing spaces)
       memos: {},
       renderNodes: renderNodes,               // render nodes [from..to) via the engine's renderNode
       processEmphasis: processEmphasis,       // resolve emphasis above a stack bottom (delimiter algorithm)
-      applyGfmInlineLinks: applyGfmInlineLinks, // the post-scan GFM overlay (ghMentions + naked URL/mail)
+      applyGfmInlineLinks: applyGfmInlineLinks, // the post-scan GFM overlay (naked URL/mail linkify)
       normalizeDest: normalizeDest,           // shared link/image destination normalization (safeMode-independent part)
       buildTitleAttr: buildTitleAttr,         // shared title attribute builder
       brackets: null                          // head of the open [ / ![ bracket stack (link/image)
@@ -497,19 +541,56 @@ showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
         continue;
       }
 
+      // Underline (option): an `_` run is handed to the underline handler FIRST — it either claims a
+      // `__`/`___` region as `<u>` (rendering the inner via a nested sub-scan) or consumes the run as
+      // inert literal text, never falling through to emphasis (reproducing the retired pass's "escape
+      // every remaining `_`" rule). `*` is unaffected and always reaches the emphasis handler.
+      if (ch === '_' && underlineOn) {
+        scan.pos = i;
+        i = showdown.subParser('makehtml.inline.underline')(scan, options, globals);
+        continue;
+      }
+
       if (ch === '*' || ch === '_') {
         scan.pos = i;
         i = showdown.subParser('makehtml.inline.emphasis')(scan, options, globals);
         continue;
       }
 
-      // Emoji shortcodes (option): consume a known `:name:` as one atomic text node so the
-      // `_`/`*` inside an emoji name (e.g. `:couplekiss_man_woman:`) never become emphasis
-      // delimiters. The later makehtml.emoji pass substitutes the glyph. `:name:` inside a
-      // code span is already protected (backticks are consumed above before we reach here).
+      // Emoji shortcodes (option): substitute a known `:name:` inline (so the `_`/`*` inside an
+      // emoji name, e.g. `:couplekiss_man_woman:`, never become emphasis delimiters). Because this
+      // resolves before bracket/emphasis/strikethrough pairing, emoji inside resolving labels and
+      // spans is substituted too. `:name:` inside a code span is already protected (backticks are
+      // consumed above before we reach here).
       if (emojiOn && ch === ':') {
         scan.pos = i;
         let e = showdown.subParser('makehtml.inline.emoji')(scan, options, globals);
+        if (e !== null) { i = e; continue; }
+      }
+
+      // Ellipsis (option): consume a literal `...` at the cursor as the ellipsis character `…`
+      // (or a listener's output) before the plain-text run swallows the dots.
+      if (ellipsisOn && ch === '.') {
+        scan.pos = i;
+        let e = showdown.subParser('makehtml.inline.ellipsis')(scan, options, globals);
+        if (e !== null) { i = e; continue; }
+      }
+
+      // Strikethrough (option, staged): consume the whole `~` run at the cursor as a delimiter-like
+      // node (always consumes, never declines — like the `*`/`_` emphasis handler); the pairing pass
+      // resolves runs into `<del>` after emphasis, at scan end and in link.js's label resolution.
+      if (strikethroughOn && ch === '~') {
+        scan.pos = i;
+        i = showdown.subParser('makehtml.inline.strikethrough')(scan, options, globals);
+        continue;
+      }
+
+      // ghMentions (option): resolve an `@username` mention at the cursor. The handler applies the
+      // boundary rule (fragment start / whitespace / pending emphasis delimiter, and never inside an
+      // open bracket) and declines otherwise, falling through to plain text.
+      if (ghMentionsOn && ch === '@') {
+        scan.pos = i;
+        let e = showdown.subParser('makehtml.inline.ghMentions')(scan, options, globals);
         if (e !== null) { i = e; continue; }
       }
 
@@ -532,6 +613,9 @@ showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
         if ('\n\\`<&![]*_'.indexOf(c) !== -1) { break; }
         if (i > start) {
           if (emojiOn && c === ':') { break; }
+          if (ellipsisOn && c === '.') { break; }
+          if (strikethroughOn && c === '~') { break; }
+          if (ghMentionsOn && c === '@') { break; }
           if (autoLinkOn && (c === 'h' || c === 'H' || c === 'w' || c === 'W' || c === 'f' || c === 'F')) { break; }
         }
         ++i;
@@ -544,6 +628,15 @@ showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
     }
 
     processEmphasis(null);
+
+    // Strikethrough pairing (place a): resolve the surviving top-level tilde-run nodes into `<del>`
+    // AFTER emphasis, mirroring the whole-text pass that ran on the serialized output. applyGfm is
+    // true here — a top-level `<del>` is finalized like an emphasis span (the GFM overlay had already
+    // run on the serialized text before the strikethrough pass wrapped it). Emoji is scan-native,
+    // already substituted inline, so there is no applyEmoji arg.
+    if (strikethroughOn) {
+      showdown.subParser('makehtml.inline.strikethrough.pair')(scan, options, globals, stack.head, null, true);
+    }
 
     // render the node list
     return stack.renderList(renderNode);
@@ -583,7 +676,7 @@ showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
     // ---- emphasis (CommonMark reference algorithm) -----------------------------
     // Runs on the shared delimiter-stack engine. This path differs from
     // emphasisAndStrong's only in how the wrapped span is rendered: the inner nodes are
-    // HTML-escaped, the GFM-inline-links pass + emoji/strikethrough/ellipsis run on them
+    // HTML-escaped, the GFM-inline-links pass + emoji/strikethrough run on them
     // (because the wrapped span is hashed below, the span-gamut extras never see it), and
     // the wrap node is raw.
 

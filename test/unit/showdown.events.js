@@ -51,17 +51,19 @@ describe('showdown.Event', function () {
         { event: 'onHash', text: '`foo`', result: true },
         { event: 'onHash', text: 'foo', result: false }
       ],
+      // Ellipsis is scan-native (recognized inline by the spanGamut engine), so it fires only its
+      // capture/hash per `...` occurrence — the onStart/onEnd lifecycle belongs to spanGamut, not to
+      // ellipsis. It has no whole-text pass form any more.
       ellipsis: [
         { event: 'onCapture', text: '...', result: true },
         { event: 'onCapture', text: 'foo', result: false },
         { event: 'onHash', text: '...', result: true },
         { event: 'onHash', text: 'foo', result: false }
       ],
+      // Emoji is scan-native (recognized inline by the spanGamut engine), so it fires only its
+      // capture/hash per substituted shortcode — the onStart/onEnd lifecycle belongs to spanGamut, not
+      // to emoji. It has no whole-text pass form any more.
       emoji: [
-        { event: 'onStart', text: ':smile:', result: true },
-        { event: 'onStart', text: 'smile', result: true },
-        { event: 'onEnd', text: ':smile:', result: true },
-        { event: 'onEnd', text: 'smile', result: true },
         { event: 'onCapture', text: ':smile:', result: true },
         { event: 'onCapture', text: ':blablablablabla:', result: false }, // this emoji does not exist
         { event: 'onCapture', text: 'smile', result: false },
@@ -265,11 +267,10 @@ describe('showdown.Event', function () {
         { event: 'onHash', text: 'foo\n\nbar', result: true },
         { event: 'onHash', text: '# foo', result: false }
       ],
+      // Strikethrough is scan-native (recognized inline by the spanGamut engine), so it fires only its
+      // capture/hash per resolved `~~..~~` run — the onStart/onEnd lifecycle belongs to spanGamut, not
+      // to strikethrough. It has no whole-text pass form any more.
       strikethrough: [
-        { event: 'onStart', text: '~~foo~~', result: true },
-        { event: 'onStart', text: 'foo', result: true },
-        { event: 'onEnd', text: '~~foo~~', result: true },
-        { event: 'onEnd', text: 'foo', result: true },
         { event: 'onCapture', text: '~~foo~~', result: true },
         { event: 'onCapture', text: 'foo', result: false },
         { event: 'onHash', text: '~~foo~~', result: true },
@@ -305,11 +306,10 @@ describe('showdown.Event', function () {
         { event: 'onHash', text: '|foo|bar|\n|---|---|\n|1|2|', result: true },
         { event: 'onHash', text: 'foo', result: false }
       ],
+      // Underline is scan-native (recognized inline by the spanGamut engine), so it fires only its
+      // capture/hash per claimed `__..__`/`___..___` region — the onStart/onEnd lifecycle belongs to
+      // spanGamut, not to underline. It has no whole-text pass form any more.
       underline: [
-        { event: 'onStart', text: '__foo__', result: true },
-        { event: 'onStart', text: 'foo', result: true },
-        { event: 'onEnd', text: '__foo__', result: true },
-        { event: 'onEnd', text: 'foo', result: true },
         { event: 'onCapture', text: '__foo__', result: true },
         { event: 'onCapture', text: 'foo', result: false },
         { event: 'onHash', text: '__foo__', result: true },
@@ -597,14 +597,18 @@ describe('showdown.Event', function () {
     // image.js / link.js subparsers are off the inline path (they no longer emit lifecycle events);
     // spanGamut owns links/images now and fires the image.<variant>/link.<variant> capture families
     // instead (covered by the event contract conformance suite). codeSpan remains: it is still
-    // invoked directly by table.js cell splitting, so its own lifecycle fires there.
+    // invoked directly by table.js cell splitting, so its own lifecycle fires there. ellipsis,
+    // strikethrough, emoji and underline are absent for the same reason as image/link: they are now
+    // scan-native (recognized inline by spanGamut, firing only makehtml.ellipsis / makehtml.strikethrough /
+    // makehtml.emoji / makehtml.underline capture/hash), so they no longer have an onStart/onEnd
+    // lifecycle — their capture/hash are covered by the event contract conformance suite below.
     let makehtmlSubparsers = [
       'blockquote', 'spanGamut', 'codeBlock', 'codeSpan', 'completeHTMLDocument',
-      'disallowedHtmlTags', 'ellipsis', 'emoji', 'footnotes',
+      'disallowedHtmlTags', 'footnotes',
       'githubCodeBlock', 'hardLineBreaks', 'htmlBlock',
       'heading.atx', 'heading.setext', 'horizontalRule',
-      'list', 'list.taskListItem.checkbox', 'metadata', 'paragraphs', 'strikethrough',
-      'stripLinkDefinitions', 'table', 'underline'
+      'list', 'list.taskListItem.checkbox', 'metadata', 'paragraphs',
+      'stripLinkDefinitions', 'table'
     ];
 
     let makeMarkdownSubparsers = [

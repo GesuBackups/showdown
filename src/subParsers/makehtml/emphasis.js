@@ -53,19 +53,26 @@ showdown.subParser('makehtml.inline.emphasis', function (scan, options, globals)
 // processEmphasis wrapper (spanGamut.js) at emphasis-pairing time — not by the scanner's character
 // loop. It renders the enclosed nodes and returns the final (hashed) wrapped span. This path
 // differs from the retired emphasisAndStrong's only in how the wrapped span is rendered: the inner
-// nodes are HTML-escaped via scan.renderNodes, the GFM-inline-links pass + emoji/strikethrough/
-// ellipsis run on them (because the wrapped span is hashed below, the span-gamut extras never see
+// nodes are HTML-escaped via scan.renderNodes, the GFM-inline-links pass + emoji/strikethrough
+// run on them (because the wrapped span is hashed below, the span-gamut extras never see
 // it), and the wrap node is raw.
 showdown.subParser('makehtml.inline.emphasis.build', function (scan, options, globals, tagOpen, tagClose, opener, closer) {
   'use strict';
+  // Strikethrough pairing (place c): resolve tilde-run nodes inside this emphasis span into `<del>`,
+  // on the span's inner node range, BEFORE the nodes are rendered below. This builder runs at
+  // emphasis-pairing time (after the inner emphasis is already resolved), which is exactly when the
+  // retired whole-text pass used to strike the rendered inner — so `**~~x~~**` still strikes through.
+  // applyGfm is true (an emphasis span finalizes its inner like the top level: the GFM overlay is
+  // applied; the `<del>` is hashed, so it is a no-op inside it). Emoji is scan-native, already
+  // substituted inline, so the pairing pass no longer takes an applyEmoji arg.
+  if (options.strikethrough) {
+    showdown.subParser('makehtml.inline.strikethrough.pair')(scan, options, globals, opener.next, closer, true);
+  }
   let inner = scan.renderNodes(opener.next, closer);
   inner = scan.applyGfmInlineLinks(inner);
-  // The wrapped emphasis span is hashed below, so the Showdown-only extras that run
-  // after the inline scan in spanGamut (emoji, strikethrough, ellipsis) never see its inner
-  // content. Apply them here so e.g. `**~~x~~**` still strikes through.
-  inner = showdown.subParser('makehtml.emoji')(inner, options, globals);
-  inner = showdown.subParser('makehtml.strikethrough')(inner, options, globals);
-  inner = showdown.subParser('makehtml.ellipsis')(inner, options, globals);
+  // Emoji, strikethrough (place c, above) and ellipsis are all scan-native — the `:name:`/`~~`/`...`
+  // inside the span are already resolved by the scan (emoji substituted inline, before this builder
+  // renders the inner nodes), so none are re-applied here.
   inner = showdown.subParser('makehtml.hardLineBreaks')(inner, options, globals);
   // Event parity (D3): fire the separate makehtml.emphasis.* / makehtml.strong.* families
   // (`<em>` -> emphasis, `<strong>` -> strong), honoring a listener's output / matches.text /

@@ -159,6 +159,15 @@ showdown.subParser('makehtml.inline.link', function (scan, options, globals) {
   // process emphasis on the delimiters inside the brackets
   scan.processEmphasis(opener.prevDelim);
 
+  // Strikethrough pairing (place b): resolve tilde-run nodes inside the resolving label into `<del>`,
+  // AFTER emphasis, scoped to the label's node range. This is what makes label strikethrough work for
+  // ALL flavors (per the ruling) — a cmSpec link label now strikes too. applyGfm is false (a link
+  // cannot nest a link, so its inner is never linkified). Emoji is scan-native, already substituted
+  // inline inside the label for every flavor, so the pairing pass no longer takes an applyEmoji arg.
+  if (options.strikethrough) {
+    showdown.subParser('makehtml.inline.strikethrough.pair')(scan, options, globals, opener.node.next, null, false);
+  }
+
   // collect and render the inner nodes
   let innerHTML = scan.renderNodes(opener.node.next, null),
       wholeMatch = s.slice(opener.matchStart, endIdx);
@@ -193,17 +202,13 @@ showdown.subParser('makehtml.inline.link', function (scan, options, globals) {
   function buildLink (innerHTML, dest, title, variant, wholeMatch) {
     // safeMode: neutralize dangerous URL schemes (javascript:, vbscript:, data:, ...)
     let href = (options.safeMode && !showdown.helper.isSafeUrl(dest)) ? '' : scan.normalizeDest(dest);
-    // The link span is hashed below, so the Showdown-only extras that run after the inline scan
-    // in spanGamut (emoji, strikethrough, ellipsis) never see the link text. Apply them here so
-    // e.g. `[:apple:](url)` renders the emoji in the anchor text (mirrors buildEmphasis). The
-    // GFM link passes (applyGfmInlineLinks) are deliberately NOT run on link text — a link
-    // cannot be nested inside another link. Gated off cmSpec so its output stays byte-identical
-    // (under cmSpec these extras have always run only on the non-hashed text around spans).
-    if (!options.cmSpec) {
-      innerHTML = showdown.subParser('makehtml.emoji')(innerHTML, options, globals);
-      innerHTML = showdown.subParser('makehtml.strikethrough')(innerHTML, options, globals);
-      innerHTML = showdown.subParser('makehtml.ellipsis')(innerHTML, options, globals);
-    }
+    // Emoji, strikethrough and ellipsis are all scan-native — the `:name:`/`~~`/`...` in the link
+    // label are already resolved by the scan (emoji substituted inline for every flavor, strikethrough
+    // via place (b) above, ellipsis inline), so none are re-applied here. Substituting emoji inside a
+    // resolving label now happens for every flavor, including cmSpec (previously the whole-text pass
+    // was re-applied here only off cmSpec); this is the ruled label-class parity change. The GFM link
+    // passes (applyGfmInlineLinks) are deliberately NOT run on link text — a link cannot be nested
+    // inside another link.
     innerHTML = showdown.subParser('makehtml.hardLineBreaks')(innerHTML, options, globals);
     let attributes = {href: href};
     scan.buildTitleAttr(attributes, title);

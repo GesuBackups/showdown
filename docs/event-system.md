@@ -58,12 +58,15 @@ custom slug generation (see below).
 ### The `makehtml.inline.*` namespace
 
 The inline constructs — links, images, emphasis/strong, code spans, autolinks, raw HTML, character
-references, backslash escapes, hard breaks, emoji and naked URLs — are recognized together in a
-single positional pass, the `spanGamut` inline scan. Each construct lives in its own file and is
+references, backslash escapes, hard breaks, and the Showdown extras (emoji, ellipsis, underline,
+strikethrough, `@mentions`, naked URLs) — are recognized together in a single positional pass, the
+`spanGamut` inline scan. Each construct lives in its own file and is
 registered under the `makehtml.inline.*` namespace (`makehtml.inline.link`, `makehtml.inline.image`,
 `makehtml.inline.emphasis`, `makehtml.inline.codeSpan`, `makehtml.inline.autolink`,
 `makehtml.inline.rawHtml`, `makehtml.inline.entity`, `makehtml.inline.backslash`,
-`makehtml.inline.hardBreak`, `makehtml.inline.emoji`, `makehtml.inline.nakedUrl`, …). These are
+`makehtml.inline.hardBreak`, `makehtml.inline.emoji`, `makehtml.inline.ellipsis`,
+`makehtml.inline.underline`, `makehtml.inline.strikethrough`, `makehtml.inline.ghMentions`,
+`makehtml.inline.nakedUrl`, …). These are
 **construct** sub-parsers, but their **calling convention differs from every other sub-parser**:
 instead of `(text, options, globals)` they are called `(scan, options, globals)`, where `scan` is
 the engine's scan state — the source string, the char cursor, the output node list and the append /
@@ -76,11 +79,22 @@ rather than a plain string.
 
 A few auxiliary entries in the namespace are not scan handlers: `makehtml.inline.emphasis.build`
 renders one paired-delimiter span from inside the delimiter algorithm; `makehtml.inline.link` also
-owns the `.wholeAnchor` variant (the Showdown whole-`<a>` swallow); and the two **text-convention
-post-scan passes** — `makehtml.inline.ghMentions` and `makehtml.inline.nakedUrl.linkify` — run over
-the *serialized* scan output (and over emphasis inner content) as ordinary text→text passes, because
-`@mentions` and GFM naked-URL/mail linking are conventions layered on top of the scan, not scan
-constructs. These aux entries are documented in their owning files.
+owns the `.wholeAnchor` variant (the Showdown whole-`<a>` swallow); and
+`makehtml.inline.strikethrough.pair` resolves the surviving tilde-run nodes into `<del>` after
+emphasis. **`@mentions` is now a scan construct** — the `makehtml.inline.ghMentions` `@` handler links
+`@username` during the scan (it links inside resolved emphasis/underline wrappers but declines while a
+`[`/`![` bracket is open, so a mention never nests inside a link/image label); its companion
+`makehtml.inline.ghMentions.linkify` is an **internal** text-convention helper used only to link
+mentions inside a strikethrough `<del>`'s already-rendered inner content, which is resolved at pairing
+time from `tilde` nodes the scan boundary rule cannot key on.
+
+The one remaining **text-convention post-scan pass** is `makehtml.inline.nakedUrl.linkify`: GFM
+naked-URL/mail linking is **by design** layered on top of the scan, over the *serialized* inline output
+(and over emphasis inner content), because a naked URL's extent is defined over the rendered text —
+trailing-punctuation trimming and the entity/`<`-split rules operate on serialized characters, not scan
+tokens. The scan's `makehtml.inline.nakedUrl` recognizer still consumes the URL body atomically (so
+`_`/`*` inside it never become emphasis delimiters), and this `.linkify` aux-entry builds the anchor
+from that intact run. These aux entries are documented in their owning files.
 
 Despite the file-layout change, the **event contract is unchanged**: these constructs emit exactly
 the same capture/hash families as before the decomposition — `makehtml.link.*`, `makehtml.image.*`,
@@ -366,8 +380,8 @@ plus `attributes`/output-override.
 | `makehtml.codeBlock` | ✓ | ✓ |
 | `makehtml.codeSpan` | ✓ | ✓ |
 | `makehtml.disallowedHtmlTags` | ✓ | ✓ (per neutralized tag) |
-| `makehtml.ellipsis` | ✓ | ✓ |
-| `makehtml.emoji` | ✓ | ✓ |
+| `makehtml.ellipsis` | — | ✓ (scan-native — emitted by `spanGamut` per `...`→`…` substitution; per-construct lifecycle retired) |
+| `makehtml.emoji` | — | ✓ (scan-native — emitted by `spanGamut` per substituted `:shortcode:`; per-construct lifecycle retired) |
 | `makehtml.emphasis` | — | ✓ (emitted by `spanGamut` for each `<em>` span — the inline emphasis family for **every** flavor) |
 | `makehtml.strong` | — | ✓ (emitted by `spanGamut` for each `<strong>` span — the inline strong family for **every** flavor) |
 | `makehtml.footnotes` | ✓ | at `.definition` / `.reference` |
@@ -381,12 +395,12 @@ plus `attributes`/output-override.
 | `makehtml.list` | ✓ | ✓; plus `.listItem`, `.taskListItem`, `.taskListItem.checkbox` (checkbox also has its own lifecycle) |
 | `makehtml.metadata` | ✓ | ✓ |
 | `makehtml.paragraphs` | ✓ | ✓ (per paragraph, `regexp` is `null`) |
-| `makehtml.strikethrough` | ✓ | ✓ |
+| `makehtml.strikethrough` | — | ✓ (scan-native — emitted by `spanGamut` per `<del>` span; per-construct lifecycle retired) |
 | `makehtml.stripLinkDefinitions` | ✓ | ✓ (per definition, no `text`) |
 | `makehtml.table` | ✓ | ✓; plus `.header` / `.cell` capture |
-| `makehtml.underline` | ✓ | ✓ |
+| `makehtml.underline` | — | ✓ (scan-native — emitted by `spanGamut` per `<u>` span; per-construct lifecycle retired) |
 | `makehtml.completeHTMLDocument` | ✓ | — (document wrapper, lifecycle only) |
-| `makehtml.spanGamut` | ✓ | — (the **unified inline engine for every flavor** since U-6; lifecycle only as a family — the links and images it builds emit the regular `makehtml.link.{inline,reference,angleBrackets,autoLink}.*` / `makehtml.image.{inline,reference}.*` capture events, so link/image listeners behave identically across flavors. It also emits `makehtml.codeSpan.*` for the code spans it builds and the separate `makehtml.emphasis.*` / `makehtml.strong.*` capture families for the `<em>` / `<strong>` spans it builds) |
+| `makehtml.spanGamut` | ✓ | — (the **unified inline engine for every flavor** since U-6; lifecycle only as a family — the links and images it builds emit the regular `makehtml.link.{inline,reference,angleBrackets,autoLink}.*` / `makehtml.image.{inline,reference}.*` capture events, so link/image listeners behave identically across flavors. It also emits `makehtml.codeSpan.*` for the code spans it builds and the separate `makehtml.emphasis.*` / `makehtml.strong.*` capture families for the `<em>` / `<strong>` spans it builds. Since U-6f it likewise owns the capture/hash families of the scan-native Showdown extras — `makehtml.emoji.*`, `makehtml.ellipsis.*`, `makehtml.underline.*`, `makehtml.strikethrough.*` (one capture per occurrence, no per-construct lifecycle) — and emits `makehtml.link.reference.*` for the `@mentions` its `ghMentions` handler links) |
 | *(document level)* `makehtml.onStart` / `.onPreParse` / `.onEnd` | — | — (see [below](#makehtml-document-level-events)) |
 
 `decodeEntities`, the block dispatcher `blockGamut` and every `showdown.helper.*` mechanism emit
@@ -404,6 +418,19 @@ exception among the old dispatchers: it is the inline engine now and owns the in
 > **Renamed (U-6e):** the inline engine's lifecycle family `makehtml.cmInline.*` is now
 > `makehtml.spanGamut.*` (the `cmInline` sub-parser was absorbed into `spanGamut`). Listeners on
 > `makehtml.cmInline.onStart` / `.onEnd` must move to `makehtml.spanGamut.onStart` / `.onEnd`.
+>
+> **Retired (U-6f):** the **per-construct `onStart` / `onEnd` lifecycle events of the four
+> scan-native Showdown extras** — `makehtml.emoji`, `makehtml.ellipsis`, `makehtml.underline` and
+> `makehtml.strikethrough` — no longer fire. Those constructs were whole-text passes with their own
+> lifecycle; they are now recognized inside the single-pass inline scan, and per the event-contract
+> amendment the inline-pass lifecycle belongs to `spanGamut` alone (`makehtml.spanGamut.onStart` /
+> `.onEnd`). Each extra still emits its **`onCapture` / `onHash`** family once per occurrence (per
+> substituted emoji / ellipsis, per `<u>` / `<del>` span), so a listener that only hooked capture/hash
+> is unaffected; a listener that hooked `makehtml.{emoji,ellipsis,underline,strikethrough}.onStart` /
+> `.onEnd` must move to the `makehtml.spanGamut` lifecycle. (`@mentions` became the scan-native
+> `makehtml.inline.ghMentions` construct in the same increment; it emits `makehtml.link.reference.*`
+> like an ordinary reference link, and GFM naked-URL/mail linking remains a by-design post-scan pass —
+> see the [`makehtml.inline.*` namespace](#the-makehtmlinline-namespace) above.)
 
 Notable per-construct events:
 

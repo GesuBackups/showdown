@@ -80,7 +80,25 @@ describe('ReDoS resistance', function () {
     {name: 'many naked URLs', input: 'http://x.com/a '.repeat(5000), options: {simplifiedAutoLink: true}},
     {name: 'one huge naked URL', input: 'http://example.com/' + 'a'.repeat(80000), options: {simplifiedAutoLink: true}},
     // Escaped-delimiter runs exercise the escaped-flanking path in the inline engine.
-    {name: 'escaped-delimiter runs \\_', input: '\\_'.repeat(40000)}
+    {name: 'escaped-delimiter runs \\_', input: '\\_'.repeat(40000)},
+
+    // Scan-native strikethrough pairing (the `~` runs become delimiter-like nodes paired after
+    // emphasis). The adversarial shape is many valid OPENERS with no valid closer (`~~x ` — every
+    // candidate closer has a space before it): the historical whole-text regex resolved this in
+    // O(n^2), so the node pairing precomputes each run's flanking chars once and stays O(n). The
+    // immediate-pair shape (`~~a~~ `) and one giant run are covered for completeness.
+    {name: 'strikethrough: unpairable openers ~~x ', input: '~~x '.repeat(N), options: {strikethrough: true}},
+    {name: 'strikethrough: immediate pairs ~~a~~ ', input: '~~a~~ '.repeat(N), options: {strikethrough: true}},
+    {name: 'strikethrough: one giant tilde run', input: '~'.repeat(120000), options: {strikethrough: true}},
+
+    // Scan-native underline (option): the claim set is computed once per (sub)scan by replaying the
+    // `___`/`__` sweep regexes, each with `[\s\S]*?` lazy content and (normal mode) a `/\S$/` reject.
+    // The adversarial shapes are many unpaired openers (`__x ` — every candidate closer has a space
+    // before it, forcing the lazy scan to the string end and rejecting), many immediate pairs
+    // (`__a__ `) and one giant underscore run; all must stay linear.
+    {name: 'underline: unpairable openers __x ', input: '__x '.repeat(N), options: {underline: true}},
+    {name: 'underline: immediate pairs __a__ ', input: '__a__ '.repeat(N), options: {underline: true}},
+    {name: 'underline: one giant underscore run', input: '_'.repeat(120000), options: {underline: true}}
   ];
 
   cases.forEach(function (tc) {
