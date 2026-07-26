@@ -47,6 +47,14 @@ describe('ReDoS resistance', function () {
     {name: 'raw HTML: many open tags + stray mismatched close', input: '<a>'.repeat(N) + '</z>'},
     {name: 'raw HTML: many close tags', input: '</a>'.repeat(N)},
 
+    // --- raw HTML BLOCK scanner (htmlBlock legacy balanced-tag scan) ---
+    // Many block-level openers with no matching closer: replaceRecursiveRegExp/rgxFindMatchPos
+    // restarted its scan once per unbalanced opener, so this was O(n^2) (~12s at 80k). The
+    // absent-close-tag guard in htmlBlock.js short-circuits when no closer follows, keeping it
+    // linear. `<div>` and `<p>` are two block tags on the scan list.
+    {name: 'raw HTML block: many unclosed <div>', input: '<div>\n'.repeat(N)},
+    {name: 'raw HTML block: many unclosed <p>', input: '<p>\n'.repeat(N)},
+
     // --- emphasis / unhash spans (O(n) spans) ---
     {name: 'underscores a_ (many em spans)', input: 'a_'.repeat(N)},
     {name: 'asterisks', input: '*'.repeat(N)},

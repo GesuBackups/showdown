@@ -88,14 +88,23 @@ showdown.helper.hashHTMLBlocks = function (text, options, globals) {
     let opTagPos,
         rgx1     = new RegExp('^ {0,3}(<' + blockTags[i] + '\\b[^>]*>)', 'im'),
         patLeft  = '<' + blockTags[i] + '\\b[^>]*>',
-        patRight = '</' + blockTags[i] + '>';
+        patRight = '</' + blockTags[i] + '>',
+        closeRe  = new RegExp(patRight, 'im');
     // 1. Look for the first position of the first opening HTML tag in the text
     while ((opTagPos = showdown.helper.regexIndexOf(text, rgx1)) !== -1) {
 
       //2. Split the text in that position
-      let subTexts = showdown.helper.splitAtIndex(text, opTagPos),
-          //3. Match recursively
-          newSubText1 = showdown.helper.replaceRecursiveRegExp(subTexts[1], repFunc, patLeft, patRight, 'im');
+      let subTexts = showdown.helper.splitAtIndex(text, opTagPos);
+      // Absent-close-tag guard (ReDoS). replaceRecursiveRegExp -> rgxFindMatchPos restarts its
+      // scan once per unbalanced opener, so a run of openers with no matching closer ahead is
+      // O(n^2). If no closing tag follows the opener no balanced block can form, so skip the
+      // recursive scan — its result would be the text unchanged, exactly the `break` below, so
+      // this is byte-identical (mirrors the same guard in the makehtml.htmlBlock subparser).
+      if (!closeRe.test(subTexts[1])) {
+        break;
+      }
+      //3. Match recursively
+      let newSubText1 = showdown.helper.replaceRecursiveRegExp(subTexts[1], repFunc, patLeft, patRight, 'im');
 
       // prevent an infinite loop
       if (newSubText1 === subTexts[1]) {

@@ -373,20 +373,20 @@ showdown.Converter = function (converterOptions) {
     // run the sub parsers
     text = showdown.subParser('makehtml.metadata')(text, options, globals);
     text = showdown.helper.hashPreCodeTags(text, options, globals);
+    // One block-stage ordering for every flavor: the HTML-block scan runs BEFORE githubCodeBlock.
+    // Leaf blocks are recognized in document order, so an open HTML block (e.g. a `<div>` with no
+    // following blank line) absorbs a fence that follows it; the (fence-aware) htmlBlock scan must
+    // therefore see the literal fenced source first. githubCodeBlock then claims fenced code:
+    // under cmSpec (`topLevelOnly`) only fences at indent 0 — indent 1-3 fences nested in list
+    // items / block quotes are handled by the container parsers (and a later blockGamut pass for
+    // genuinely top-level indented fences); the legacy flavors get its full {0,3}-indent +
+    // unclosed-fence passes. Only `expandCmTabs` (a CommonMark tab-normalization rule) stays
+    // cmSpec-gated; the ordering itself is unconditional (unified at U-8c).
     if (options.cmSpec) {
-      // Container mode parses leaf blocks in document order: an open HTML block (e.g. a
-      // `<div>` with no following blank line) absorbs a fence that follows it, so the
-      // (fence-aware) HTML-block scan must run before githubCodeBlock. githubCodeBlock then
-      // only claims fences at indent 0; indent 1-3 fences nested in list items / block
-      // quotes are handled by the container parsers (and a later blockGamut pass for
-      // genuinely top-level indented fences).
       text = showdown.helper.expandCmTabs(text);
-      text = showdown.subParser('makehtml.htmlBlock')(text, options, globals);
-      text = showdown.subParser('makehtml.githubCodeBlock')(text, options, globals, true);
-    } else {
-      text = showdown.subParser('makehtml.githubCodeBlock')(text, options, globals);
-      text = showdown.subParser('makehtml.htmlBlock')(text, options, globals);
     }
+    text = showdown.subParser('makehtml.htmlBlock')(text, options, globals);
+    text = showdown.subParser('makehtml.githubCodeBlock')(text, options, globals, options.cmSpec);
     text = showdown.helper.hashCodeTags(text, options, globals);
     // Footnotes (GFM): collect `[^id]: ...` definitions and replace `[^id]` references
     // before stripLinkDefinitions (whose scanner would otherwise claim `[^id]:` lines).
@@ -400,12 +400,21 @@ showdown.Converter = function (converterOptions) {
     // decode character references (gated by the decodeEntities option) after inline parsing,
     // while code spans/blocks are still hashed, so decoded chars are not re-parsed
     text = showdown.subParser('makehtml.decodeEntities')(text, options, globals);
-    // restore raw CommonMark HTML blocks now, after decodeEntities, so their verbatim
-    // content (e.g. `<a href="&ouml;&ouml;.html">`) keeps its entities undecoded
+    // restore raw HTML blocks now, after decodeEntities, so their verbatim content
+    // (e.g. `<a href="&ouml;&ouml;.html">`) keeps its entities undecoded for every flavor. Raw
+    // blocks can nest (the legacy balanced-tag scanner hashes an inner block-level tag before the
+    // outer one absorbs it), so restore repeatedly until no ¨R remains — a single String.replace
+    // pass would not re-scan the content it just inserted. cmSpec never nests, so this loops
+    // exactly once there. The guard bounds iterations by the block count (max possible nesting
+    // depth); the ¨ escape marker is already hidden as ¨T by this point, so stored content cannot
+    // reintroduce a spurious ¨R placeholder.
     if (globals.gHtmlRawBlocks.length) {
-      text = text.replace(/¨R(\d+)R/g, function (wm, n) {
-        return globals.gHtmlRawBlocks[n];
-      });
+      let rawGuard = 0;
+      while (/¨R\d+R/.test(text) && rawGuard++ <= globals.gHtmlRawBlocks.length) {
+        text = text.replace(/¨R(\d+)R/g, function (wm, n) {
+          return globals.gHtmlRawBlocks[n];
+        });
+      }
     }
     text = showdown.helper.unhashHTMLSpans(text, options, globals);
     text = showdown.helper.unescapePlaceholders(text);

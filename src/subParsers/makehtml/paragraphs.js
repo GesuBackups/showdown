@@ -26,9 +26,10 @@ showdown.subParser('makehtml.paragraphs', function (text, options, globals) {
 
   for (let i = 0; i < end; i++) {
     let str = grafs[i];
-    // if this is an HTML marker, copy it (¨R = a raw CommonMark HTML block, deferred past
-    // decodeEntities and restored later - it must not be <p>-wrapped or unhashed here)
-    if (str.search(/¨([KGR])(\d+)\1/g) >= 0) {
+    // if this is an HTML marker, copy it verbatim (do not <p>-wrap): ¨K/¨G/¨M restore below,
+    // in this pass; ¨R = a raw HTML block deferred past decodeEntities and restored later.
+    // (¨K = generated block markup; ¨M = a markdown="1"-processed HTML block.)
+    if (str.search(/¨([KGRM])(\d+)\1/g) >= 0) {
       grafsOut.push(str);
 
     // test for presence of characters to prevent empty lines being parsed
@@ -67,12 +68,20 @@ showdown.subParser('makehtml.paragraphs', function (text, options, globals) {
         codeFlag = false;
     // if this is a marker for an html block...
     let blockMatch;
-    while ((blockMatch = /¨([KG])(\d+)\1/.exec(grafsOutIt)) !== null) {
+    // Restores the three early-restore stores: ¨K (generated block markup, hashHTMLBlocks/
+    // hashBlock), ¨G (githubCodeBlock code) and ¨M (markdown="1"-processed HTML blocks, htmlBlock).
+    // ¨R (raw source blocks) is deliberately NOT restored here — it is deferred past decodeEntities
+    // and restored late in the converter so its entities stay verbatim.
+    while ((blockMatch = /¨([KGM])(\d+)\1/.exec(grafsOutIt)) !== null) {
       let delim = blockMatch[1],
           num   = blockMatch[2];
 
       if (delim === 'K') {
         blockText = globals.gHtmlBlocks[num];
+      } else if (delim === 'M') {
+        // a markdown="1"-processed HTML block; restored early here like ¨K, but from its own
+        // gHtmlMdBlocks store.
+        blockText = globals.gHtmlMdBlocks[num];
       } else {
         // we need to check if ghBlock is a false positive
         if (codeFlag) {
@@ -84,7 +93,7 @@ showdown.subParser('makehtml.paragraphs', function (text, options, globals) {
       }
       blockText = blockText.replace(/\$/g, '$$$$'); // Escape any dollar signs
 
-      grafsOutIt = grafsOutIt.replace(/(\n\n)?¨([KG])\d+\2(\n\n)?/, blockText);
+      grafsOutIt = grafsOutIt.replace(/(\n\n)?¨([KGM])\d+\2(\n\n)?/, blockText);
       // Check if grafsOutIt is a pre->code
       if (/^<pre\b[^>]*>\s*<code\b[^>]*>/.test(grafsOutIt)) {
         codeFlag = true;

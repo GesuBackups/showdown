@@ -24,8 +24,10 @@ showdown.subParser('makehtml.hardLineBreaks', function (text, options, globals) 
   if (options.simpleLineBreaks) {
     // GFM style hard breaks
     // only add line breaks if the text does not contain a block (special case for lists).
-    // ¨K = a generated/hashed block; ¨R = a raw CommonMark HTML block (wrapped in single newlines).
-    if (!/\n\n¨K/.test(text) && !/\n¨R\d+R\n/.test(text)) {
+    // ¨K = a generated/hashed block; ¨M = a markdown="1"-processed block (early restore);
+    // ¨R = a raw HTML block (late restore). The ¨R sniff is newline-agnostic so it matches
+    // both the cmSpec single-newline and the legacy double-newline wrapper.
+    if (!/\n\n¨K/.test(text) && !/\n\n¨M/.test(text) && !/\n¨R\d+R\n/.test(text)) {
       text = text.replace(/\n+/gm, function (wholeMatch) { return parseBreak(/\n+/gm, wholeMatch); });
     }
   } else {
