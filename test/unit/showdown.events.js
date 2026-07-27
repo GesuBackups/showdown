@@ -1286,11 +1286,11 @@ describe('showdown.Event', function () {
     });
   });
 
-  // D5: the spanGamut engine's own CommonMark links/images (built by buildLink/buildImage under
-  // cmSpec) now dispatch the SAME event families as link.js/image.js — makehtml.link.<variant>.* /
-  // makehtml.image.<variant>.* — so listener extensions behave identically across flavors. These
-  // tests exercise the commonmark flavor specifically (the generic conformance/coverage suites
-  // above also cover them, but the cm* exemption ended for what D5 touched, so pin them here).
+  // The spanGamut inline engine's own CommonMark links/images dispatch the SAME event families as
+  // every other flavor — makehtml.link.<variant>.* / makehtml.image.<variant>.* — so listener
+  // extensions behave identically across flavors. Post-unification there is a single event stream,
+  // fully covered by the generic conformance/coverage suites above; these tests additionally pin
+  // the commonmark flavor's links/images specifically.
   describe('spanGamut link/image events (commonmark flavor)', function () {
 
     function cm (register) {
