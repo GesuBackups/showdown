@@ -9,8 +9,6 @@
  * `showdown.helper.*` mechanism, not a construct; emits no events.
  */
 
-// Mechanism (not a construct): hash plumbing. Attached as a showdown.helper
-// (no events) rather than registered as a subparser.
 showdown.helper.hashHTMLSpans = function (text, options, globals) {
   'use strict';
 

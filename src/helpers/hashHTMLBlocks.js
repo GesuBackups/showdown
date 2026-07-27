@@ -12,8 +12,6 @@
  * store (see `hashBlock`).
  */
 
-// Mechanism (not a construct): hash plumbing for generated block-level markup. Attached as a
-// showdown.helper (no events) rather than registered as a subparser.
 showdown.helper.hashHTMLBlocks = function (text, options, globals) {
   'use strict';
 

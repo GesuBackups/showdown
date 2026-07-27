@@ -35,14 +35,71 @@
 // The construct handlers under `makehtml.inline.*` touch a live instance through `scan.list` at call
 // time, so nothing outside this file needs to name the constructor.
 //
-// The flanking character classifiers it leans on (`showdown.helper.isAsciiPunct`/`isPunct`/
-// `isWhitespace`) stay in helpers/commonmark.js and are read at call time inside the methods.
+// The flanking character classifiers it leans on: `isPunct`/`isWhitespace` are file-locals below
+// (this file is their only consumer); `showdown.helper.isAsciiPunct` stays in helpers/commonmark.js
+// (backslash.js also uses it) and is read at call time inside the methods.
 
 // A backslash-escaped punctuation char can reach the flanking classifier as the `¨E<code>E`
 // placeholder; the classifier must treat a side that abuts one as a word character (see pushDelim's
 // `placeholderAsWord`). Sticky so the after-side test can anchor at the scan cursor without
 // slicing the string.
 const cmEscapePlaceholder = /¨E\d+E/y;
+
+// ---- flanking character classifiers (file-local; spanGamut is their sole consumer) ----------
+// `cmAsciiPunct` is NOT redeclared here: the authoritative copy lives in helpers/commonmark.js
+// (kept there for showdown.helper.isAsciiPunct) and, because the sources concatenate into one
+// shared scope, is read directly at call time by isPunct below.
+
+/**
+ * CommonMark "punctuation": ASCII punctuation plus the Unicode P (punctuation) and
+ * S (symbol) general categories.
+ * @param {string|undefined} ch
+ * @returns {boolean}
+ */
+function isPunct (ch) {
+  return ch !== undefined && (cmAsciiPunct.test(ch) || /[\p{P}\p{S}]/u.test(ch));
+}
+
+/**
+ * CommonMark "whitespace" for the flanking rules: undefined (string edge), any JS
+ * `\s` whitespace, or any Unicode Z (separator) character.
+ * @param {string|undefined} ch
+ * @returns {boolean}
+ */
+function isWhitespace (ch) {
+  return ch === undefined || /\s/.test(ch) || /\p{Z}/u.test(ch);
+}
+
+// ---- encodeAmpsAndAngles (file-local; the span-gamut epilogue is its sole caller) -----------
+// A character-level encoding pass (not a construct): encodes stray `&`, `<`, `>`, `"` to HTML
+// entities, leaving real entity references intact. Emits no events.
+
+/**
+ * Encodes stray `&`, `<`, `>`, `"` to HTML entities (leaving real entity references intact).
+ * @param {string} text
+ * @returns {string}
+ */
+function encodeAmpsAndAngles (text) {
+  'use strict';
+
+  // Ampersand-encoding based entirely on Nat Irons's Amputator MT plugin:
+  // http://bumppo.net/projects/amputator/
+  text = text.replace(/&(?!#?[xX]?(?:[\da-fA-F]+|\w+);)/g, '&amp;');
+
+  // Encode naked <'s
+  text = text.replace(/<(?![a-z/?$!])/gi, '&lt;');
+
+  // Encode <
+  text = text.replace(/</g, '&lt;');
+
+  // Encode >
+  text = text.replace(/>/g, '&gt;');
+
+  // encode "
+  text = text.replace(/"/g, '&quot;');
+
+  return text;
+}
 
 /**
  * A doubly-linked list of inline nodes plus the CommonMark emphasis delimiter stack.
@@ -145,10 +202,10 @@ DelimiterStack.prototype = {
         before = 'a';
       }
     }
-    let beforeWs = showdown.helper.isWhitespace(before),
-        afterWs = showdown.helper.isWhitespace(after),
-        beforePt = showdown.helper.isPunct(before),
-        afterPt = showdown.helper.isPunct(after),
+    let beforeWs = isWhitespace(before),
+        afterWs = isWhitespace(after),
+        beforePt = isPunct(before),
+        afterPt = isPunct(after),
         leftFlanking = !afterWs && (!afterPt || beforeWs || beforePt),
         rightFlanking = !beforeWs && (!beforePt || afterWs || afterPt),
         canOpen, canClose;
@@ -401,7 +458,7 @@ showdown.subParser('makehtml.spanGamut', function (text, options, globals) {
   //    scan recognizer appends a bare URL run verbatim (with a literal `&`), and when nakedUrl.linkify
   //    declines to link it that `&` must be encoded to `&amp;` here (this also covers bare `&`/`<`/`>`
   //    in listener output).
-  text = showdown.helper.encodeAmpsAndAngles(text, options, globals);
+  text = encodeAmpsAndAngles(text, options, globals);
 
   // 3. hardLineBreaks (trailing pass) — live and fixture-exercised. The in-scan hardBreak handler only
   //    emits `<br />` for `  \n` / `\\\n`; the GFM `simpleLineBreaks` option turns every remaining soft

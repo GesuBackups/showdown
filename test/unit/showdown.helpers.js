@@ -238,18 +238,6 @@ describe('forEach()', function () {
   });
 });
 
-describe('matchRecursiveRegExp()', function () {
-  'use strict';
-
-  let rRegExp = showdown.helper.matchRecursiveRegExp;
-
-  it('should match nested elements', function () {
-    let result = rRegExp('<div><div>a</div></div>', '<div\\b[^>]*>', '</div>', 'gim');
-    expect(result).toEqual([['<div><div>a</div></div>', '<div>a</div>', '<div>', '</div>']]);
-  });
-
-});
-
 describe('repeat()', function () {
   'use strict';
   it('work produce the same output as String.prototype.repeat()', function () {
@@ -358,85 +346,6 @@ describe('helpers/types.js', function () {
 describe('helpers/text.js', function () {
   'use strict';
 
-  describe('trimStart()', function () {
-    let trimStart = showdown.helper.trimStart;
-    it('should strip leading ASCII whitespace', function () {
-      expect(trimStart('  \t\nfoo')).toBe('foo');
-    });
-    it('should strip leading unicode whitespace (CM whitespace class)', function () {
-      expect(trimStart('  　foo')).toBe('foo');
-      expect(trimStart('﻿foo')).toBe('foo');
-    });
-    it('should not touch trailing whitespace', function () {
-      expect(trimStart('  foo  ')).toBe('foo  ');
-    });
-  });
-
-  describe('trimEnd()', function () {
-    let trimEnd = showdown.helper.trimEnd;
-    it('should strip trailing ASCII whitespace', function () {
-      expect(trimEnd('foo \t\n')).toBe('foo');
-    });
-    it('should strip trailing unicode whitespace (CM whitespace class)', function () {
-      expect(trimEnd('foo  　')).toBe('foo');
-      expect(trimEnd('foo﻿')).toBe('foo');
-    });
-    it('should not touch leading whitespace', function () {
-      expect(trimEnd('  foo  ')).toBe('  foo');
-    });
-  });
-
-  describe('caseFold()', function () {
-    let caseFold = showdown.helper.caseFold;
-    it('should uppercase-fold ASCII', function () {
-      expect(caseFold('Foo')).toBe('FOO');
-    });
-    it('should fold ß, ẞ and SS together', function () {
-      expect(caseFold('ß')).toBe('SS');
-      expect(caseFold('ẞ')).toBe('SS');
-      expect(caseFold('ss')).toBe('SS');
-      expect(caseFold('ß')).toBe(caseFold('ẞ'));
-    });
-  });
-
-  describe('expandCmTabs()', function () {
-    let expandCmTabs = showdown.helper.expandCmTabs;
-    it('should return the text unchanged when there is no tab', function () {
-      expect(expandCmTabs('foo bar')).toBe('foo bar');
-    });
-    it('should expand a leading tab to a 4-column tab stop', function () {
-      expect(expandCmTabs('\tfoo')).toBe('    foo');
-    });
-    it('should honor the current column for tab-stop math', function () {
-      // 2 leading spaces put the tab at column 2, so it advances only 2 columns
-      expect(expandCmTabs('  \tfoo')).toBe('    foo');
-    });
-    it('should account for a list marker when computing the tab stop', function () {
-      // `-` is a marker at column 0, so the following tab advances 3 columns
-      expect(expandCmTabs('-\tfoo')).toBe('-   foo');
-    });
-    it('should preserve tabs that appear in content (after the prefix)', function () {
-      expect(expandCmTabs('foo\tbar')).toBe('foo\tbar');
-    });
-    it('should leave a thematic break untouched', function () {
-      expect(expandCmTabs('*\t*\t*')).toBe('*\t*\t*');
-    });
-  });
-
-  describe('normalizeLeadingTabs()', function () {
-    let normalizeLeadingTabs = showdown.helper.normalizeLeadingTabs;
-    it('should convert 1-3 leading spaces followed by a tab into a single tab', function () {
-      expect(normalizeLeadingTabs('   \tfoo')).toBe('\tfoo');
-      expect(normalizeLeadingTabs(' \tfoo')).toBe('\tfoo');
-    });
-    it('should not convert 4 leading spaces followed by a tab', function () {
-      expect(normalizeLeadingTabs('    \tfoo')).toBe('    \tfoo');
-    });
-    it('should operate per line', function () {
-      expect(normalizeLeadingTabs('  \tfoo\n   \tbar')).toBe('\tfoo\n\tbar');
-    });
-  });
-
   describe('outdent()', function () {
     let outdent = showdown.helper.outdent;
     it('should remove up to four leading spaces per line', function () {
@@ -536,17 +445,6 @@ describe('helpers/escapes.js', function () {
     });
   });
 
-  describe('escapeCharacters()', function () {
-    let escapeCharacters = showdown.helper.escapeCharacters;
-    it('should escape each listed character to a placeholder', function () {
-      expect(escapeCharacters('a*b_c', '*_', false)).toBe('a¨E42Eb¨E95Ec');
-    });
-    it('should only escape after a backslash when afterBackslash is set', function () {
-      expect(escapeCharacters('\\*', '*', true)).toBe('¨E42E');
-      expect(escapeCharacters('*', '*', true)).toBe('*');
-    });
-  });
-
   describe('unescapePlaceholders()', function () {
     let unescapePlaceholders = showdown.helper.unescapePlaceholders;
     it('should restore a placeholder to its literal character', function () {
@@ -558,22 +456,13 @@ describe('helpers/escapes.js', function () {
     });
   });
 
-  describe('backslashEscapePlaceholders()', function () {
-    it('should prefix each placeholder with a backslash but keep the placeholder', function () {
-      expect(showdown.helper.backslashEscapePlaceholders('¨E42E')).toBe('\\¨E42E');
-    });
-  });
-
-  describe('hashDollarsAndTremas() / restoreDollarsAndTremas()', function () {
-    let hash = showdown.helper.hashDollarsAndTremas,
-        restore = showdown.helper.restoreDollarsAndTremas;
-    it('should hide $ and ¨ behind the ¨D/¨T sentinels', function () {
-      expect(hash('$')).toBe('¨D');
-      expect(hash('¨')).toBe('¨T');
-    });
-    it('should round-trip $ and ¨ intact', function () {
-      let src = 'a$b¨c$$¨¨';
-      expect(restore(hash(src))).toBe(src);
+  describe('restoreDollarsAndTremas()', function () {
+    let restore = showdown.helper.restoreDollarsAndTremas;
+    it('should restore the ¨D/¨T sentinels back to literal $ and ¨', function () {
+      expect(restore('¨D')).toBe('$');
+      expect(restore('¨T')).toBe('¨');
+      // reverse of the producer's swap of `a$b¨c$$¨¨`
+      expect(restore('a¨Db¨Tc¨D¨D¨T¨T')).toBe('a$b¨c$$¨¨');
     });
   });
 
@@ -595,30 +484,6 @@ describe('helpers/escapes.js', function () {
 describe('helpers/url.js', function () {
   'use strict';
 
-  describe('URLUtils', function () {
-    it('should parse the components of an absolute URL', function () {
-      let u = new showdown.helper.URLUtils('http://user:pass@host.com:8080/a/b?x=1#frag');
-      expect(u.protocol).toBe('http:');
-      expect(u.host).toBe('host.com:8080');
-      expect(u.hostname).toBe('host.com');
-      expect(u.port).toBe('8080');
-      expect(u.pathname).toBe('/a/b');
-      expect(u.search).toBe('?x=1');
-      expect(u.hash).toBe('#frag');
-      expect(u.username).toBe('user');
-      expect(u.password).toBe('pass');
-      expect(u.href).toBe('http://user:pass@host.com:8080/a/b?x=1#frag');
-    });
-    it('should resolve a relative path against a base URL', function () {
-      let u = new showdown.helper.URLUtils('foo.html', 'http://host.com/a/b/page.html');
-      expect(u.href).toBe('http://host.com/a/b/foo.html');
-    });
-    it('should resolve dot segments against a base URL', function () {
-      let u = new showdown.helper.URLUtils('../c/d', 'http://host.com/a/b/page.html');
-      expect(u.href).toBe('http://host.com/a/c/d');
-    });
-  });
-
   describe('applyBaseUrl()', function () {
     let applyBaseUrl = showdown.helper.applyBaseUrl;
     it('should pass an absolute URL through unchanged', function () {
@@ -629,37 +494,6 @@ describe('helpers/url.js', function () {
     });
     it('should pass the URL through unchanged when no base is given', function () {
       expect(applyBaseUrl('', 'foo.html')).toBe('foo.html');
-    });
-  });
-
-  describe('isAbsolutePath()', function () {
-    let isAbsolutePath = showdown.helper.isAbsolutePath;
-    it('should treat protocol and protocol-relative URLs as absolute', function () {
-      expect(isAbsolutePath('http://x')).toBe(true);
-      expect(isAbsolutePath('//x')).toBe(true);
-    });
-    it('should treat fragments as absolute', function () {
-      expect(isAbsolutePath('#x')).toBe(true);
-    });
-    it('should treat plain relative paths as not absolute', function () {
-      expect(isAbsolutePath('foo/bar')).toBe(false);
-      expect(isAbsolutePath('./foo')).toBe(false);
-    });
-  });
-
-  describe('urlASCIIEncoding()', function () {
-    it('should percent-encode backslashes and spaces', function () {
-      expect(showdown.helper.urlASCIIEncoding('a\\b c')).toBe('a%5Cb%20c');
-    });
-  });
-
-  describe('safeUrlSchemes', function () {
-    it('should be a list of the expected allowed schemes', function () {
-      let schemes = showdown.helper.safeUrlSchemes;
-      expect(showdown.helper.isArray(schemes)).toBe(true);
-      ['http', 'https', 'ftp', 'mailto', 'tel'].forEach(function (s) {
-        expect(schemes.indexOf(s)).not.toBe(-1);
-      });
     });
   });
 });
@@ -956,7 +790,7 @@ describe('helpers/htmlEntities.js', function () {
 });
 
 // ---------------------------------------------------------------------------
-// helpers mechanisms (encode*/hash*/escapeSpecialCharsWithinTagAttributes)
+// helpers mechanisms (encode*/hash*)
 // Contract-level coverage — the functional fixtures carry the exhaustive load.
 // ---------------------------------------------------------------------------
 describe('helpers mechanisms', function () {
@@ -976,30 +810,6 @@ describe('helpers mechanisms', function () {
   describe('encodeCode()', function () {
     it('should entity-encode & < > " and placeholder the markdown magic chars', function () {
       expect(showdown.helper.encodeCode('a<b>&"*_')).toBe('a&lt;b&gt;&amp;&quot;¨E42E¨E95E');
-    });
-  });
-
-  describe('encodeAmpsAndAngles()', function () {
-    it('should guard bare & but leave entity references alone', function () {
-      expect(showdown.helper.encodeAmpsAndAngles('a & b &amp; <c> "d"'))
-        .toBe('a &amp; b &amp; &lt;c&gt; &quot;d&quot;');
-    });
-  });
-
-  describe('encodeBackslashEscapes()', function () {
-    it('should convert backslash escapes to placeholders', function () {
-      expect(showdown.helper.encodeBackslashEscapes('\\* \\\\')).toBe('¨E42E ¨E92E');
-    });
-  });
-
-  describe('escapeSpecialCharsWithinTagAttributes()', function () {
-    it('should escape the magic chars inside a tag', function () {
-      expect(showdown.helper.escapeSpecialCharsWithinTagAttributes('<a href="_x_">*b*</a>', options))
-        .toBe('<a href¨E61E"¨E95Ex¨E95E">*b*</a>');
-    });
-    it('should be a no-op in cmSpec mode', function () {
-      expect(showdown.helper.escapeSpecialCharsWithinTagAttributes('<a href="_x_">*b*</a>', {cmSpec: true}))
-        .toBe('<a href="_x_">*b*</a>');
     });
   });
 
@@ -1024,25 +834,6 @@ describe('helpers mechanisms', function () {
       expect(hashed).toContain('<br/>');
       expect(showdown.helper.unhashHTMLSpans(hashed, options, globals))
         .toBe('a <span>x</span> b <br/> c');
-    });
-  });
-
-  describe('hashCodeTags()', function () {
-    it('should protect <code> content and store the encoded block', function () {
-      let globals = mkGlobals();
-      expect(showdown.helper.hashCodeTags('a <code>x<y></code> b', options, globals)).toBe('a ¨C0C b');
-      expect(globals.gHtmlSpans[0]).toBe('<code>x&lt;y&gt;</code>');
-    });
-  });
-
-  describe('hashPreCodeTags()', function () {
-    it('should protect <pre><code> blocks in ghCodeBlocks', function () {
-      let globals = mkGlobals(),
-          input = '<pre><code>\nvar x = 1 < 2 & 3;\n</code></pre>',
-          out = showdown.helper.hashPreCodeTags(input, options, globals);
-      expect(out).toBe('\n\n¨G0G\n\n');
-      expect(globals.ghCodeBlocks[0].text).toBe(input);
-      expect(globals.ghCodeBlocks[0].codeblock).toContain('&lt; 2 &amp; 3;');
     });
   });
 

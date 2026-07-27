@@ -5,10 +5,10 @@
  * @copyright 2018-2026 ShowdownJS
  * @license   MIT
  *
- * `URLUtils`, `applyBaseUrl`, `isAbsolutePath`, `isSafeUrl` (+ `safeUrlSchemes`),
- * `urlASCIIEncoding` and `encodeEmailAddress` (with its seeded RNG helpers). Load-order safe:
- * the RNG helpers used at call time live in this file; nothing here reads another helper's
- * state at load time.
+ * The public surface is `applyBaseUrl`, `isSafeUrl` and `encodeEmailAddress` (with its seeded RNG
+ * helpers); `URLUtils`, `isAbsolutePath` and `safeUrlSchemes` are file-local internals consumed only
+ * by `applyBaseUrl`/`isSafeUrl` here. Load-order safe: the RNG helpers and the file-local internals
+ * used at call time live in this file; nothing here reads another helper's state at load time.
  */
 
 /**
@@ -100,8 +100,8 @@ showdown.helper.encodeEmailAddress = function (mail) {
  */
 showdown.helper.applyBaseUrl = function (baseUrl, url) {
   // Only prepend if given a base URL and the path is not absolute.
-  if (baseUrl && baseUrl !== '' && !showdown.helper.isAbsolutePath(url)) {
-    let urlResolve = new showdown.helper.URLUtils(url, baseUrl);
+  if (baseUrl && baseUrl !== '' && !isAbsolutePath(url)) {
+    let urlResolve = new URLUtils(url, baseUrl);
     url = urlResolve.href;
   }
 
@@ -114,14 +114,14 @@ showdown.helper.applyBaseUrl = function (baseUrl, url) {
  * @param {string} path the path to test for absolution
  * @returns {boolean} `true` if the given path is absolute, else `false`
  */
-showdown.helper.isAbsolutePath = function (path) {
+function isAbsolutePath (path) {
   // Absolute paths begin with '[protocol:]//' or '#' (anchors)
   return /(^([a-z]+:)?\/\/)|(^#)/i.test(path);
-};
+}
 
 // URL schemes allowed by safeMode. Relative URLs, fragments (#...) and
 // protocol-relative URLs (//host) carry no scheme and are always allowed.
-showdown.helper.safeUrlSchemes = ['http', 'https', 'ftp', 'ftps', 'mailto', 'tel', 'sms'];
+const safeUrlSchemes = ['http', 'https', 'ftp', 'ftps', 'mailto', 'tel', 'sms'];
 
 /**
  * safeMode URL guard: decide whether a link/image destination is safe to emit.
@@ -154,10 +154,10 @@ showdown.helper.isSafeUrl = function (url, opts) {
   if (scheme === 'data') {
     return allowDataImage && /^data:image\//i.test(stripped);
   }
-  return showdown.helper.safeUrlSchemes.indexOf(scheme) !== -1;
+  return safeUrlSchemes.indexOf(scheme) !== -1;
 };
 
-showdown.helper.URLUtils = function (url, baseURL) {
+function URLUtils (url, baseURL) {
   const pattern2 = /^([^:/?#]+:)?(?:\/\/(?:([^:@/?#]*)(?::([^:@/?#]*))?@)?(([^:/?#]*)(?::(\d*))?))?([^?#]*)(\?[^#]*)?(#[\s\S]*)?/;
 
   let m = String(url)
@@ -176,7 +176,7 @@ showdown.helper.URLUtils = function (url, baseURL) {
   let search = m[8] || '';
   let hash = m[9] || '';
   if (baseURL !== undefined) {
-    let base = new showdown.helper.URLUtils(baseURL);
+    let base = new URLUtils(baseURL);
     let flag = protocol === '' && host === '' && username === '';
     if (flag && pathname === '' && search === '') {
       search = base.search;
@@ -219,17 +219,4 @@ showdown.helper.URLUtils = function (url, baseURL) {
   this.pathname = pathname;
   this.search = search;
   this.hash = hash;
-};
-
-/**
- *
- * @param {string} url
- * @returns {string}
- */
-showdown.helper.urlASCIIEncoding = function (url) {
-  url = url
-    .replace(/\\/g, '%5C')
-    .replace(/ /g, '%20');
-
-  return url;
-};
+}

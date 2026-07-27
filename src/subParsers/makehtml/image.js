@@ -20,6 +20,25 @@
 
 /* jshint esnext: false, esversion: 9 */
 
+// Resolve Markdown backslash escapes (`\*`, `\_`, …) into placeholder escapes so those characters
+// lose their Markdown meaning. A character-level encoding pass (mechanism, not a construct; emits no
+// events). Uses a hand-optimized replace chain that sidesteps the slow `RegExp` constructor. File-local
+// to image.js — the non-cmSpec alt-text builder below is its sole caller.
+function encodeBackslashEscapes (text) {
+  'use strict';
+
+  text = text
+    .replace(/\\(\\)/g, showdown.helper.escapeCharactersCallback)
+    .replace(/\\([!#%'()*+,\-./:;=?@[\]\\^_`{|}~])/g, showdown.helper.escapeCharactersCallback)
+    .replace(/\\¨D/g, '¨D') // escape $ (which was already escaped as ¨D) (charcode is 36)
+    .replace(/\\&/g, '&amp;') // escape &
+    .replace(/\\"/g, '&quot;') // escaping "
+    .replace(/\\</g, '&lt;') // escaping <
+    .replace(/\\>/g, '&gt;'); // escaping >
+
+  return text;
+}
+
 showdown.subParser('makehtml.inline.image.build', function (scan, options, globals, innerHTML, dest, title, width, height, variant, wholeMatch, rawLabel) {
   'use strict';
 
@@ -36,7 +55,7 @@ showdown.subParser('makehtml.inline.image.build', function (scan, options, globa
     // e.g. `![a_b_c]` keeps its underscores instead of emphasizing them away. Mirrors
     // image.js's non-cmSpec altText handling exactly (backslash escapes resolved to
     // placeholders, then `"` and `* _ : ~` escaped), the whole `<img>` being hashed below.
-    alt = showdown.helper.encodeBackslashEscapes(rawLabel)
+    alt = encodeBackslashEscapes(rawLabel)
       .replace(/"/g, '&quot;')
       .replace(showdown.helper.regexes.asteriskDashTildeAndColon, showdown.helper.escapeCharactersCallback);
   }

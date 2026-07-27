@@ -6,9 +6,9 @@
  * @license   MIT
  *
  * `cmDecodeEntities`, `cmEncodeURI`, `cmNormalizeURL`, `cmEscapeTitle`, `cmNormalizeLabel`, the
- * link-destination/title scanners (`cmScanDestination`/`cmScanTitle`) and the CommonMark character
- * classifiers used by the emphasis flanking rules (`isAsciiPunct`/`isPunct`/`isWhitespace`).
- * Load-order safe: every reference to another helper (`htmlEntities`, `caseFold`,
+ * link-destination/title scanners (`cmScanDestination`/`cmScanTitle`) and the `isAsciiPunct`
+ * character classifier (with the authoritative `cmAsciiPunct` class it shares with the flanking
+ * classifiers in spanGamut.js). Load-order safe: every reference to another helper (`htmlEntities`,
  * `unescapePlaceholders`) happens inside function bodies (call time), never at load time.
  */
 
@@ -20,10 +20,23 @@
 // File-local const (load-order safe: only read inside function bodies below, at call time).
 const cmGuardedAmpersand = /&(?![a-zA-Z#0-9]+;)/g;
 
-// CommonMark punctuation = ASCII punctuation + Unicode P and S categories. The authoritative copy
-// of this class lives here with its three classifiers (the delimiter-stack engine reaches them only
-// through the showdown.helper.* functions below, at call time). File-local const (load-order safe).
+// CommonMark punctuation = ASCII punctuation + Unicode P and S categories. This is the authoritative
+// copy of the class: `isAsciiPunct` (below) tests it directly, and the flanking `isPunct` classifier
+// in spanGamut.js reads this same const at call time (one shared concat scope). File-local const
+// (load-order safe: only read inside function bodies).
 const cmAsciiPunct = /[!-/:-@[-`{-~]/;
+
+/**
+ * Unicode case folding for case-insensitive matching of link reference labels.
+ * Uses `toLowerCase().toUpperCase()` (the round-trip used by commonmark.js) so that
+ * characters like `ß`, `ẞ` and `SS` all fold together - which plain `toLowerCase`
+ * does not (`ẞ` -> `ß`, not `ss`). File-local to commonmark.js (cmNormalizeLabel is its sole caller).
+ * @param {string} str
+ * @returns {string}
+ */
+function caseFold (str) {
+  return str.toLowerCase().toUpperCase();
+}
 
 /**
  * True when `ch` is an ASCII punctuation character (and defined). Used for
@@ -33,26 +46,6 @@ const cmAsciiPunct = /[!-/:-@[-`{-~]/;
  */
 showdown.helper.isAsciiPunct = function (ch) {
   return ch !== undefined && cmAsciiPunct.test(ch);
-};
-
-/**
- * CommonMark "punctuation": ASCII punctuation plus the Unicode P (punctuation) and
- * S (symbol) general categories.
- * @param {string|undefined} ch
- * @returns {boolean}
- */
-showdown.helper.isPunct = function (ch) {
-  return ch !== undefined && (cmAsciiPunct.test(ch) || /[\p{P}\p{S}]/u.test(ch));
-};
-
-/**
- * CommonMark "whitespace" for the flanking rules: undefined (string edge), any JS
- * `\s` whitespace, or any Unicode Z (separator) character.
- * @param {string|undefined} ch
- * @returns {boolean}
- */
-showdown.helper.isWhitespace = function (ch) {
-  return ch === undefined || /\s/.test(ch) || /\p{Z}/u.test(ch);
 };
 
 /**
@@ -186,7 +179,7 @@ showdown.helper.cmNormalizeLabel = function (label) {
   // why the inline link construct passes the raw source label. The `¨E<code>E` replace below only restores
   // placeholders produced earlier in the pipeline, so definition and use labels that went
   // through the same escaping normalize identically.
-  return showdown.helper.caseFold(showdown.helper.unescapePlaceholders(label)
+  return caseFold(showdown.helper.unescapePlaceholders(label)
     .replace(/\s+/g, ' ')
     .trim());
 };

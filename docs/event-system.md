@@ -35,13 +35,16 @@ kinds of pass:
   per match (for constructs that match discrete pieces). These are the events listener
   extensions hook.
 * **Mechanisms** — internal plumbing that has no syntax of its own: the character-level
-  encoders (`encodeCode`, `encodeAmpsAndAngles`, `encodeBackslashEscapes`,
-  `escapeSpecialCharsWithinTagAttributes`), the hash/unhash helpers (`hashBlock`,
-  `hashHTMLBlocks`, `hashHTMLSpans`, `hashCodeTags`, `hashPreCodeTags`, `unhashHTMLSpans`,
-  `unescapeSpecialChars`) and the heading-id generator. These are plain `showdown.helper.*`
-  functions and emit **no events**. (`showdown.helper.hashHTMLBlocks` only protects the markup
-  the block parsers *generate* from a spurious `<p>` wrap — recognizing raw HTML blocks in the
-  Markdown *source* is the job of the `makehtml.htmlBlock` construct, which does emit events.)
+  encoders (`encodeCode`, `encodeAmpsAndAngles`, `encodeBackslashEscapes`), the hash/unhash
+  helpers (`hashBlock`, `hashHTMLBlocks`, `hashHTMLSpans`, `hashCodeTags`, `hashPreCodeTags`,
+  `unhashHTMLSpans`, `unescapePlaceholders`) and the heading-id generator. These are plain
+  functions and emit **no events** — some live on the `showdown.helper.*` surface (`encodeCode`,
+  `hashBlock`, `hashHTMLBlocks`, `hashHTMLSpans`, `unhashHTMLSpans`, …), while others are
+  file-local to the pass that owns them (`encodeAmpsAndAngles` in `spanGamut.js`,
+  `encodeBackslashEscapes` in `image.js`, `hashCodeTags`/`hashPreCodeTags` in `converter.js`).
+  (`showdown.helper.hashHTMLBlocks` only protects the markup the block parsers *generate* from a
+  spurious `<p>` wrap — recognizing raw HTML blocks in the Markdown *source* is the job of the
+  `makehtml.htmlBlock` construct, which does emit events.)
 
 Two further passes emit no events even though they are registered sub-parsers:
 

@@ -54,17 +54,8 @@ function runTests () {
     .add('codeSpans', function () {
       showdown.subParser('makehtml.codeSpan')(testMDFile, options, globals);
     })
-    .add('encodeAmpsAndAngles', function () {
-      showdown.helper.encodeAmpsAndAngles(testMDFile);
-    })
-    .add('encodeBackslashEscapes', function () {
-      showdown.helper.encodeBackslashEscapes(testMDFile);
-    })
     .add('encodeCode', function () {
       showdown.helper.encodeCode(testMDFile);
-    })
-    .add('escapeSpecialCharsWithinTagAttributes', function () {
-      showdown.helper.escapeSpecialCharsWithinTagAttributes(testMDFile, options);
     })
     .add('githubCodeBlocks', function () {
       showdown.subParser('makehtml.githubCodeBlock')(testMDFile, options, globals);
@@ -74,9 +65,6 @@ function runTests () {
     })
     .add('hashHTMLSpans', function () {
       showdown.helper.hashHTMLSpans(testMDFile, options, globals);
-    })
-    .add('hashPreCodeTags', function () {
-      showdown.helper.hashPreCodeTags(testMDFile, options, globals);
     })
     .add('headers', function () {
       let t = showdown.subParser('makehtml.heading.setext')(testMDFile, options, globals);

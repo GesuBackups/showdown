@@ -38,6 +38,93 @@ function consumeNakedUrl (str, i) {
   return {text: str.slice(i, j), end: j};
 }
 
+/**
+ * Encode a bare email address into `{mail, url}` (a `mailto:` href), applying the entity
+ * obfuscation of `encodeEmails` when enabled. File-local to nakedUrl.js (its sole caller).
+ * @param {string} mail
+ * @param {{}} options
+ * @returns {{mail: string, url: string}}
+ */
+function parseMail (mail, options) {
+  let url = 'mailto:';
+  mail = showdown.helper.unescapePlaceholders(mail);
+  if (options.encodeEmails) {
+    url = showdown.helper.encodeEmailAddress(url + mail);
+    mail = showdown.helper.encodeEmailAddress(mail);
+  } else {
+    url = url + mail;
+  }
+  return {
+    mail: mail,
+    url: url
+  };
+}
+
+/**
+ * The naked-URL trailing-punctuation trim: walk the captured URL from the back, moving trailing
+ * `_*~,;:.!?` and unbalanced `)`/`]` into a suffix that is emitted after the link. Returns the
+ * trimmed url and the accumulated suffix. File-local to nakedUrl.js (its sole caller); the
+ * GFM-specific trimming layered on top stays in the linkify pass below.
+ * @param {string} url
+ * @returns {{url: string, suffix: string}}
+ */
+function trimUrlPunctuation (url) {
+  const len = url.length;
+  let suffix = '';
+
+  for (let i = len - 1; i >= 0; --i) {
+    let char = url.charAt(i);
+    if (/[_*~,;:.!?]/.test(char)) {
+      // it's a punctuation char so we remove it from the url
+      url = url.slice(0, -1);
+      // and prepend it to the suffix
+      suffix = char + suffix;
+    } else if (/[)\]]/.test(char)) {
+      // it's a parenthesis so we need to check for "balance" (kinda)
+      let opPar, clPar;
+      if (/\)/.test(char)) {
+        // it's a curved parenthesis
+        opPar = url.match(/\(/g) || [];
+        clPar = url.match(/\)/g);
+      } else {
+        // it's a squared parenthesis
+        opPar = url.match(/\[/g) || [];
+        clPar = url.match(/]/g);
+      }
+      if (opPar.length < clPar.length) {
+        // there are more closing Parenthesis than opening so chop it!!!!!
+        url = url.slice(0, -1);
+        // and prepend it to the suffix
+        suffix = char + suffix;
+      } else {
+        // it's (kinda) balanced so our work is done
+        break;
+      }
+    } else {
+      // it's not a punctuation or a parenthesis so our work is done
+      break;
+    }
+  }
+  return {url: url, suffix: suffix};
+}
+
+/**
+ * GFM extended email autolink domain validation: the domain must have at least two labels, must not
+ * end in `-` or `_`, and its last two labels must not contain `_`. File-local to nakedUrl.js (the
+ * naked-mail and xmpp/mailto post-passes are its only callers).
+ * @param {string} addr
+ * @returns {boolean}
+ */
+function validMailAddr (addr) {
+  let at = addr.lastIndexOf('@');
+  if (at < 1) { return false; }
+  let domain = addr.slice(at + 1),
+      labels = domain.split('.');
+  if (labels.length < 2) { return false; }
+  if (/[-_]$/.test(domain)) { return false; }
+  return !/_/.test(labels.slice(-2).join('.'));
+}
+
 // The `h`/`w`/`f` scan handler for the unified inline scanner in spanGamut.js. Consumes a bare URL
 // run as one atomic node (emitted RAW, not HTML-escaped: the legacy simplifiedAutoLink pass ran on
 // unescaped text, so `&` and non-ASCII chars stayed literal in the captured URL; if the post-pass
@@ -56,19 +143,15 @@ showdown.subParser('makehtml.inline.nakedUrl.linkify', function (text, options, 
   'use strict';
 
   // The GFM ghMentions / simplifiedAutoLink post-passes emit their anchors through the shared
-  // GFM anchor machinery (showdown.helper.writeAnchorTag / parseMail), same as link.js. Gate 6:
-  // cmSpec pins the CommonMark href policy (CM_GFM_ANCHOR_URL_POLICY — safeMode, cmNormalizeURL
-  // and the quote/angle attribute escape all skipped); the Showdown flavors reuse the legacy
-  // link.js policy (LEGACY_ANCHOR_URL_POLICY) so these anchors stay byte-identical to the
-  // non-cmSpec path. Matches the engine's former anchorUrlPolicy selection.
+  // GFM anchor machinery (showdown.helper.writeAnchorTag) plus the file-local parseMail, same
+  // pattern as link.js. Gate 6: cmSpec pins the CommonMark href policy (CM_GFM_ANCHOR_URL_POLICY —
+  // safeMode, cmNormalizeURL and the quote/angle attribute escape all skipped); the Showdown
+  // flavors reuse the legacy link.js policy (LEGACY_ANCHOR_URL_POLICY) so these anchors stay
+  // byte-identical to the non-cmSpec path. Matches the engine's former anchorUrlPolicy selection.
   let policy = options.cmSpec ? showdown.helper.CM_GFM_ANCHOR_URL_POLICY : showdown.helper.LEGACY_ANCHOR_URL_POLICY;
   function writeAnchorTag (subEvtName, pattern, wholeMatch, text, linkId, url, title, emptyCase) {
     return showdown.helper.writeAnchorTag(subEvtName, pattern, wholeMatch, text, linkId, url, title, emptyCase,
       options, globals, policy);
-  }
-
-  function parseMail (mail) {
-    return showdown.helper.parseMail(mail, options);
   }
 
   // 8. Handle naked links (if option is enabled)
@@ -100,7 +183,7 @@ showdown.subParser('makehtml.inline.nakedUrl.linkify', function (text, options, 
       if (isWww && fullText.substring(urlStart - 4, urlStart) === '&lt;') { return wholeMatch; }
       // trim trailing punctuation / unbalanced brackets off the URL into a suffix (shared
       // with link.js); the GFM-specific trimming below is layered on top.
-      let trimmed = showdown.helper.trimUrlPunctuation(url);
+      let trimmed = trimUrlPunctuation(url);
       url = trimmed.url;
       let suffix = trimmed.suffix;
 
@@ -174,7 +257,7 @@ showdown.subParser('makehtml.inline.nakedUrl.linkify', function (text, options, 
         body = body.slice(0, -1);
       }
       if (resource) { resource = body; } else { addr = body; }
-      if (!showdown.helper.validMailAddr(addr)) { return wholeMatch; }
+      if (!validMailAddr(addr)) { return wholeMatch; }
       let target = 'xmpp:' + addr + resource;
       return lead + writeAnchorTag ('autoLink', xmppMailRegex, wholeMatch, target, null, target) + trail;
     });
@@ -187,7 +270,7 @@ showdown.subParser('makehtml.inline.nakedUrl.linkify', function (text, options, 
         trail = addr.slice(-1) + trail;
         addr = addr.slice(0, -1);
       }
-      if (!showdown.helper.validMailAddr(addr)) { return wholeMatch; }
+      if (!validMailAddr(addr)) { return wholeMatch; }
       let target = 'mailto:' + addr;
       return lead + writeAnchorTag ('autoLink', mailtoRegex, wholeMatch, target, null, target) + trail;
     });
@@ -197,8 +280,8 @@ showdown.subParser('makehtml.inline.nakedUrl.linkify', function (text, options, 
     // us out of hash placeholders like the `¨E43E` produced for an escaped char).
     let nakedMailRegex = new RegExp('(^|[^A-Za-z\\d._+\\-\\u00a8])(' + localPart + '@' + domainPart + ')', 'g');
     text = text.replace(nakedMailRegex, function (wholeMatch, lead, addr) {
-      if (!showdown.helper.validMailAddr(addr)) { return wholeMatch; }
-      const m = parseMail(addr);
+      if (!validMailAddr(addr)) { return wholeMatch; }
+      const m = parseMail(addr, options);
       return lead + writeAnchorTag ('autoLink', nakedMailRegex, wholeMatch, m.mail, null, m.url);
     });
   }

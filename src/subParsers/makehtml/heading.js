@@ -12,6 +12,23 @@
  */
 (function () {
 
+  // Unicode whitespace class used by the trimEnd polyfill. Built via string concatenation (rather
+  // than a regex literal) so the single class definition lives in one place; ESLint cannot statically
+  // flag `no-control-regex` on a computed RegExp pattern. File-local to heading.js (its trimEnd is
+  // the sole user).
+  const CM_WS = '\\x09\\x0A\\x0B\\x0C\\x0D\\x20\\xA0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u202F\\u205F\\u3000\\u2028\\u2029\\uFEFF';
+  const CM_WS_END = new RegExp('[' + CM_WS + ']+$');
+
+  /**
+   * Polyfill method for trimEnd. File-local to heading.js (its setext HR/prepend checks are the
+   * sole callers).
+   * @param {string} text
+   * @returns {string}
+   */
+  function trimEnd (text) {
+    return (!String.prototype.trimEnd) ? text.replace(CM_WS_END, '') : text.trimEnd();
+  }
+
   /**
    *
    * @param {string} subEvtName Heading style ('atx' or 'setext'), used to namespace the dispatched events
@@ -77,8 +94,8 @@
   // `makehtml.heading.id.onCapture`, whose `matches.text` is the generated id (mutable and
   // honored, so a listener can implement custom slug generation). It returns an id string
   // (or null when the headerIds option disables ids), not HTML, so there is no lifecycle or
-  // onHash phase.
-  showdown.helper.headingId = function (m, options, globals) {
+  // onHash phase. File-local to heading.js (its atx/setext passes are the only callers).
+  function headingId (m, options, globals) {
     let title;
 
     let cfg = resolveHeaderIds(options.headerIds);
@@ -143,7 +160,7 @@
       globals.hashLinkCounts[title] = 1;
     }
     return title;
-  };
+  }
 
   showdown.subParser('makehtml.heading.setext', function (text, options, globals) {
 
@@ -239,7 +256,7 @@
 
       // after this, we're pretty sure it's a heading so let's proceed
       // (the id helper returns null when the headerIds option disables ids)
-      let id = showdown.helper.headingId(headingText, options, globals);
+      let id = headingId(headingText, options, globals);
       return prepend + parseHeader('setext', pattern, wholeMatch, headingText, headingLevel, id, options, globals);
 
 
@@ -250,7 +267,7 @@
         let prepend;
 
         // thematic-break edge case (`- - -`): let the horizontalRule parser confirm it
-        if (showdown.helper.trimEnd(line1).match(hrCheckRgx)) {
+        if (trimEnd(line1).match(hrCheckRgx)) {
           prepend = showdown.subParser('makehtml.horizontalRule')(line1, options, globals);
           if (prepend !== line1) {
             return prepend.trim() + '\n' + line4;
@@ -297,7 +314,7 @@
         // ---    |  bar
         //        |  ---
         //
-        if (showdown.helper.trimEnd(line1).match(hrCheckRgx)) {
+        if (trimEnd(line1).match(hrCheckRgx)) {
           nPrepend  = showdown.subParser('makehtml.horizontalRule')(line1, options, globals);
           if (nPrepend !== line1) {
             line1 = '';
@@ -315,7 +332,7 @@
         // ---    |  bar
         //        |  ---
         //
-        if (showdown.helper.trimEnd(line2).match(hrCheckRgx)) {
+        if (trimEnd(line2).match(hrCheckRgx)) {
           // This case sucks, because the first line could be anything!!!
           // first let's make sure it's a hr
           nPrepend  = showdown.subParser('makehtml.horizontalRule')(line2, options, globals);
@@ -345,7 +362,7 @@
         nPrepend = showdown.subParser('makehtml.blockGamut')(multilineText, options, globals, 'makehtml.heading.setext');
         if (nPrepend !== multilineText) {
           // we found one or more blocks, so we need to reparse (blocks should take precendence though)
-          nPrepend = showdown.helper.trimEnd(nPrepend);
+          nPrepend = trimEnd(nPrepend);
           // let's check if the last line is a parsed block
           let newLines = nPrepend.trim().split('\n');
           let nLastLine = newLines.pop().toString();
@@ -406,7 +423,7 @@
       let headingText = stripClosing ? stripAtxClosingSequence(m2) : m2,
           headingLevel = options.headerLevelStart - 1 + m1.length,
           // the id helper returns null when the headerIds option disables ids
-          id = showdown.helper.headingId(headingText, options, globals);
+          id = headingId(headingText, options, globals);
       return parseHeader('atx', atxRegex, wholeMatch, headingText, headingLevel, id, options, globals);
     });
 

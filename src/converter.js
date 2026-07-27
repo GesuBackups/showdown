@@ -35,6 +35,108 @@ function warnDeprecatedExtType (type, event) {
     'removed in a future version. Use a "listener" extension on the "' + event + '" event instead.');
 }
 
+// --- makeHtml pipeline mechanisms (file-local; each has exactly one caller — the makeHtml
+// pipeline below — so they live here rather than on showdown.helper). None emits events. ------
+
+// `$` and `¨` are swapped for the two-char sentinels `¨D`/`¨T` at the very start of
+// makeHtml so they survive the pipeline without being read as regex-replacement
+// metacharacters or as showdown's `¨` escape marker; they are restored verbatim at the
+// end by showdown.helper.restoreDollarsAndTremas (which reverses in the opposite order,
+// and is also used by makehtml.metadata). The producer replaces `¨` first (so it doesn't
+// double-hit the `¨` introduced for `$`).
+
+/**
+ * Hide literal `$` and `¨` behind the `¨D`/`¨T` sentinels.
+ * @param {string} text
+ * @returns {string}
+ */
+function hashDollarsAndTremas (text) {
+  return text.replace(/¨/g, '¨T').replace(/\$/g, '¨D');
+}
+
+/**
+ * CommonMark tab expansion: tabs are expanded to spaces using 4-column tab stops,
+ * but only in the part of a line that defines block structure - the leading
+ * whitespace plus an optional single list/block-quote marker and the whitespace
+ * after it. Tabs in content (after that prefix) are preserved. Lines without a tab
+ * in their prefix are returned unchanged.
+ * @param {string} text
+ * @returns {string}
+ */
+function expandCmTabs (text) {
+  if (text.indexOf('\t') === -1) {
+    return text;
+  }
+  const prefixRgx = /^[ \t]*(?:(?:[-+*]|\d{1,9}[.)]|>)[ \t]*)?/;
+  const thematicBreakRgx = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
+  return text.split('\n').map(function (line) {
+    // a thematic break (e.g. `*\t*\t*`) is not a list item: do not let the marker
+    // branch of the prefix expansion mangle it
+    if (thematicBreakRgx.test(line)) {
+      return line;
+    }
+    let prefix = prefixRgx.exec(line)[0];
+    if (prefix.indexOf('\t') === -1) {
+      return line;
+    }
+    let out = '',
+        col = 0;
+    for (let k = 0; k < prefix.length; ++k) {
+      let ch = prefix.charAt(k);
+      if (ch === '\t') {
+        let adv = 4 - (col % 4);
+        out += new Array(adv + 1).join(' ');
+        col += adv;
+      } else {
+        out += ch;
+        col++;
+      }
+    }
+    return out + line.slice(prefix.length);
+  }).join('\n');
+}
+
+function normalizeLeadingTabs (text) {
+  // 1. (1 to 3 spaces followed by a tab at the start of the line) becomes (1 tab)
+  text = text.replace(/^ {1,3}\t/gm, '\t');
+
+  // 2.
+  return text;
+}
+
+// Shared factory for the two "hash a raw code element" passes — hashCodeTags and its
+// near-clone hashPreCodeTags. Both run the same recursive open/close scan plus encodeCode,
+// differing only in the open/close tag patterns and how the hashed block is stored.
+function makeHashCodeTagsHelper (openPattern, closePattern, store) {
+  'use strict';
+  return function (text, options, globals) {
+    let repFunc = function (wholeMatch, match, left, right) {
+      // encode html entities
+      let codeblock = left + showdown.helper.encodeCode(match) + right;
+      return store(wholeMatch, codeblock, globals);
+    };
+    return showdown.helper.replaceRecursiveRegExp(text, repFunc, openPattern, closePattern, 'gim');
+  };
+}
+
+// Hash naked <code>
+const hashCodeTags = makeHashCodeTagsHelper(
+  '<code\\b[^>]*>',
+  '</code>',
+  function (wholeMatch, codeblock, globals) {
+    return '¨C' + (globals.gHtmlSpans.push(codeblock) - 1) + 'C';
+  }
+);
+
+// Hash raw <pre><code> blocks (stored in ghCodeBlocks, as githubCodeBlock does).
+const hashPreCodeTags = makeHashCodeTagsHelper(
+  '^ {0,3}<pre\\b[^>]*>\\s*<code\\b[^>]*>',
+  '^ {0,3}</code>\\s*</pre>',
+  function (wholeMatch, codeblock, globals) {
+    return '\n\n¨G' + (globals.ghCodeBlocks.push({text: wholeMatch, codeblock: codeblock}) - 1) + 'G\n\n';
+  }
+);
+
 /**
  * Showdown Converter class
  * @class
@@ -337,7 +439,7 @@ showdown.Converter = function (converterOptions) {
 
     // Hide literal ¨ and $ behind the ¨T/¨D sentinels: ¨ is showdown's escape marker and
     // a bare $ is special in RegExp replacement strings. Restored at the end of makeHtml.
-    text = showdown.helper.hashDollarsAndTremas(text);
+    text = hashDollarsAndTremas(text);
 
     // Standardize line endings
     text = text.replace(/\r\n/g, '\n'); // DOS to Unix
@@ -355,7 +457,7 @@ showdown.Converter = function (converterOptions) {
 
     // detab
     //text = showdown.subParser('makehtml.detab')(text, options, globals);
-    text = showdown.helper.normalizeLeadingTabs(text);
+    text = normalizeLeadingTabs(text);
 
     /**
      * Strip any lines consisting only of spaces and tabs.
@@ -372,7 +474,7 @@ showdown.Converter = function (converterOptions) {
 
     // run the sub parsers
     text = showdown.subParser('makehtml.metadata')(text, options, globals);
-    text = showdown.helper.hashPreCodeTags(text, options, globals);
+    text = hashPreCodeTags(text, options, globals);
     // One block-stage ordering for every flavor: the HTML-block scan runs BEFORE githubCodeBlock.
     // Leaf blocks are recognized in document order, so an open HTML block (e.g. a `<div>` with no
     // following blank line) absorbs a fence that follows it; the (fence-aware) htmlBlock scan must
@@ -383,11 +485,11 @@ showdown.Converter = function (converterOptions) {
     // unclosed-fence passes. Only `expandCmTabs` (a CommonMark tab-normalization rule) stays
     // cmSpec-gated; the ordering itself is unconditional (unified at U-8c).
     if (options.cmSpec) {
-      text = showdown.helper.expandCmTabs(text);
+      text = expandCmTabs(text);
     }
     text = showdown.subParser('makehtml.htmlBlock')(text, options, globals);
     text = showdown.subParser('makehtml.githubCodeBlock')(text, options, globals, options.cmSpec);
-    text = showdown.helper.hashCodeTags(text, options, globals);
+    text = hashCodeTags(text, options, globals);
     // Footnotes (GFM): collect `[^id]: ...` definitions and replace `[^id]` references
     // before stripLinkDefinitions (whose scanner would otherwise claim `[^id]:` lines).
     text = showdown.subParser('makehtml.footnotes')(text, options, globals, 'strip');

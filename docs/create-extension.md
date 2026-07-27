@@ -203,6 +203,15 @@ converter.makeHtml('markdown') === '<p>showdown</p>'; // assert this
 
 ## Additional information
 
+### Utilities (`showdown.helper`)
+
+You may come across a `showdown.helper` object exposing utilities such as `escapeHTMLEntities`,
+`isString`, `regexes` and various string/URL helpers. **`showdown.helper` is internal machinery:
+it carries no stability guarantees across releases and may change, be renamed, or disappear
+without notice.** It is not part of the supported extension API. Build your extensions on the
+[event system](event-system.md) (listener extensions) instead — that is the supported surface for
+inspecting and modifying a conversion, and the one we keep stable.
+
 ### Escape and normalization
 
 Showdown performs the following escape/normalization:

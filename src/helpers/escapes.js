@@ -5,10 +5,10 @@
  * @copyright 2018-2026 ShowdownJS
  * @license   MIT
  *
- * `escapeCharacters`/`escapeCharactersCallback`, the `¨E<code>E` escape-placeholder scheme
- * (`escapePlaceholder`/`unescapePlaceholders`/`backslashEscapePlaceholders`), the `$`/`¨`
- * sentinel swap (`hashDollarsAndTremas`/`restoreDollarsAndTremas`) and HTML entity
- * (un)escaping. Load-order safe: no other-helper reads happen at load time.
+ * `escapeCharactersCallback`, the `¨E<code>E` escape-placeholder scheme
+ * (`escapePlaceholder`/`unescapePlaceholders`), the `$`/`¨` sentinel restore
+ * (`restoreDollarsAndTremas`) and HTML entity (un)escaping. Load-order safe: no
+ * other-helper reads happen at load time.
  */
 
 function escapeCharactersCallback (wholeMatch, m1) {
@@ -55,30 +55,11 @@ showdown.helper.unescapePlaceholders = function (text, transform) {
   });
 };
 
-/**
- * Prefix each `¨E<code>E` placeholder with a backslash while keeping the placeholder
- * itself, so a value can be re-parsed as backslash-escaped before final restoration.
- * @param {string} text
- * @returns {string}
- */
-showdown.helper.backslashEscapePlaceholders = function (text) {
-  return text.replace(/(¨E\d+E)/g, '\\$1');
-};
-
 // `$` and `¨` are swapped for the two-char sentinels `¨D`/`¨T` at the very start of
-// makeHtml so they survive the pipeline without being read as regex-replacement
-// metacharacters or as showdown's `¨` escape marker; they are restored verbatim at the
-// end. The producer replaces `¨` first (so it doesn't double-hit the `¨` introduced for
-// `$`); the restorer reverses in the opposite order.
-
-/**
- * Hide literal `$` and `¨` behind the `¨D`/`¨T` sentinels.
- * @param {string} text
- * @returns {string}
- */
-showdown.helper.hashDollarsAndTremas = function (text) {
-  return text.replace(/¨/g, '¨T').replace(/\$/g, '¨D');
-};
+// makeHtml (see the converter's hashDollarsAndTremas) so they survive the pipeline
+// without being read as regex-replacement metacharacters or as showdown's `¨` escape
+// marker; they are restored verbatim at the end. The restorer reverses in the opposite
+// order to the producer (which replaces `¨` first).
 
 /**
  * Restore the `¨D`/`¨T` sentinels back to literal `$` and `¨`.
@@ -88,30 +69,6 @@ showdown.helper.hashDollarsAndTremas = function (text) {
 showdown.helper.restoreDollarsAndTremas = function (text) {
   return text.replace(/¨D/g, function () { return '$'; })
     .replace(/¨T/g, function () { return '¨'; });
-};
-
-/**
- * Escape characters in a string
- * @static
- * @param {string} text
- * @param {string} charsToEscape
- * @param {boolean} afterBackslash
- * @returns {string|void|*}
- */
-showdown.helper.escapeCharacters = function (text, charsToEscape, afterBackslash) {
-  'use strict';
-  // First we have to escape the escape characters so that
-  // we can build a character class out of them
-  let regexString = '([' + charsToEscape.replace(/([[\]\\])/g, '\\$1') + '])';
-
-  if (afterBackslash) {
-    regexString = '\\\\' + regexString;
-  }
-
-  let regex = new RegExp(regexString, 'g');
-  text = text.replace(regex, escapeCharactersCallback);
-
-  return text;
 };
 
 /**

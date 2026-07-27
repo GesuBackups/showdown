@@ -14,7 +14,7 @@
  */
 
 // Backslash-escapable set for the Showdown flavors (vanilla/original): the historic large
-// set, reused verbatim from the char class in helpers/encodeBackslashEscapes.js. CommonMark
+// escape set (the char class the retired encodeBackslashEscapes pass used). CommonMark
 // (cmSpec) uses the wider isAsciiPunct instead (see isEscapable). File-level const; it is only
 // tested (no lastIndex state), so reuse across invocations is safe.
 const reShowdownEscapable = /[!#%'()*+,\-./:;=?@[\]\\^_`{|}~]/;
