@@ -76,6 +76,24 @@ describe('showdown.Converter', function () {
       expect(html).toBe(expectedHtml);
     });
 
+    it('should keep a literal ¨D sequence intact in raw ids', function () {
+      // The ¨/$ escape sentinels must be restored in the inverse order of the producer
+      // (¨D→$ before ¨T→¨, as restoreDollarsAndTremas does). The raw-id branch currently
+      // inverts that order (deliverables/smells-and-repetition-audit.md, A5), turning a
+      // literal ¨D in the heading text (escaped to ¨TD) into $ in the generated id.
+      converter.setOption('headerIds', { raw: true });
+      let html = converter.makeHtml('# a ¨D b'),
+          expectedHtml = '<h1 id="a-¨d-b">a ¨D b</h1>';
+      expect(html).toBe(expectedHtml);
+    });
+
+    it('should keep a literal dollar sign in raw ids', function () {
+      converter.setOption('headerIds', { raw: true });
+      let html = converter.makeHtml('# a $5 b'),
+          expectedHtml = '<h1 id="a-$5-b">a $5 b</h1>';
+      expect(html).toBe(expectedHtml);
+    });
+
     it('should throw a TypeError for an invalid headerIds value', function () {
       expect(function () {
         new showdown.Converter({ headerIds: 3 });

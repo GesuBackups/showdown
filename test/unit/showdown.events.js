@@ -561,6 +561,44 @@ describe('showdown.Event', function () {
       });
     });
 
+    // Constructor validation pin: the non-string name check must keep throwing (the guard in
+    // event.js currently sits inside a doubled `if` slated for cleanup — see
+    // deliverables/smells-and-repetition-audit.md, A2 — and this makes sure the cleanup
+    // cannot silently drop the throw).
+    describe('Event constructor validation', function () {
+      it('should throw a TypeError when name is not a string', function () {
+        expect(function () {
+          new showdown.Event(123, 'x');
+        }).toThrow(/must be a string/);
+      });
+
+      it('should construct normally with a string name', function () {
+        let event = new showdown.Event('makehtml.foo.onStart', 'txt');
+        expect(event.name).toBe('makehtml.foo.onstart');
+        expect(event.input).toBe('txt');
+      });
+    });
+
+    // The event contract documents options as read-only context: a listener mutating
+    // event.options must not be able to change the converter's actual configuration.
+    // Currently red: the dispatch path hands listeners the converter's live options object
+    // by reference (deliverables/smells-and-repetition-audit.md, A3 — event.js _setOptions
+    // bypasses the constructor's defensive clone).
+    describe('event options are read-only context', function () {
+      it('listener mutations of event.options must not leak into the converter', function () {
+        let converter = new showdown.Converter({tables: true});
+        converter
+          .listen('makehtml.heading.atx.onCapture', function (event) {
+            event.options.tables = false;
+            event.options.injectedByListener = true;
+            return event;
+          })
+          .makeHtml('# foo');
+        expect(converter.getOption('tables')).toBe(true);
+        expect(converter.getOption('injectedByListener')).toBeUndefined();
+      });
+    });
+
     describe('makeMarkdown (document level)', function () {
       it('should trigger "makeMarkdown.onStart" event', function () {
         let actual = false;

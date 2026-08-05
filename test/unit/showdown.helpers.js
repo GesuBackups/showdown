@@ -33,6 +33,41 @@ describe('encodeEmailAddress()', function () {
     });
     expect(decodedEmail).toBe(email);
   });
+
+  // The encoder is documented to mix strategies per character (~10% raw, 45% hex, 45% dec),
+  // seeded by the email itself so results stay deterministic. The seeding is currently broken
+  // (deliverables/smells-and-repetition-audit.md, A1: url.js xmur3's closed-over `h` is
+  // shadowed and mulberry32 receives the seed *function*), so every character takes the
+  // decimal branch. These pin the documented mixed behavior; the address is long enough that
+  // a working RNG produces all three forms with near-certainty, and determinism means the
+  // result cannot flake between runs.
+  describe('encoding strategy mix', function () {
+    let longEmail = 'a.fairly.long.address.for.strategy.mixing@example-domain.com',
+        encoded = encoder(longEmail);
+
+    it('should emit at least one decimal entity', function () {
+      expect(encoded).toMatch(/&#\d+;/);
+    });
+
+    it('should emit at least one hex entity', function () {
+      expect(encoded).toMatch(/&#x[0-9a-fA-F]+;/);
+    });
+
+    it('should leave at least one character unencoded', function () {
+      expect(encoded.replace(/&#x?[0-9a-fA-F]+;/g, '')).not.toBe('');
+    });
+
+    it('should decode to the original email (hex-aware)', function () {
+      let decoded = encoded
+        .replace(/&#x([0-9a-fA-F]+);/g, function (wm, cc) {
+          return String.fromCharCode(parseInt(cc, 16));
+        })
+        .replace(/&#(\d+);/g, function (wm, cc) {
+          return String.fromCharCode(parseInt(cc, 10));
+        });
+      expect(decoded).toBe(longEmail);
+    });
+  });
 });
 
 describe('isString()', function () {
