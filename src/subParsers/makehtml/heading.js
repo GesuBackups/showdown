@@ -116,9 +116,10 @@
         // contain a newline (the m-flag `.+` capture never crosses lines).
         .replace(/[ \r\n]/g, '-')
         // replace previously escaped chars (&, ¨ and $)
-        .replace(/&amp;/g, '&')
-        .replace(/¨T/g, '¨')
-        .replace(/¨D/g, '$')
+        .replace(/&amp;/g, '&');
+      // the sentinels must be restored in the inverse order of the producer (`¨D` before
+      // `¨T`), or a literal `¨D` in the heading text collapses into a `$`
+      title = showdown.helper.restoreDollarsAndTremas(title)
         // replace ", ', > and <
         .replace(/["'><]/g, '-')
         .toLowerCase();
