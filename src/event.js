@@ -40,7 +40,8 @@ showdown.Event = class {
     this.matches = matches || {};
     this.attributes = attributes || {};
     this._globals = globals || {};
-    this._options = showdown.helper.cloneObject(options, true) || {};
+    this._options = options || {};
+    this._optionsCopy = null;
     this._converter = converter || undefined;
   }
 
@@ -145,8 +146,23 @@ showdown.Event = class {
     return this._converter;
   }
 
+  /**
+   * The conversion options, as read-only context.
+   *
+   * `_options` is the converter's own live object, so exposing it directly would let a listener
+   * reconfigure the conversion mid-pipeline. A copy is handed out instead — made on first access
+   * rather than at dispatch time, because the overwhelming majority of events are never inspected
+   * by a listener and copying every one of them measurably slows conversion down. The copy is one
+   * level deep: it guards the option keys themselves, and unlike a deep clone it neither costs a
+   * full traversal nor chokes on function-valued options.
+   *
+   * @returns {{}}
+   */
   get options () {
-    return this._options;
+    if (this._optionsCopy === null) {
+      this._optionsCopy = showdown.helper.cloneObject(this._options) || {};
+    }
+    return this._optionsCopy;
   }
 
   get globals () {
@@ -204,8 +220,14 @@ showdown.Event = class {
     return this;
   }
 
+  /**
+   * @param {{}} value the converter's live options; listeners only ever see the copy the
+   *   `options` getter hands out
+   * @returns {showdown.Event}
+   */
   _setOptions (value) {
-    this._options = value;
+    this._options = value || {};
+    this._optionsCopy = null;
     return this;
   }
 
