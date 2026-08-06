@@ -10,8 +10,9 @@
 
 ------
 
-Showdown is a JavaScript Markdown to HTML converter, based on the original works by John Gruber.
-Showdown can be used client side (in the browser) or server side (with Node.js).
+Showdown is a JavaScript Bidirectional Markdown HTML converter, based on the original works by John Gruber.
+Showdown can be used client side (in the browser) or server side (with Node.js). 
+Showdown can convert Markdown to HTML and HTML to Markdown.
 
 ## Live DEMO
 
