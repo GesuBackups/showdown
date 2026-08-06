@@ -31,9 +31,7 @@ showdown.Event = class {
     params = params || {};
     let {output, regexp, matches, attributes, globals, options, converter} = params;
     if (!showdown.helper.isString(name)) {
-      if (!showdown.helper.isString(name)) {
-        throw new TypeError('Event.name must be a string but ' + typeof name + ' given');
-      }
+      throw new TypeError('Event.name must be a string but ' + typeof name + ' given');
     }
     this._name = name.toLowerCase();
     this.input = input;
