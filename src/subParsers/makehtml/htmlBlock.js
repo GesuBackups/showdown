@@ -209,7 +209,7 @@ showdown.subParser('makehtml.htmlBlock', function (text, options, globals) {
     }, '^ {0,3}<!--', '--!?>', 'gm');
 
     // PHP and ASP-style processor instructions (<?...?> and <%...%>)
-    str = str.replace(/\n\n( {0,3}<([?%])[^\r]*?\2>[ \t]*(?=\n{2,}))/g, hashHrOrPi);
+    str = showdown.helper.replaceProcessorInstructions(str, hashHrOrPi);
 
     // Restore the protected fenced-code regions to their literal source, both in the returned
     // text and in any raw-block store entry a balanced-tag block absorbed a fence into (only

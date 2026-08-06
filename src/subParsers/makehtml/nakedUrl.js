@@ -72,30 +72,38 @@ function trimUrlPunctuation (url) {
   const len = url.length;
   let suffix = '';
 
+  // Bracket counts of the *remaining* url, tallied once up front and decremented as chars are
+  // chopped: counting them per chopped char (url.match(/\(/g) and friends) rescanned the whole
+  // string every iteration, which is O(n^2) on a long trailing `)))...` run.
+  let counts = {'(': 0, ')': 0, '[': 0, ']': 0};
+  for (let i = 0; i < len; ++i) {
+    let c = url.charAt(i);
+    if (Object.prototype.hasOwnProperty.call(counts, c)) {
+      counts[c]++;
+    }
+  }
+
+  function chop (char) {
+    url = url.slice(0, -1);
+    // prepend to the suffix — the order matters, later passes read suffix.charAt(0)
+    suffix = char + suffix;
+    if (Object.prototype.hasOwnProperty.call(counts, char)) {
+      counts[char]--;
+    }
+  }
+
   for (let i = len - 1; i >= 0; --i) {
     let char = url.charAt(i);
     if (/[_*~,;:.!?]/.test(char)) {
       // it's a punctuation char so we remove it from the url
-      url = url.slice(0, -1);
-      // and prepend it to the suffix
-      suffix = char + suffix;
+      chop(char);
     } else if (/[)\]]/.test(char)) {
       // it's a parenthesis so we need to check for "balance" (kinda)
-      let opPar, clPar;
-      if (/\)/.test(char)) {
-        // it's a curved parenthesis
-        opPar = url.match(/\(/g) || [];
-        clPar = url.match(/\)/g);
-      } else {
-        // it's a squared parenthesis
-        opPar = url.match(/\[/g) || [];
-        clPar = url.match(/]/g);
-      }
-      if (opPar.length < clPar.length) {
+      let opPar = char === ')' ? counts['('] : counts['['],
+          clPar = char === ')' ? counts[')'] : counts[']'];
+      if (opPar < clPar) {
         // there are more closing Parenthesis than opening so chop it!!!!!
-        url = url.slice(0, -1);
-        // and prepend it to the suffix
-        suffix = char + suffix;
+        chop(char);
       } else {
         // it's (kinda) balanced so our work is done
         break;

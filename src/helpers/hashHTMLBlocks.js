@@ -123,7 +123,7 @@ showdown.helper.hashHTMLBlocks = function (text, options, globals) {
   }, '^ {0,3}<!--', '--!?>', 'gm');
 
   // PHP and ASP-style processor instructions (<?...?> and <%...%>)
-  text = text.replace(/\n\n( {0,3}<([?%])[^\r]*?\2>[ \t]*(?=\n{2,}))/g, hashElement);
+  text = showdown.helper.replaceProcessorInstructions(text, hashElement);
 
   return text;
 };

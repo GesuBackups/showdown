@@ -26,40 +26,41 @@ showdown.subParser('makehtml.codeSpan', function (text, options, globals) {
     text = '';
   }
 
-  let pattern = /(^|[^\\])(`+)([^\r]*?[^`])\2(?!`)/gm;
+  // Cursor scan over the same `parseBacktick` the inline engine uses, rather than a whole-text
+  // regex: the old pattern (`(^|[^\\])(`+)([^\r]*?[^`])\2(?!`)`) backtracked quadratically on a
+  // long unbroken backtick run, which table cells feed it straight from the document (~8s for
+  // 4k backticks in one cell). Routing both forms through one matcher also makes a table cell
+  // and a paragraph render a code span identically.
+  let out = [],
+      last = 0,
+      i = 0,
+      n = text.length,
+      // per-invocation: table.js may run this pass twice over the same lines
+      noCloser = {};
 
-  text = text.replace(pattern, function (wholeMatch, m1, m2, c) {
-    let otp,
-        attributes = {};
-
-    c = c.replace(/^([ \t]*)/g, '');	// leading whitespace
-    c = c.replace(/[ \t]*$/g, '');	// trailing whitespace
-    // remove newlines
-    c = c.replace(/\n/g, ' ');
-
-    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.codeSpan.onCapture', c, {
-      regexp: pattern,
-      matches: {
-        _wholeMatch: wholeMatch,
-        text: c
-      },
-      attributes: {}
-    }, options, globals);
-
-    // if something was passed as output, it takes precedence
-    // and will be used as output
-    if (captureStartEvent.output && captureStartEvent.output !== '') {
-      otp = m1 + captureStartEvent.output;
-    } else {
-      c = captureStartEvent.matches.text;
-      c = showdown.helper.encodeCode(c, options, globals);
-      otp = m1 + '<code' + showdown.helper._populateAttributes(attributes) + '>' +  c + '</code>';
+  while (i < n) {
+    let ch = text.charAt(i);
+    if (ch === '\\') {
+      // an escaped character cannot open a span (what the pattern's `[^\\]` lead-in guarded)
+      i += 2;
+      continue;
     }
-
-    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.codeSpan.onHash', otp, options, globals);
-    otp = beforeHashEvent.output;
-    return showdown.helper.hashHTMLSpans(otp, options, globals);
-  });
+    if (ch !== '`') {
+      i++;
+      continue;
+    }
+    let res = parseBacktick(text, i, noCloser, options, globals);
+    if (res) {
+      out.push(text.slice(last, i), res.html);
+      last = res.end;
+      i = res.end;
+    } else {
+      // no closer for this run length: emit it literally and keep scanning
+      i = skipRun(text, i, '`');
+    }
+  }
+  out.push(text.slice(last));
+  text = out.join('');
 
   let afterEvent = showdown.Event.dispatchEnd('makehtml.codeSpan.onEnd', text, options, globals);
   return afterEvent.output;

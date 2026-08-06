@@ -61,6 +61,31 @@ showdown.helper.splitAtIndex = function (str, index) {
   return [str.substring(0, index), str.substring(index)];
 };
 
+/**
+ * Locates balanced `left`…`right` delimiter pairs, outermost-first.
+ *
+ * The delimiters are tokenized in a single regex pass, then paired arithmetically over the
+ * token array. The original implementation re-ran the regex over the remainder once per
+ * unbalanced opener ("drop the first opener and try again"), which is O(n^2) on inputs like
+ * `'<div>\n'.repeat(n)` — with or without a trailing closer, so a "does a closer exist"
+ * guard does not fix it. Pairing is expressed here as depth arithmetic instead:
+ *
+ * - `D[k]` is the cumulative depth after token k (opener +1, closer -1).
+ * - A scan started at opener `j` completes at the first later token whose depth is `D[j] - 1`;
+ *   it can complete at all iff some *closer* at or after `j + 1` reaches that depth, which is
+ *   what `minCloserD` answers in O(1).
+ * - When an opener cannot complete, the next candidate is the next opener that can. Because
+ *   both that search and the match scans only ever move forward, the whole run stays linear.
+ *
+ * Emitted pairs are identical to the previous implementation's (verified by differential
+ * fuzzing over both delimiter families and every flag combination).
+ *
+ * @param {string} str
+ * @param {string} left
+ * @param {string} right
+ * @param {string} [flags]
+ * @returns {Array<{left: {}, match: {}, right: {}, wholeMatch: {}}>}
+ */
 let rgxFindMatchPos = function (str, left, right, flags) {
   'use strict';
   let f = flags || '',
@@ -68,33 +93,74 @@ let rgxFindMatchPos = function (str, left, right, flags) {
       x = new RegExp(left + '|' + right, 'g' + f.replace(/g/g, '')),
       l = new RegExp(left, f.replace(/g/g, '')),
       pos = [],
-      t, s, m, start, end;
+      toks = [],
+      m;
 
-  do {
-    t = 0;
-    while ((m = x.exec(str))) {
-      if (l.test(m[0])) {
-        if (!(t++)) {
-          s = x.lastIndex;
-          start = s - m[0].length;
-        }
-      } else if (t) {
-        if (!--t) {
-          end = m.index + m[0].length;
-          let obj = {
-            left: {start: start, end: s},
-            match: {start: s, end: m.index},
-            right: {start: m.index, end: end},
-            wholeMatch: {start: start, end: end}
-          };
-          pos.push(obj);
-          if (!g) {
-            return pos;
-          }
-        }
-      }
+  while ((m = x.exec(str))) {
+    toks.push({start: m.index, end: m.index + m[0].length, isLeft: l.test(m[0])});
+    if (m[0].length === 0) {
+      // zero-length delimiter match: step forward so the scan cannot stall
+      x.lastIndex++;
     }
-  } while (t && (x.lastIndex = s));
+  }
+
+  let n = toks.length,
+      depth = new Array(n),
+      minCloserDepth = new Array(n + 1),
+      acc = 0;
+
+  for (let k = 0; k < n; k++) {
+    acc += toks[k].isLeft ? 1 : -1;
+    depth[k] = acc;
+  }
+  minCloserDepth[n] = Infinity;
+  for (let k = n - 1; k >= 0; k--) {
+    minCloserDepth[k] = toks[k].isLeft ?
+      minCloserDepth[k + 1] :
+      Math.min(minCloserDepth[k + 1], depth[k]);
+  }
+
+  function completes (j) {
+    return minCloserDepth[j + 1] <= depth[j] - 1;
+  }
+
+  let i = 0,
+      viability = 0;
+  while (i < n) {
+    // closers before any opener are ignored, exactly as the depth counter used to
+    while (i < n && !toks[i].isLeft) {
+      i++;
+    }
+    if (i >= n) {
+      break;
+    }
+    if (!completes(i)) {
+      // this opener can never be closed: advance to the next one that can. `viability` keeps
+      // the search monotone, so no token is examined twice across the whole run.
+      let j = Math.max(i + 1, viability);
+      while (j < n && !(toks[j].isLeft && completes(j))) {
+        j++;
+      }
+      viability = j;
+      i = j;
+      continue;
+    }
+    let target = depth[i] - 1,
+        found = i + 1;
+    while (depth[found] !== target) {
+      found++;
+    }
+    pos.push({
+      left: {start: toks[i].start, end: toks[i].end},
+      match: {start: toks[i].end, end: toks[found].start},
+      right: {start: toks[found].start, end: toks[found].end},
+      wholeMatch: {start: toks[i].start, end: toks[found].end}
+    });
+    if (!g) {
+      return pos;
+    }
+    i = found + 1;
+  }
 
   return pos;
 };
@@ -149,6 +215,40 @@ showdown.helper.replaceRecursiveRegExp = function (str, replacement, left, right
     finalStr = bits.join('');
   }
   return finalStr;
+};
+
+/**
+ * Hashes standalone PHP/ASP-style processor instructions (`<?…?>` and `<%…%>`).
+ *
+ * The block pattern's lazy content class matches newlines, so an opener with no closer ahead
+ * scans to end-of-input — once per opener, i.e. O(n^2) on `'\n\n<?x'.repeat(n)`. A processor
+ * instruction only forms when its closer is followed by a blank line, so the pass is run over
+ * the region up to the last such closer: no match can begin after it, and none can extend past
+ * it, which makes the restriction exact rather than approximate.
+ *
+ * Known residual: openers of one type (`<%`) followed only by a closer of the other (`?>`)
+ * still degrade, since the cutoff is computed across both delimiter types.
+ *
+ * @param {string} text
+ * @param {function} replacer passed straight to String.replace
+ * @returns {string}
+ */
+showdown.helper.replaceProcessorInstructions = function (text, replacer) {
+  'use strict';
+  let lastValidClose = -1,
+      closeRgx = /[?%]>[ \t]*(?=\n{2,})/g,
+      m;
+
+  while ((m = closeRgx.exec(text))) {
+    lastValidClose = m.index + m[0].length;
+  }
+  if (lastValidClose === -1) {
+    return text;
+  }
+  // +2 keeps the blank line the trailing lookahead needs inside the scanned region
+  let cut = lastValidClose + 2;
+  return text.slice(0, cut).replace(/\n\n( {0,3}<([?%])[^\r]*?\2>[ \t]*(?=\n{2,}))/g, replacer) +
+    text.slice(cut);
 };
 
 /**

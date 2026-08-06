@@ -42,7 +42,10 @@ describe('makeHtml() issues testsuite', function () {
         break;
       }
       default:
-
+        // cases named after a behavior rather than an issue number pick their flavor by name
+        if (/commonmark flavor/.test(name)) {
+          converter.setFlavor('commonmark');
+        }
     }
     it(name, assertion(testsuite[i], converter, true));
   }

@@ -31,10 +31,11 @@ let cmAttributeName = '[a-zA-Z_:][a-zA-Z0-9:._-]*',
 showdown.helper.regexes = {
   asteriskDashTildeAndColon: /([*_:~])/g,
   asteriskDashAndTilde:      /([*_~])/g,
-  // Source string (not a RegExp) for the CommonMark inline raw-HTML grammar.
-  // hashHTMLSpans builds a *fresh* global RegExp from this per call, because that
-  // subparser runs re-entrantly and a shared stateful /g regex would corrupt its
-  // lastIndex between nested invocations.
+  // Source string (not a RegExp) for the CommonMark inline raw-HTML grammar. Its consumer is
+  // the inline raw-HTML construct (makehtml/rawHtml.js), which builds one sticky RegExp from it
+  // and anchors it at the scan cursor. Note that file recognizes the `cmHTMLComment` alternative
+  // with a cursor scan of its own instead of this regex — see the rationale there before
+  // changing this production.
   cmHTMLTagSource:           '(?:' + cmOpenTag + '|' + cmCloseTag + '|' + cmHTMLComment +
                                '|' + cmProcessingInstruction + '|' + cmDeclaration + '|' + cmCDATA + ')',
   // Open and close tag sources on their own, used for the CommonMark "type 7" HTML

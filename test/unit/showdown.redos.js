@@ -134,7 +134,52 @@ describe('ReDoS resistance', function () {
     // end-of-input sentinel.
     {name: 'safeMode: long tag stuffed with quote pairs', input: '<a ' + '"x" '.repeat(10000) + '>', options: {safeMode: true}},
     {name: 'safeMode: unterminated tag stuffed with quote pairs', input: '<a ' + '"x" '.repeat(10000), options: {safeMode: true}},
-    {name: 'table: many header+delimiter openers, no body', input: '|a|\n|-|\n'.repeat(6000), options: {tables: true}}
+    {name: 'table: many header+delimiter openers, no body', input: '|a|\n|-|\n'.repeat(6000), options: {tables: true}},
+
+    // --- unbalanced openers WITH a closer present ---
+    // The recursive delimiter matcher used to drop one unmatched opener and rescan the
+    // remainder, so a run of openers cost one full scan each. An absent-closer check does not
+    // cover these: appending a single closer keeps every opener unmatched (the depth counter
+    // never returns to zero) while making any "is there a closer" guard pass, which is why the
+    // matcher pairs delimiters by depth arithmetic instead. The `<div>` shape below was ~11s.
+    {name: 'unclosed <div> run + one trailing </div>', input: '<div>\n'.repeat(20000) + '</div>\n'},
+    {name: 'unclosed comment run + one trailing -->', input: '<!-- x\n'.repeat(8000) + '-->\n'},
+    // A processor instruction only closes when its `?>` is followed by a blank line, so a
+    // trailing `?>x` leaves every opener unclosed while defeating a plain presence check.
+    {name: 'unclosed PI run + one malformed ?>', input: '\n\n<?x'.repeat(16000) + '?>x'},
+
+    // --- INLINE raw-HTML productions (comment / declaration / CDATA / processing instruction) ---
+    // The inline scanner attempts the CommonMark raw-HTML grammar at every `<`. These four
+    // productions only end at a required terminator and their content matches newlines, so an
+    // opener with none ahead used to scan to end-of-input before failing — one full scan per
+    // opener, i.e. O(n^2) (`<!DOCTYPE` cost ~15s at 16k openers). Every shape below must stay
+    // OFF the start of a line: a line-initial opener is taken by the HTML-block scanner instead,
+    // which would leave the inline path untested. Trailing terminators likewise have to sit in
+    // the same paragraph to be in the same scan.
+    {name: 'inline declaration openers, no terminator', input: 'z <!DOCTYPE x '.repeat(16000)},
+    {name: 'inline declaration openers + trailing >', input: 'z <!DOCTYPE x '.repeat(16000) + '>'},
+    {name: 'inline CDATA openers, no terminator', input: 'z <![CDATA[x '.repeat(16000)},
+    {name: 'inline CDATA openers + trailing ]]>', input: 'z <![CDATA[x '.repeat(16000) + ']]>'},
+    {name: 'inline PI openers, no terminator', input: 'z <?x '.repeat(16000)},
+    {name: 'inline comment openers, no terminator', input: 'z <!-- x '.repeat(16000)},
+    // Terminator present but never usable: the comment production consumes dashes in threes, so
+    // it steps over a `-->` whose leading dash run has the wrong length (the parity is
+    // CommonMark's actual language — `<!--a--->` is genuinely not a comment). A
+    // terminator-presence guard passes here, which is why the scan memoizes failed cursors.
+    {name: 'inline comments, dash-parity <!--a--->', input: 'z <!--a---> '.repeat(16000)},
+    {name: 'inline comments, pure dash run <!------>', input: 'z <!------> '.repeat(16000)},
+    {name: 'inline comments, --!> parity twin <!---!>', input: 'z <!---!> '.repeat(16000)},
+    // Terminator before every opener rather than after: pins that the guard asks "is one ahead
+    // of the cursor", not merely "does the document contain one".
+    {name: 'inline comments, terminator only before the openers', input: '--> ' + 'z <!-- x '.repeat(16000)},
+    // Terminator overlapping its own opener (`<?>` contains `?>` at offset 1), and the
+    // case-sensitive CDATA prefix falling through to the unguarded path.
+    {name: 'inline PI, terminator overlaps opener', input: 'z <?> '.repeat(16000)},
+    {name: 'inline comment, terminator overlaps opener', input: 'z <!--!> '.repeat(16000)},
+    {name: 'inline lowercase cdata (not the CDATA production)', input: 'z <![cdata[x '.repeat(16000)},
+    // All four guarded productions plus the whole-anchor memo interleaved in one scan.
+    {name: 'inline: all raw-HTML productions interleaved', input: 'z <!-- <?x <![CDATA[ <!D '.repeat(8000)},
+    {name: 'inline: anchors interleaved with comments', input: 'z <a href="x"><!-- y '.repeat(8000)}
   ];
 
   cases.forEach(function (tc) {
