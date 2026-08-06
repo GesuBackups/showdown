@@ -2500,8 +2500,8 @@ text, per [automatic escaping](#automatic-escaping):
 An email address in angle brackets becomes a `mailto:` link.  To foil
 address-harvesting spambots, the address (and the `mailto:` prefix) is
 obfuscated with character references by default (`encodeEmails: true`).
-The encoding is deterministic — it is derived from the address itself —
-so the output is reproducible:
+Every character is replaced by its decimal character reference, so the
+output is fixed and reproducible:
 
 ```````````````````````````````` example
 <address@example.com>

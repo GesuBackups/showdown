@@ -5,90 +5,31 @@
  * @copyright 2018-2026 ShowdownJS
  * @license   MIT
  *
- * The public surface is `applyBaseUrl`, `isSafeUrl` and `encodeEmailAddress` (with its seeded RNG
- * helpers); `URLUtils`, `isAbsolutePath` and `safeUrlSchemes` are file-local internals consumed only
- * by `applyBaseUrl`/`isSafeUrl` here. Load-order safe: the RNG helpers and the file-local internals
- * used at call time live in this file; nothing here reads another helper's state at load time.
+ * The public surface is `applyBaseUrl`, `isSafeUrl` and `encodeEmailAddress`; `URLUtils`,
+ * `isAbsolutePath` and `safeUrlSchemes` are file-local internals consumed only by
+ * `applyBaseUrl`/`isSafeUrl` here. Load-order safe: the file-local internals used at call time
+ * live in this file; nothing here reads another helper's state at load time.
  */
 
 /**
- * MurmurHash3's mixing function
- * https://stackoverflow.com/questions/521295/seeding-the-random-number-generator-in-javascript/47593316#47593316
+ * Obfuscates an e-mail address by replacing every character with its decimal character
+ * reference, to foil naive address-harvesting spambots.
  *
- * @param {string} string
- * @returns {Number}
- */
-/*jshint bitwise: false*/
-function xmur3 (str) {
-  let h;
-  for (let i = 0, h = 1779033703 ^ str.length; i < str.length; i++) {
-    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
-    h = h << 13 | h >>> 19;
-  }
-  return function () {
-    h = Math.imul(h ^ h >>> 16, 2246822507);
-    h = Math.imul(h ^ h >>> 13, 3266489909);
-    return (h ^= h >>> 16) >>> 0;
-  };
-}
-
-/**
- * Random Number Generator
- * https://stackoverflow.com/questions/521295/seeding-the-random-number-generator-in-javascript/47593316#47593316
- *
- * @param {Number} seed
- * @returns {Number}
- */
-/*jshint bitwise: false*/
-function mulberry32 (a) {
-  return function () {
-    let t = a += 0x6D2B79F5;
-    t = Math.imul(t ^ t >>> 15, t | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  };
-}
-
-/**
- * Obfuscate an e-mail address through the use of Character Entities,
- * transforming ASCII characters into their equivalent decimal or hex entities.
- *
+ * Markdown.pl picked between decimal, hexadecimal and raw per character with a per-call RNG.
+ * Showdown encodes every character the same way instead, which keeps conversion output stable
+ * (a converter is expected to be a pure function of its input) and loses nothing: a harvester
+ * that decodes character references reads the address under either scheme, and one that does
+ * not is already defeated by encoding the `@`. Uniform encoding is in fact marginally stronger
+ * than the mix, which deliberately left ~10% of characters as literal text.
  *
  * @param {string} mail
  * @returns {string}
  */
 showdown.helper.encodeEmailAddress = function (mail) {
   'use strict';
-  let encode = [
-    function (ch) {
-      return '&#' + ch.charCodeAt(0) + ';';
-    },
-    function (ch) {
-      return '&#x' + ch.charCodeAt(0).toString(16) + ';';
-    },
-    function (ch) {
-      return ch;
-    }
-  ];
-
-  // RNG seeded with mail, so that we can get determined results for each email.
-  let rand = mulberry32(xmur3(mail));
-
-  mail = mail.replace(/./g, function (ch) {
-    if (ch === '@') {
-      // this *must* be encoded. I insist.
-      ch = encode[Math.floor(rand() * 2)](ch);
-    } else {
-      let r = rand();
-      // roughly 10% raw, 45% hex, 45% dec
-      ch = (
-        r > 0.9 ? encode[2](ch) : r > 0.45 ? encode[1](ch) : encode[0](ch)
-      );
-    }
-    return ch;
+  return mail.replace(/./g, function (ch) {
+    return '&#' + ch.charCodeAt(0) + ';';
   });
-
-  return mail;
 };
 
 /**
