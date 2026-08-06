@@ -558,7 +558,7 @@ showdown.Converter = function (converterOptions) {
     // due to an edge case, we need to find this: > <
     // to prevent removing of non silent white spaces
     // ex: <em>this is</em> <strong>sparta</strong>
-    src = src.replace(/>[ \t]+</, '>¨NBSP;<');
+    src = src.replace(/>[ \t]+</g, '>¨NBSP;<');
 
     let doc = showdown.helper.parseHTML(src);
 
