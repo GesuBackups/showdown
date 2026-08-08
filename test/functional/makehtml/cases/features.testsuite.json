@@ -20,6 +20,28 @@
     }
   },
   {
+    "name": "metadata-title-entity-escaped",
+    "markdown": "---\ntitle: </title><script>alert(1)</script>\n---\n\n# hi\n",
+    "html": "<!DOCTYPE HTML>\n<html>\n<head>\n<title>&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;</title>\n<meta charset=\"utf-8\">\n</head>\n<body>\n<h1 id=\"hi\">hi</h1>\n</body>\n</html>",
+    "section": "completeHTMLDocument",
+    "number": 102,
+    "options": {
+      "metadata": true,
+      "completeHTMLDocument": true
+    }
+  },
+  {
+    "name": "metadata-doctype-entity-escaped",
+    "markdown": "---\ndoctype: html><script>alert(1)</script\n---\n\n# hi\n",
+    "html": "<!DOCTYPE html&gt;&lt;script&gt;alert(1)&lt;/script>\n<html>\n<head>\n<meta charset=\"utf-8\">\n</head>\n<body>\n<h1 id=\"hi\">hi</h1>\n</body>\n</html>",
+    "section": "completeHTMLDocument",
+    "number": 103,
+    "options": {
+      "metadata": true,
+      "completeHTMLDocument": true
+    }
+  },
+  {
     "name": "disableForced4SpacesIndentedSublists",
     "markdown": "* foo\n  * bar\n\n---\n\n* baz\n  1. bazinga\n",
     "html": "<ul>\n  <li>foo<ul>\n    <li>bar</li></ul></li>\n</ul>\n<hr />\n<ul>\n  <li>baz<ol>\n    <li>bazinga</li></ol></li>\n</ul>\n",
@@ -355,6 +377,26 @@
     "html": "<h1 id=\"123-my#very/-strange-\\header*`^ªº-_.,-yeah\">123 My#very/ strange \\header*`^ªº-_., yeah</h1>\n",
     "section": "rawHeaderId",
     "number": 1401,
+    "options": {
+      "headerIds": { "raw": true }
+    }
+  },
+  {
+    "name": "raw-id-preserves-literal-trema-d",
+    "markdown": "# a ¨D b\n",
+    "html": "<h1 id=\"a-¨d-b\">a ¨D b</h1>",
+    "section": "rawHeaderId",
+    "number": 1402,
+    "options": {
+      "headerIds": { "raw": true }
+    }
+  },
+  {
+    "name": "raw-id-preserves-literal-dollar-sign",
+    "markdown": "# a $5 b\n",
+    "html": "<h1 id=\"a-$5-b\">a $5 b</h1>",
+    "section": "rawHeaderId",
+    "number": 1403,
     "options": {
       "headerIds": { "raw": true }
     }
@@ -1155,6 +1197,563 @@
     "number": 2521,
     "options": {
       "footnotes": true
+    }
+  },
+  {
+    "name": "disabled-preserves-named-entity",
+    "markdown": "&copy;\n",
+    "html": "<p>&copy;</p>",
+    "section": "decodeEntities",
+    "number": 2601,
+    "options": {
+      "decodeEntities": false
+    }
+  },
+  {
+    "name": "disabled-preserves-numeric-entity",
+    "markdown": "&#35;\n",
+    "html": "<p>&#35;</p>",
+    "section": "decodeEntities",
+    "number": 2602,
+    "options": {
+      "decodeEntities": false
+    }
+  },
+  {
+    "name": "decodes-named-reference",
+    "markdown": "&copy;\n",
+    "html": "<p>©</p>",
+    "section": "decodeEntities",
+    "number": 2603,
+    "options": {
+      "decodeEntities": true
+    }
+  },
+  {
+    "name": "decodes-decimal-numeric-reference",
+    "markdown": "&#35;\n",
+    "html": "<p>#</p>",
+    "section": "decodeEntities",
+    "number": 2604,
+    "options": {
+      "decodeEntities": true
+    }
+  },
+  {
+    "name": "decodes-hexadecimal-numeric-reference",
+    "markdown": "&#xcab;\n",
+    "html": "<p>ಫ</p>",
+    "section": "decodeEntities",
+    "number": 2605,
+    "options": {
+      "decodeEntities": true
+    }
+  },
+  {
+    "name": "escapes-unknown-entity-reference",
+    "markdown": "&MadeUpEntity;\n",
+    "html": "<p>&amp;MadeUpEntity;</p>",
+    "section": "decodeEntities",
+    "number": 2606,
+    "options": {
+      "decodeEntities": true
+    }
+  },
+  {
+    "name": "replaces-disallowed-code-point",
+    "markdown": "&#0;\n",
+    "html": "<p>�</p>",
+    "section": "decodeEntities",
+    "number": 2607,
+    "options": {
+      "decodeEntities": true
+    }
+  },
+  {
+    "name": "decoded-markdown-character-is-literal",
+    "markdown": "&#42;foo&#42;\n",
+    "html": "<p>*foo*</p>",
+    "section": "decodeEntities",
+    "number": 2608,
+    "options": {
+      "decodeEntities": true
+    }
+  },
+  {
+    "name": "link-javascript-neutralized",
+    "markdown": "[x](javascript:alert(1))\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2701,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "image-javascript-neutralized-alt-preserved",
+    "markdown": "![x](javascript:alert(1))\n",
+    "html": "<p><img src=\"\" alt=\"x\" /></p>",
+    "section": "safeMode",
+    "number": 2702,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "link-vbscript-neutralized",
+    "markdown": "[x](vbscript:msgbox(1))\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2703,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "link-entity-obfuscated-javascript-neutralized",
+    "markdown": "[x](java&#115;cript:alert(1))\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2704,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "link-http-preserved",
+    "markdown": "[a](http://example.com)\n",
+    "html": "<p><a href=\"http://example.com\">a</a></p>",
+    "section": "safeMode",
+    "number": 2705,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "link-relative-path-preserved",
+    "markdown": "[a](/rel/path)\n",
+    "html": "<p><a href=\"/rel/path\">a</a></p>",
+    "section": "safeMode",
+    "number": 2706,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "link-anchor-fragment-preserved",
+    "markdown": "[a](#frag)\n",
+    "html": "<p><a href=\"#frag\">a</a></p>",
+    "section": "safeMode",
+    "number": 2707,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "link-mailto-preserved",
+    "markdown": "[a](mailto:a@b.com)\n",
+    "html": "<p><a href=\"mailto:a@b.com\">a</a></p>",
+    "section": "safeMode",
+    "number": 2708,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "link-data-text-html-neutralized",
+    "markdown": "[a](data:text/html,<script>)\n",
+    "html": "<p><a href=\"\">a</a></p>",
+    "section": "safeMode",
+    "number": 2709,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "image-data-image-preserved",
+    "markdown": "![a](data:image/png;base64,AAAA)\n",
+    "html": "<p><img src=\"data:image/png;base64,AAAA\" alt=\"a\" /></p>",
+    "section": "safeMode",
+    "number": 2710,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "cmSpec-link-javascript-neutralized",
+    "markdown": "[x](javascript:alert(1))\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2711,
+    "options": {
+      "safeMode": true,
+      "cmSpec": true
+    }
+  },
+  {
+    "name": "cmSpec-autolink-javascript-neutralized",
+    "markdown": "<javascript:alert(1)>\n",
+    "html": "<p><a href=\"\">javascript:alert(1)</a></p>",
+    "section": "safeMode",
+    "number": 2712,
+    "options": {
+      "safeMode": true,
+      "cmSpec": true
+    }
+  },
+  {
+    "name": "cmSpec-link-https-preserved",
+    "markdown": "[a](https://example.com)\n",
+    "html": "<p><a href=\"https://example.com\">a</a></p>",
+    "section": "safeMode",
+    "number": 2713,
+    "options": {
+      "safeMode": true,
+      "cmSpec": true
+    }
+  },
+  {
+    "name": "raw-script-escaped",
+    "markdown": "<script>alert(1)</script>\n",
+    "html": "&lt;script>alert(1)&lt;/script>",
+    "section": "safeMode",
+    "number": 2714,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-img-onerror-separator-space-stripped",
+    "markdown": "<img src=x onerror=alert(1)>\n",
+    "html": "<p><img src=x></p>",
+    "section": "safeMode",
+    "number": 2715,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-onclick-stripped",
+    "markdown": "<a href=\"#\" onclick=\"alert(1)\">t</a>\n",
+    "html": "<p><a href=\"#\">t</a></p>",
+    "section": "safeMode",
+    "number": 2716,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-svg-onload-neutralized",
+    "markdown": "<svg onload=alert(1)></svg>\n",
+    "html": "<p>&lt;svg>&lt;/svg></p>",
+    "section": "safeMode",
+    "number": 2717,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-img-onerror-separator-tab-stripped",
+    "markdown": "<img src=x\tonerror=alert(1)>\n",
+    "html": "<p><img src=x></p>",
+    "section": "safeMode",
+    "number": 2718,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-img-onerror-separator-newline-stripped",
+    "markdown": "<img src=x\nonerror=alert(1)>\n",
+    "html": "<p><img src=x></p>",
+    "section": "safeMode",
+    "number": 2719,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-onmouseover-separator-quote-adjacent-stripped",
+    "markdown": "<a href=\"x\"onmouseover=\"alert(1)\">y</a>\n",
+    "html": "<p><a href=\"x\">y</a></p>",
+    "section": "safeMode",
+    "number": 2720,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-img-onerror-separator-slash-inert",
+    "markdown": "<img/onerror=alert(1)>\n",
+    "html": "<p>&lt;img/onerror=alert(1)&gt;</p>",
+    "section": "safeMode",
+    "number": 2721,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "input-formaction-quoted-javascript-neutralized",
+    "markdown": "<input formaction=\"javascript:alert(1)\" type=\"submit\">\n",
+    "html": "<p><input formaction=\"\" type=\"submit\"></p>",
+    "section": "safeMode",
+    "number": 2722,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "input-formaction-unquoted-javascript-neutralized",
+    "markdown": "<input formaction=javascript:alert(1) type=submit>\n",
+    "html": "<p><input formaction=\"\" type=submit></p>",
+    "section": "safeMode",
+    "number": 2723,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "input-formaction-relative-preserved",
+    "markdown": "<input formaction=\"/submit\" type=\"submit\">\n",
+    "html": "<p><input formaction=\"/submit\" type=\"submit\"></p>",
+    "section": "safeMode",
+    "number": 2724,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-quoted-javascript-neutralized",
+    "markdown": "<a href=\"javascript:alert(1)\">x</a>\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2725,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-unquoted-javascript-neutralized",
+    "markdown": "<a href=javascript:alert(1)>x</a>\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2726,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-leading-whitespace-javascript-neutralized",
+    "markdown": "<a href=\"  javascript:alert(1)\">x</a>\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2727,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-entity-obfuscated-javascript-neutralized",
+    "markdown": "<a href=\"java&#115;cript:alert(1)\">x</a>\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2728,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-vbscript-neutralized",
+    "markdown": "<a href=\"vbscript:x\">x</a>\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2729,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-data-text-html-neutralized",
+    "markdown": "<a href=\"data:text/html,x\">x</a>\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2730,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-area-href-javascript-neutralized",
+    "markdown": "<area href=\"javascript:alert(1)\">\n",
+    "html": "<p><area href=\"\"></p>",
+    "section": "safeMode",
+    "number": 2731,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-https-preserved",
+    "markdown": "<a href=\"https://ok.com\">x</a>\n",
+    "html": "<p><a href=\"https://ok.com\">x</a></p>",
+    "section": "safeMode",
+    "number": 2732,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-relative-preserved",
+    "markdown": "<a href=\"/rel\">x</a>\n",
+    "html": "<p><a href=\"/rel\">x</a></p>",
+    "section": "safeMode",
+    "number": 2733,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-data-text-html-containing-gt-neutralized",
+    "markdown": "<a href=\"data:text/html,<b>x</b>\">y</a>\n",
+    "html": "<p><a href=\"\">y</a></p>",
+    "section": "safeMode",
+    "number": 2734,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-javascript-containing-gt-neutralized",
+    "markdown": "<a href=\"javascript:alert(1)>z\">y</a>\n",
+    "html": "<p><a href=\"\">y</a></p>",
+    "section": "safeMode",
+    "number": 2735,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-safe-url-containing-gt-preserved",
+    "markdown": "<a href=\"http://ok/a>b\">y</a>\n",
+    "html": "<p><a href=\"http://ok/a>b\">y</a></p>",
+    "section": "safeMode",
+    "number": 2736,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "code-span-anchor-href-not-corrupted",
+    "markdown": "`<a href=\"javascript:x\">`\n",
+    "html": "<p><code>&lt;a href=&quot;javascript:x&quot;&gt;</code></p>",
+    "section": "safeMode",
+    "number": 2737,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-quote-adjacent-javascript-neutralized",
+    "markdown": "<a id=\"x\"href=\"javascript:alert(1)\">click</a>\n",
+    "html": "<p><a id=\"x\"href=\"\">click</a></p>",
+    "section": "safeMode",
+    "number": 2738,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-single-quote-adjacent-javascript-neutralized",
+    "markdown": "<a id='x'href='javascript:alert(1)'>click</a>\n",
+    "html": "<p><a id='x'href=\"\">click</a></p>",
+    "section": "safeMode",
+    "number": 2739,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-separator-slash-inert",
+    "markdown": "<a/href=\"javascript:alert(1)\">click</a>\n",
+    "html": "<p>&lt;a/href=&quot;javascript:alert(1)&quot;&gt;click</a></p>",
+    "section": "safeMode",
+    "number": 2740,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-area-separator-slash-inert",
+    "markdown": "<area/href=\"javascript:alert(1)\">\n",
+    "html": "<p>&lt;area/href=&quot;javascript:alert(1)&quot;&gt;</p>",
+    "section": "safeMode",
+    "number": 2741,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-quote-adjacent-safe-preserved",
+    "markdown": "<a id=\"x\"href=\"https://ok\">y</a>\n",
+    "html": "<p><a id=\"x\"href=\"https://ok\">y</a></p>",
+    "section": "safeMode",
+    "number": 2742,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "disabled-link-javascript-passthrough",
+    "markdown": "[x](javascript:alert(1))\n",
+    "html": "<p><a href=\"javascript:alert(1)\">x</a></p>",
+    "section": "safeMode",
+    "number": 2743,
+    "options": {
+      "safeMode": false
+    }
+  },
+  {
+    "name": "disabled-raw-script-passthrough",
+    "markdown": "<script>alert(1)</script>\n",
+    "html": "<script>alert(1)</script>",
+    "section": "safeMode",
+    "number": 2744,
+    "options": {
+      "safeMode": false
+    }
+  },
+  {
+    "name": "tasklist-checkbox-preserved",
+    "markdown": "- [x] done\n",
+    "html": "<ul>\n<li><input checked disabled type=\"checkbox\"> done</li>\n</ul>",
+    "section": "safeMode",
+    "number": 2745,
+    "options": {
+      "tasklists": true,
+      "safeMode": true
+    }
+  },
+  {
+    "name": "completeHTMLDocument-head-preserved",
+    "markdown": "# hi\n",
+    "html": "<!DOCTYPE HTML>\n<html>\n<head>\n<meta charset=\"utf-8\">\n</head>\n<body>\n<h1 id=\"hi\">hi</h1>\n</body>\n</html>",
+    "section": "safeMode",
+    "number": 2746,
+    "options": {
+      "safeMode": true,
+      "completeHTMLDocument": true
+    }
+  },
+  {
+    "name": "metadata-title-preserved",
+    "markdown": "---\ntitle: Hello World\n---\n\n# hi\n",
+    "html": "<!DOCTYPE HTML>\n<html>\n<head>\n<title>Hello World</title>\n<meta charset=\"utf-8\">\n</head>\n<body>\n<h1 id=\"hi\">hi</h1>\n</body>\n</html>",
+    "section": "safeMode",
+    "number": 2747,
+    "options": {
+      "safeMode": true,
+      "completeHTMLDocument": true,
+      "metadata": true
     }
   },
   {

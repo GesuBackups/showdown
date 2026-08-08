@@ -558,6 +558,11 @@ showdown.Converter = function (converterOptions) {
     // due to an edge case, we need to find this: > <
     // to prevent removing of non silent white spaces
     // ex: <em>this is</em> <strong>sparta</strong>
+    //
+    // The `g` flag is load-bearing: without it only the FIRST such run per document is
+    // protected and every later pair of adjacent inline elements gets jammed together
+    // (`<em>a</em> <strong>b</strong> <em>c</em>` → `*a* **b***c*`). Guarded by the
+    // inline-elements-adjacent-whitespace fixture in the makemarkdown standard suite.
     src = src.replace(/>[ \t]+</g, '>¨NBSP;<');
 
     let doc = showdown.helper.parseHTML(src);

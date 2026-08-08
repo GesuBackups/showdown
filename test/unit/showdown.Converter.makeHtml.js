@@ -1,7 +1,11 @@
 /**
  * Created by Tivie on 15-01-2015.
+ *
+ * makeHtml() coverage that a fixture cannot express. Per-option conversion behavior lives in
+ * test/functional/makehtml/cases/features.testsuite.json (and the spec suites); what remains
+ * here asserts invocation counts, thrown errors, post-conversion accessor state, and the one
+ * option whose effect the functional harness normalizes away (see omitExtraWLInCodeBlocks).
  */
-//let showdown = require('../../.build/showdown.js') || require('showdown');
 
 
 describe('showdown.Converter', function () {
@@ -29,6 +33,10 @@ describe('showdown.Converter', function () {
   });
 
   describe('makeHtml() with option omitExtraWLInCodeBlocks', function () {
+    // Deliberately NOT a fixture: the option's only effect is the trailing newline before
+    // `</code>`, and the functional harness prettifies both sides with diffable-html, which
+    // re-indents `<pre><code>` content and normalizes that newline away. A fixture would
+    // therefore pass identically with the option on or off.
     let converter = new showdown.Converter({omitExtraWLInCodeBlocks: true}),
         text = 'var foo = bar;',
         html = converter.makeHtml('    ' + text);
@@ -39,61 +47,6 @@ describe('showdown.Converter', function () {
   });
 
   describe('makeHtml() with option headerIds', function () {
-    let converter = new showdown.Converter(),
-        text = 'foo header';
-
-    it('should generate github-compatible ids by default', function () {
-      let html = converter.makeHtml('# ' + text),
-          expectedHtml = '<h1 id="foo-header">' + text + '</h1>';
-      expect(html).toBe(expectedHtml);
-    });
-
-    it('should prefix header id with a custom string', function () {
-      converter.setOption('headerIds', { prefix: 'blabla' });
-      let html = converter.makeHtml('# ' + text),
-          expectedHtml = '<h1 id="blablafoo-header">' + text + '</h1>';
-      expect(html).toBe(expectedHtml);
-    });
-
-    it('should omit the id when set to false', function () {
-      converter.setOption('headerIds', false);
-      let html = converter.makeHtml('# ' + text),
-          expectedHtml = '<h1>' + text + '</h1>';
-      expect(html).toBe(expectedHtml);
-    });
-
-    it('should use minimal sanitization when raw is true', function () {
-      converter.setOption('headerIds', { raw: true });
-      let html = converter.makeHtml('# foo/bar header'),
-          expectedHtml = '<h1 id="foo/bar-header">foo/bar header</h1>';
-      expect(html).toBe(expectedHtml);
-    });
-
-    it('should combine a prefix with raw sanitization', function () {
-      converter.setOption('headerIds', { prefix: '/p/', raw: true });
-      let html = converter.makeHtml('# foo/bar header'),
-          expectedHtml = '<h1 id="/p/foo/bar-header">foo/bar header</h1>';
-      expect(html).toBe(expectedHtml);
-    });
-
-    it('should keep a literal ¨D sequence intact in raw ids', function () {
-      // The ¨/$ escape sentinels must be restored in the inverse order of the producer
-      // (¨D→$ before ¨T→¨, as restoreDollarsAndTremas does). The raw-id branch currently
-      // inverts that order (deliverables/smells-and-repetition-audit.md, A5), turning a
-      // literal ¨D in the heading text (escaped to ¨TD) into $ in the generated id.
-      converter.setOption('headerIds', { raw: true });
-      let html = converter.makeHtml('# a ¨D b'),
-          expectedHtml = '<h1 id="a-¨d-b">a ¨D b</h1>';
-      expect(html).toBe(expectedHtml);
-    });
-
-    it('should keep a literal dollar sign in raw ids', function () {
-      converter.setOption('headerIds', { raw: true });
-      let html = converter.makeHtml('# a $5 b'),
-          expectedHtml = '<h1 id="a-$5-b">a $5 b</h1>';
-      expect(html).toBe(expectedHtml);
-    });
-
     it('should throw a TypeError for an invalid headerIds value', function () {
       expect(function () {
         new showdown.Converter({ headerIds: 3 });
@@ -135,21 +88,6 @@ describe('showdown.Converter', function () {
       expect(converter.getMetadata()).toEqual(expectedObj);
       expect(converter.getMetadata(true)).toBe(expectedRaw);
       expect(converter.getMetadataFormat()).toBe(expectedFormat);
-    });
-  });
-
-  describe('makeHtml() metadata must not break out of the document head (completeHTMLDocument)', function () {
-    let converter = new showdown.Converter({metadata: true, completeHTMLDocument: true});
-
-    it('should entity-escape < and > in the title so it cannot close <title> and inject markup', function () {
-      let html = converter.makeHtml('---\ntitle: </title><script>alert(1)</script>\n---\n\n# hi');
-      expect(html).toContain('<title>&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;</title>');
-      expect(html).not.toContain('<script>alert(1)</script>');
-    });
-
-    it('should entity-escape < and > in the doctype so it cannot inject markup', function () {
-      let html = converter.makeHtml('---\ndoctype: html><script>alert(1)</script\n---\n\n# hi');
-      expect(html).not.toContain('<script>alert(1)</script');
     });
   });
 });

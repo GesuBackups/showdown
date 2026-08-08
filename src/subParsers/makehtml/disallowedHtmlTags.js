@@ -9,6 +9,11 @@
  * (`script`, `style`, `iframe`, `title`, `textarea`, `xmp`, `noembed`, `noframes`, `plaintext`). In
  * `safeMode` it also strips inline `on*=` handlers as defense-in-depth (not a full sanitizer). Emits
  * one `onCapture`/`onHash` per neutralized tag; a listener can whitelist a tag by setting `output`.
+ *
+ * The `safeMode` sanitizers match per real `<…>` tag only. Text that was already entity-escaped
+ * upstream (a malformed tag such as `<a/href=…>`, which the inline engine does not recognize as
+ * HTML, arrives here as inert `&lt;…&gt;`) passes through verbatim: matching it would strip
+ * characters out of the middle of the inert text and corrupt it.
  */
 
 
