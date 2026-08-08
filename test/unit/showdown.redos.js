@@ -108,16 +108,16 @@ describe('ReDoS resistance', function () {
     {name: 'underline: immediate pairs __a__ ', input: '__a__ '.repeat(N), options: {underline: true}},
     {name: 'underline: one giant underscore run', input: '_'.repeat(120000), options: {underline: true}},
 
-    // --- audit findings, deliverables/smells-and-repetition-audit.md section B ---
-    // (B1) Table cells still route through the legacy whole-text codeSpan pass
-    // (codeSpan.js `(^|[^\\])(`+)([^\r]*?[^`])\2(?!`)` via table.js): a long unbroken
-    // backtick run in a cell backtracks quadratically (~1s at 2k chars, ~8s at 4k).
+    // --- shapes that used to backtrack quadratically ---
+    // (B1) Table cells route through the codeSpan pass (table.js). The legacy whole-text
+    // pattern there (`(^|[^\\])(`+)([^\r]*?[^`])\2(?!`)`) backtracked quadratically on a
+    // long unbroken backtick run fed straight from a cell (~1s at 2k chars, ~8s at 4k).
     {name: 'table cell with a giant backtick run', input: '| a | ' + '`'.repeat(4000) + ' |\n| --- | --- |\n| b | c |', options: {tables: true}},
-    // (B2) The htmlBlock standalone-comment scan lacks the absent-close-tag guard its
-    // balanced-tag sibling has: each `<!--` opener with no `-->`/`--!>` ahead restarts the
+    // (B2) The htmlBlock standalone-comment scan used to lack the absent-close-tag guard its
+    // balanced-tag sibling has: each `<!--` opener with no `-->`/`--!>` ahead restarted the
     // recursive scan, O(n^2) in the opener count (~2s at 4k openers, ~8s at 8k).
     {name: 'many unclosed HTML comment openers', input: '<!-- x\n'.repeat(8000)},
-    // (B3) The processing-instruction regex `\n\n( {0,3}<([?%])[^\r]*?\2>...)` lazy-scans to
+    // (B3) The processing-instruction regex `\n\n( {0,3}<([?%])[^\r]*?\2>...)` lazy-scanned to
     // end-of-input for every `\n\n<?` opener with no closer, O(n^2) in the opener count
     // (~2.3s at 8k openers, ~10s at 16k).
     {name: 'many unclosed processing-instruction openers', input: '\n\n<?x'.repeat(16000)},
@@ -125,8 +125,8 @@ describe('ReDoS resistance', function () {
     // backreferenced marker prefix; kept as a guard — measured near-linear today
     // (~20ms at 80k) but the shape is one edit away from backtracking.
     {name: 'marker-prefixed giant naked-URL token', input: '~_'.repeat(1000) + 'www.' + 'a'.repeat(80000), options: {simplifiedAutoLink: true}},
-    // (B5) trimUrlPunctuation recomputes full-string paren counts once per trimmed trailing
-    // bracket, O(n^2) on a long `)))...` tail (~1.5s at 40k parens, ~6.4s at 80k).
+    // (B5) trimUrlPunctuation used to recompute full-string paren counts once per trimmed
+    // trailing bracket, O(n^2) on a long `)))...` tail (~1.5s at 40k parens, ~6.4s at 80k).
     {name: 'naked URL with a giant trailing paren run', input: 'www.example.com/a' + ')'.repeat(80000), options: {simplifiedAutoLink: true}},
     // (B5 guards) Bounded-by-design shapes pinned so future edits cannot unbind them:
     // the safeMode disallowed-tags regex interior is ambiguous but unreachable-unterminated

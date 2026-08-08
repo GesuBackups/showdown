@@ -263,8 +263,8 @@ showdown.Event = class {
 // dispatches it through the converter and returns the dispatched event so callers
 // can read back the (possibly listener-mutated) output, matches and attributes.
 //
-// The contract (see deliverables/duplication-audit.md, "D3 event contract" and
-// the "D11 row" for the makeMarkdown counterpart):
+// The contract (see docs/event-system.md for the full reference, including the
+// makeMarkdown counterpart):
 //   - onStart / onEnd / onHash : input, output (initially === input), options, globals
 //   - onCapture                : output = null, regexp (RegExp|null), matches, attributes
 //   - matches always carries the read-only `_wholeMatch` context key and, for

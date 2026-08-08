@@ -561,10 +561,8 @@ describe('showdown.Event', function () {
       });
     });
 
-    // Constructor validation pin: the non-string name check must keep throwing (the guard in
-    // event.js currently sits inside a doubled `if` slated for cleanup — see
-    // deliverables/smells-and-repetition-audit.md, A2 — and this makes sure the cleanup
-    // cannot silently drop the throw).
+    // Constructor validation pin: the non-string name check must keep throwing, so that a
+    // refactor of the guard in event.js cannot silently drop the throw.
     describe('Event constructor validation', function () {
       it('should throw a TypeError when name is not a string', function () {
         expect(function () {
@@ -580,10 +578,9 @@ describe('showdown.Event', function () {
     });
 
     // The event contract documents options as read-only context: a listener mutating
-    // event.options must not be able to change the converter's actual configuration.
-    // Currently red: the dispatch path hands listeners the converter's live options object
-    // by reference (deliverables/smells-and-repetition-audit.md, A3 — event.js _setOptions
-    // bypasses the constructor's defensive clone).
+    // event.options must not be able to change the converter's actual configuration. The
+    // dispatch path must therefore never hand listeners the converter's live options object
+    // by reference — the `options` getter in event.js serves a lazily-cloned copy instead.
     describe('event options are read-only context', function () {
       it('listener mutations of event.options must not leak into the converter', function () {
         let converter = new showdown.Converter({tables: true});
@@ -737,9 +734,9 @@ describe('showdown.Event', function () {
 
   // Generic event-contract conformance: drive every makehtml per-match construct over a
   // feature-rich document and assert the payload shape of every capture/hash event it emits
-  // against the ratified contract (see deliverables/duplication-audit.md, "D3 event contract").
-  // This retroactively guards the whole bug class the audit found (mislabeled matches keys,
-  // wrong regexp) — a subparser cannot drift from the contract without failing here.
+  // against the ratified contract (see docs/event-system.md). This guards the whole bug class
+  // of mislabeled matches keys and wrong regexp — a subparser cannot drift from the contract
+  // without failing here.
   describe('event contract conformance', function () {
 
     // Every construct that emits onCapture/onHash, with whether it carries a `text` matches key.
