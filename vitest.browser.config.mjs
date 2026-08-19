@@ -11,6 +11,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./test/vitest.setup.mjs'],
     include: ['test/unit/showdown*.js'],
+    // *.node-env.js specs assert a bare Node environment (no global window/document);
+    // they can't pass in a real browser and belong to the Node (jsdom) project only.
+    exclude: ['test/unit/showdown*.node-env.js'],
     browser: {
       enabled: true,
       provider: playwright(),
