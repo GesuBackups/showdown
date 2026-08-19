@@ -1,128 +1,43 @@
 /**
- * Strips link definitions from text, stores the URLs and titles in
- * hash references.
- * Link defs are in the form: ^[id]: url "optional title"
+ * @file      makehtml/stripLinkDefinitions.js
+ * @summary   Removes `[id]: url "title"` link-reference definitions and stores them (with optional dimensions) in `globals`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * One line-reference-definition scanner for every flavor (the CommonMark block scanner). Case-folds
+ * link ids, supports multi-line and base64 data-URL destinations and `=WxH` dimensions. The only
+ * flavor divergence is documented and gated: entity references in the URL and title are decoded only
+ * when `decodeEntities` is on (the `commonmark`/`gfm` presets); everything else — label normalization,
+ * percent-encoding, title escaping, first-definition-wins and no-paragraph-interruption — follows
+ * CommonMark for all flavors (spec-silent → CommonMark). A definition renders no inline content, so
+ * its capture events carry no `text` key — only descriptive fields (`linkId`, `url`, `title`, `width`,
+ * `height`). Emits the `makehtml.stripLinkDefinitions.*` event family.
  */
 showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, globals) {
   'use strict';
 
-  const regex     = /^ {0,3}\[([^\]]+)]:[ \t]*\n?[ \t]*<?([^>\s]+)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*\n?[ \t]*(?:(\n*)["|'(](.+?)["|')][ \t]*)?(?:\n+|(?=¨0))/gm,
-      base64Regex = /^ {0,3}\[([^\]]+)]:[ \t]*\n?[ \t]*<?(data:.+?\/.+?;base64,[A-Za-z\d+/=\n]+?)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*\n?[ \t]*(?:(\n*)["|'(](.+?)["|')][ \t]*)?(?:\n\n|(?=¨0)|(?=\n\[))/gm;
-
-  let startEvent = new showdown.Event('makehtml.stripLinkDefinitions.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.stripLinkDefinitions.onStart', text, options, globals);
   text = startEvent.output;
 
   // attacklab: sentinel workarounds for lack of \A and \Z, safari\khtml bug
   text += '¨0';
 
-  let replaceFunc = function (wholeMatch, linkId, url, width, height, blankLines, title) {
-
-    // if there aren't two instances of linkId it must not be a reference link so back out
-    linkId = showdown.helper.caseFold(linkId);
-    if (showdown.helper.caseFold(text).split(linkId).length - 1 < 2) {
-      return wholeMatch;
-    }
-
-    let captureStartEvent = new showdown.Event('makehtml.stripLinkDefinitions.onCapture', wholeMatch);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(regex)
-      .setMatches({
-        _wholeMatch: wholeMatch,
-        linkId: linkId,
-        url: url,
-        width: width,
-        height: height,
-        blankLines: blankLines,
-        title: title
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
-
-    let otp;
-    // if something was passed as output, it takes precedence and will be used as output
-    if (captureStartEvent.output && captureStartEvent.output !== '') {
-      otp = captureStartEvent.output;
-    } else {
-      // a listener may have normalized the captured groups
-      linkId     = captureStartEvent.matches.linkId;
-      url        = captureStartEvent.matches.url;
-      width      = captureStartEvent.matches.width;
-      height     = captureStartEvent.matches.height;
-      blankLines = captureStartEvent.matches.blankLines;
-      title      = captureStartEvent.matches.title;
-
-      if (url.match(/^data:.+?\/.+?;base64,/)) {
-        // remove newlines
-        globals.gUrls[linkId] = url.replace(/\s/g, '');
-      } else {
-        url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
-
-        globals.gUrls[linkId] = showdown.subParser('makehtml.encodeAmpsAndAngles')(url, options, globals);  // Link IDs are case-insensitive
-      }
-
-      if (blankLines) {
-        // Oops, found blank lines, so it's not a title.
-        // Put back the parenthetical statement we stole.
-        otp = blankLines + title;
-
-      } else {
-        if (title) {
-          globals.gTitles[linkId] = title.replace(/["']/g, '&quot;');
-        }
-        if (options.parseImgDimensions && width && height) {
-          globals.gDimensions[linkId] = {
-            width:  width,
-            height: height
-          };
-        }
-        // Completely remove the definition from the text
-        otp = '';
-      }
-    }
-
-    let beforeHashEvent = new showdown.Event('makehtml.stripLinkDefinitions.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
-    return beforeHashEvent.output;
-  };
-
-  if (options.cmSpec) {
-    text = parseCmLinkDefinitions(text);
-  } else {
-    // first we try to find base64 link references
-    text = text.replace(base64Regex, replaceFunc);
-
-    text = text.replace(regex, replaceFunc);
-  }
+  text = parseCmLinkDefinitions(text);
 
   // attacklab: strip sentinel
   text = text.replace(/¨0/, '');
 
-  let afterEvent = new showdown.Event('makehtml.stripLinkDefinitions.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.stripLinkDefinitions.onEnd', text, options, globals);
   return afterEvent.output;
 
   /**
    * CommonMark link reference definition parsing. Scans block by block: a
    * definition may appear at the start of the document, after a blank line, or
    * immediately after another definition. Supports multi-line definitions,
-   * `<...>` (and empty `<>`) destinations, multi-line titles, backslash escapes
-   * and first-definition-wins for duplicate labels.
+   * `<...>` (and empty `<>`) destinations, multi-line (base64) destinations,
+   * multi-line titles, backslash escapes and first-definition-wins for duplicate
+   * labels.
    * @param {string} str text with the trailing `¨0` sentinel
    * @returns {string}
    */
@@ -135,7 +50,9 @@ showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, glo
       if (atBlockStart) {
         let def = tryParseCmDefinition(str, i);
         if (def) {
-          commitDefinition(def);
+          // a listener may override the (normally empty) rendered output; otherwise the
+          // definition is stored and removed from the text
+          out += commitDefinition(def);
           i = def.end;
           atBlockStart = true; // consecutive definitions are allowed
           continue;
@@ -162,40 +79,56 @@ showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, glo
 
   /**
    * Store a parsed definition, honoring first-definition-wins, and dispatch the
-   * capture event so listener extensions still observe link-definition captures.
-   * @param {{linkId: string, url: string, title: (string|null), wholeMatch: string}} def
+   * capture/hash lifecycle so listener extensions still observe (and may override)
+   * link-definition captures. Returns the rendered output — normally the empty
+   * string (a definition is stored, not emitted), or a listener-provided override.
+   * @param {{linkId: string, url: string, title: (string|null), width: (string|null), height: (string|null), wholeMatch: string}} def
+   * @returns {string}
    */
   function commitDefinition (def) {
-    let captureStartEvent = new showdown.Event('makehtml.stripLinkDefinitions.onCapture', def.wholeMatch);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(null)
-      .setMatches({
+    let captureEvent = showdown.Event.dispatchCapture('makehtml.stripLinkDefinitions.onCapture', def.wholeMatch, {
+      regexp: null,
+      matches: {
         _wholeMatch: def.wholeMatch,
         linkId: def.linkId,
         url: def.url,
-        title: def.title
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
-    let linkId = captureStartEvent.matches.linkId,
-        url = captureStartEvent.matches.url,
-        title = captureStartEvent.matches.title;
+        title: def.title,
+        width: def.width,
+        height: def.height
+      },
+      attributes: {}
+    }, options, globals);
 
-    // first definition wins
-    if (showdown.helper.isUndefined(globals.gUrls[linkId])) {
-      globals.gUrls[linkId] = url;
-      if (title !== null && !showdown.helper.isUndefined(title)) {
-        globals.gTitles[linkId] = title;
+    let otp;
+    // if a listener passed output, it takes precedence and is emitted verbatim
+    if (captureEvent.output && captureEvent.output !== '') {
+      otp = captureEvent.output;
+    } else {
+      // a listener may have normalized the captured groups
+      let linkId = captureEvent.matches.linkId,
+          url    = captureEvent.matches.url,
+          title  = captureEvent.matches.title,
+          width  = captureEvent.matches.width,
+          height = captureEvent.matches.height;
+
+      // first definition wins
+      if (showdown.helper.isUndefined(globals.gUrls[linkId])) {
+        globals.gUrls[linkId] = url;
+        if (title !== null && !showdown.helper.isUndefined(title)) {
+          globals.gTitles[linkId] = title;
+        }
+        // parseImgDimensions: store reference-style dimensions (consumed by the image
+        // builder). The `=WxH` grammar is always parsed, but only stored when the option is on.
+        if (options.parseImgDimensions && width && height) {
+          globals.gDimensions[linkId] = { width: width, height: height };
+        }
       }
-      // parseImgDimensions: store reference-style dimensions (gating copied from the
-      // legacy stripLinkDefinitions replaceFunc); consumed by cmInline's image builder
-      if (options.parseImgDimensions && def.width && def.height) {
-        globals.gDimensions[linkId] = { width: def.width, height: def.height };
-      }
+      // a definition is stored, never rendered inline
+      otp = '';
     }
+
+    let hashEvent = showdown.Event.dispatchHash('makehtml.stripLinkDefinitions.onHash', otp, options, globals);
+    return hashEvent.output;
   }
 
   /**
@@ -204,7 +137,7 @@ showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, glo
    * past the consumed text) or `null` if there is no definition here.
    * @param {string} str
    * @param {number} start
-   * @returns {{linkId: string, url: string, title: (string|null), wholeMatch: string, end: number}|null}
+   * @returns {{linkId: string, url: string, title: (string|null), width: (string|null), height: (string|null), wholeMatch: string, end: number}|null}
    */
   function tryParseCmDefinition (str, start) {
     let n = str.length,
@@ -244,10 +177,25 @@ showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, glo
     let afterDest = dest.end,
         url = dest.url;
 
+    // Multi-line base64 data URLs (issue #429): a bare `data:...;base64,` destination may
+    // wrap across several lines. cmScanDestination stops at the first newline, so fold in
+    // the following pure-base64 continuation lines (kept for all flavors). The trailing
+    // `.replace(/\s/g, '')` below strips any residual whitespace.
+    if (!dest.angle && /^data:[^/]+\/[^;]+;base64,[A-Za-z\d+/=]*$/.test(url)) {
+      while (str.charAt(afterDest) === '\n') {
+        let lineEnd = str.indexOf('\n', afterDest + 1);
+        if (lineEnd === -1) { lineEnd = n; }
+        let contLine = str.slice(afterDest + 1, lineEnd);
+        if (!/^[A-Za-z\d+/=]+$/.test(contLine)) { break; }
+        url += contLine;
+        afterDest = lineEnd;
+      }
+    }
+
     // parseImgDimensions (Showdown extension, not CommonMark): an optional ` =WxH`
     // between the destination and the title. Always consumed here; only stored as
-    // dimensions when the option is on (see commitDefinition). Regex fragment copied
-    // from the inline image regex in image.js.
+    // dimensions when the option is on (see commitDefinition). Regex fragment mirrors
+    // the inline image regex in image.js.
     let width = null, height = null;
     let dimPos = afterDest;
     while (dimPos < n && /[ \t]/.test(str.charAt(dimPos))) { dimPos++; }
@@ -291,12 +239,13 @@ showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, glo
     let linkId = showdown.helper.cmNormalizeLabel(label);
     if (linkId === '') { return null; }
 
-    if (url.match(/^data:.+?\/.+?;base64,/)) {
+    if (url.match(/^data:[^/]+\/[^;]+;base64,/)) {
       url = url.replace(/\s/g, '');
     } else {
-      url = showdown.helper.cmNormalizeURL(showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url));
+      url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
+      url = normalizeDefinitionURL(url);
     }
-    if (title !== null) { title = showdown.helper.cmEscapeTitle(title); }
+    if (title !== null) { title = escapeDefinitionTitle(title); }
 
     return {
       linkId: linkId,
@@ -307,5 +256,44 @@ showdown.subParser('makehtml.stripLinkDefinitions', function (text, options, glo
       wholeMatch: str.slice(start, end),
       end: end
     };
+  }
+
+  /**
+   * Normalize a link-definition destination. Percent-encoding, backslash-escape
+   * resolution and residual-`&` guarding are CommonMark behavior for every flavor
+   * (spec-silent → CommonMark); decoding character references is the one documented
+   * divergence, gated on `decodeEntities` (on in the `commonmark`/`gfm` presets).
+   * @param {string} url the destination with `relativePathBaseUrl` already applied
+   * @returns {string}
+   */
+  function normalizeDefinitionURL (url) {
+    if (options.decodeEntities) {
+      return showdown.helper.cmNormalizeURL(url);
+    }
+    // cmNormalizeURL without step 3 (the entity-decode): restore backslash-escape
+    // placeholders, resolve raw backslash escapes, percent-encode, guard bare `&`.
+    url = showdown.helper.unescapePlaceholders(url);
+    url = url.replace(/\\([!-/:-@[-`{-~])/g, '$1');
+    url = showdown.helper.cmEncodeURI(url);
+    return url.replace(/&(?![a-zA-Z#0-9]+;)/g, '&amp;');
+  }
+
+  /**
+   * Escape a link-definition title for use in a `title="..."` attribute. Guarding
+   * the residual `&` and escaping `<`, `>`, `"` is CommonMark behavior for every
+   * flavor; decoding character references is gated on `decodeEntities`.
+   * @param {string} title
+   * @returns {string}
+   */
+  function escapeDefinitionTitle (title) {
+    if (options.decodeEntities) {
+      return showdown.helper.cmEscapeTitle(title);
+    }
+    // cmEscapeTitle without the entity-decode step
+    return title
+      .replace(/&(?![a-zA-Z#0-9]+;)/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 });

@@ -1,55 +1,59 @@
+/**
+ * @file      makemarkdown/list.js
+ * @summary   Renders `<ul>`/`<ol>` back to Markdown lists, tracking the ordered `start` number and item `type`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown): passes a list `type` down to its items.
+ * Emits `makeMarkdown.list.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.list', function (node, options, globals, type) {
   'use strict';
 
-  let startEvent = new showdown.Event('makeMarkdown.list.onStart', node.outerHTML);
-  startEvent
-    .setOutput(null)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  startEvent = globals.converter.dispatch(startEvent);
+  let input = node.outerHTML;
+  showdown.Event.dispatchStart('makeMarkdown.list.onStart', input, options, globals, {_node: node});
 
-  let result;
-  if (startEvent.output && startEvent.output !== '') {
-    result = startEvent.output;
-  } else {
-    result = (function () {
-      let txt = '';
-      if (!node.hasChildNodes()) {
-        return '';
-      }
-      let listItems       = node.childNodes,
-          listItemsLenght = listItems.length,
-          listNum = node.getAttribute('start') || 1;
+  // assemble the list body (bullet + rendered item, per <li>)
+  let text = '';
+  if (node.hasChildNodes()) {
+    let listItems      = node.childNodes,
+        listItemsLength = listItems.length,
+        listNum = node.getAttribute('start') || 1;
 
-      for (let i = 0; i < listItemsLenght; ++i) {
-        if (typeof listItems[i].tagName === 'undefined' || listItems[i].tagName.toLowerCase() !== 'li') {
-          continue;
-        }
-
-        // define the bullet to use in list
-        let bullet;
-        if (type === 'ol') {
-          bullet = listNum.toString() + '. ';
-        } else {
-          bullet = '- ';
-        }
-
-        // parse list item
-        txt += bullet + showdown.subParser('makeMarkdown.listItem')(listItems[i], options, globals);
-        ++listNum;
+    for (let i = 0; i < listItemsLength; ++i) {
+      if (typeof listItems[i].tagName === 'undefined' || listItems[i].tagName.toLowerCase() !== 'li') {
+        continue;
       }
 
-      return txt.trim();
-    })();
+      // define the bullet to use in list
+      let bullet;
+      if (type === 'ol') {
+        bullet = listNum.toString() + '. ';
+      } else {
+        bullet = '- ';
+      }
+
+      // parse list item
+      text += bullet + showdown.subParser('makeMarkdown.listItem')(listItems[i], options, globals);
+      ++listNum;
+    }
   }
 
-  let endEvent = new showdown.Event('makeMarkdown.list.onEnd', result);
-  endEvent
-    .setOutput(result)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  endEvent = globals.converter.dispatch(endEvent);
-  return endEvent.output;
+  // the list kind is read-only context (`_ordered`/`_listType`); the assembled body is the
+  // mutable, honored `text`
+  let captureEvent = showdown.Event.dispatchCapture('makeMarkdown.list.onCapture', input, {
+    regexp: null,
+    matches: {_wholeMatch: input, _node: node, _ordered: type === 'ol', _listType: type, text: text},
+    attributes: null
+  }, options, globals);
+
+  let result;
+  if (captureEvent.output && captureEvent.output !== '') {
+    result = captureEvent.output;
+  } else {
+    result = captureEvent.matches.text.trim();
+  }
+
+  return showdown.Event.dispatchEnd('makeMarkdown.list.onEnd', result, options, globals, {_node: node}).output;
 });

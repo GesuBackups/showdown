@@ -1,45 +1,24 @@
-////
-// makehtml/codeSpan.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Transforms MD code spans into `<code>` html entities
-//
-// Backtick quotes are used for <code></code> spans.
-//
-// You can use multiple backticks as the delimiters if you want to
-// include literal backticks in the code span. So, this input:
-//
-// Just type ``foo `bar` baz`` at the prompt.
-//
-// Will translate to:
-//
-// <p>Just type <code>foo `bar` baz</code> at the prompt.</p>
-//
-// There's no arbitrary limit to the number of backticks you
-// can use as delimters. If you need three consecutive backticks
-// in your code, use four for delimiters, etc.
-//
-// You can use spaces to get literal backticks at the edges:
-// ... type `` `bar` `` ...
-//
-// Turns to:
-// ... type <code>`bar`</code> ...
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/codeSpan.js
+ * @summary   Converts backtick-delimited inline code into `<code>` spans.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Recognizes backtick code spans, including multi-backtick delimiters and edge-space trimming, and
+ * encodes the interior with `encodeCode` so its characters lose Markdown meaning. Emits the
+ * `makehtml.codeSpan.*` event family.
+ *
+ * This file owns both forms of the construct: the whole-text `makehtml.codeSpan` pass (still used by
+ * table.js) and the `makehtml.inline.codeSpan` scan handler below (called from the single-pass inline
+ * scanner in spanGamut.js; see entity.js for the scan-convention explanation).
+ */
 
 
 showdown.subParser('makehtml.codeSpan', function (text, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makehtml.codeSpan.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.codeSpan.onStart', text, options, globals);
 
   text = startEvent.output;
 
@@ -47,56 +26,121 @@ showdown.subParser('makehtml.codeSpan', function (text, options, globals) {
     text = '';
   }
 
-  let pattern = /(^|[^\\])(`+)([^\r]*?[^`])\2(?!`)/gm;
+  // Cursor scan over the same `parseBacktick` the inline engine uses, rather than a whole-text
+  // regex: the old pattern (`(^|[^\\])(`+)([^\r]*?[^`])\2(?!`)`) backtracked quadratically on a
+  // long unbroken backtick run, which table cells feed it straight from the document (~8s for
+  // 4k backticks in one cell). Routing both forms through one matcher also makes a table cell
+  // and a paragraph render a code span identically.
+  let out = [],
+      last = 0,
+      i = 0,
+      n = text.length,
+      // per-invocation: table.js may run this pass twice over the same lines
+      noCloser = {};
 
-  text = text.replace(pattern, function (wholeMatch, m1, m2, c) {
-    let otp,
-        attributes = {};
-
-    c = c.replace(/^([ \t]*)/g, '');	// leading whitespace
-    c = c.replace(/[ \t]*$/g, '');	// trailing whitespace
-    // remove newlines
-    c = c.replace(/\n/g, ' ');
-
-    let captureStartEvent = new showdown.Event('makehtml.codeSpan.onCapture', c);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches({
-        _wholeMatch: wholeMatch,
-        code: c
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
-
-    // if something was passed as output, it takes precedence
-    // and will be used as output
-    if (captureStartEvent.output && captureStartEvent.output !== '') {
-      otp = m1 + captureStartEvent.output;
-    } else {
-      c = captureStartEvent.matches.code;
-      c = showdown.subParser('makehtml.encodeCode')(c, options, globals);
-      otp = m1 + '<code' + showdown.helper._populateAttributes(attributes) + '>' +  c + '</code>';
+  while (i < n) {
+    let ch = text.charAt(i);
+    if (ch === '\\') {
+      // an escaped character cannot open a span (what the pattern's `[^\\]` lead-in guarded)
+      i += 2;
+      continue;
     }
+    if (ch !== '`') {
+      i++;
+      continue;
+    }
+    let res = parseBacktick(text, i, noCloser, options, globals);
+    if (res) {
+      out.push(text.slice(last, i), res.html);
+      last = res.end;
+      i = res.end;
+    } else {
+      // no closer for this run length: emit it literally and keep scanning
+      i = skipRun(text, i, '`');
+    }
+  }
+  out.push(text.slice(last));
+  text = out.join('');
 
-    let beforeHashEvent = new showdown.Event('makehtml.codeSpan.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
-    otp = beforeHashEvent.output;
-    return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
-  });
-
-  let afterEvent = new showdown.Event('makehtml.codeSpan.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.codeSpan.onEnd', text, options, globals);
   return afterEvent.output;
+});
+
+// advance past a run of identical `ch` characters starting at `i`, returning the run end index
+function skipRun (str, i, ch) {
+  let j = i;
+  while (j < str.length && str.charAt(j) === ch) { j++; }
+  return j;
+}
+
+function parseBacktick (str, i, noCloser, options, globals) {
+  let openEnd = skipRun(str, i, '`'),
+      runLen = openEnd - i,
+      n = str.length,
+      j = openEnd;
+  if (noCloser[runLen]) { return null; }
+  // find a closing run of backticks of exactly runLen (not part of a longer run)
+  while (j < n) {
+    if (str.charAt(j) === '`') {
+      let runStart = j,
+          runEnd = skipRun(str, j, '`');
+      if (runEnd - runStart === runLen) {
+        let raw = str.slice(openEnd, runStart), content;
+        // Gate 3 (code spans). cmSpec: collapse newlines to spaces, then strip exactly one
+        // leading+trailing space (only when the content is not all spaces). Showdown flavors:
+        // strip all leading/trailing spaces & tabs first (on the raw content, before collapsing
+        // newlines), then collapse newlines — mirroring legacy codeSpan.js. Both encode the
+        // interior with encodeCode (which already encodes `"` -> `&quot;` for every flavor).
+        if (options.cmSpec) {
+          content = raw.replace(/\n/g, ' ');
+          if (content.length >= 2 && content.charAt(0) === ' ' && content.charAt(content.length - 1) === ' ' && /[^ ]/.test(content)) {
+            content = content.slice(1, -1);
+          }
+        } else {
+          content = raw.replace(/^[ \t]*/, '').replace(/[ \t]*$/, '').replace(/\n/g, ' ');
+        }
+        // Event parity (D3): mirror makehtml.codeSpan.* so listeners work identically across
+        // flavors. Byte-identical for listener-free conversions.
+        let wholeMatch = str.slice(i, runEnd);
+        let capture = showdown.Event.dispatchCapture('makehtml.codeSpan.onCapture', content, {
+          regexp: null,
+          matches: {_wholeMatch: wholeMatch, text: content},
+          attributes: {}
+        }, options, globals);
+        let otp;
+        if (capture.output && capture.output !== '') {
+          otp = capture.output;
+        } else {
+          otp = '<code>' + showdown.helper.encodeCode(capture.matches.text, options, globals) + '</code>';
+        }
+        let hash = showdown.Event.dispatchHash('makehtml.codeSpan.onHash', otp, options, globals);
+        return {html: showdown.helper._hashHTMLSpan(hash.output, globals), end: runEnd};
+      }
+      j = runEnd;
+    } else {
+      j++;
+    }
+  }
+  noCloser[runLen] = true; // no closer of this length anywhere after here
+  return null;
+}
+
+// The backtick scan handler for the unified inline scanner in spanGamut.js. Always consumes (the
+// engine's backtick dispatch is unconditional): parseBacktick builds the hashed `<code>` span, or —
+// when no closer exists — the run is emitted as literal text (what the engine's old decline arm did).
+// The no-closer memo lives on scan.memos so future opens of the same run length fail immediately.
+showdown.subParser('makehtml.inline.codeSpan', function (scan, options, globals) {
+  'use strict';
+
+  let str = scan.str,
+      i = scan.pos;
+  let noCloser = scan.memos.backtickNoCloser || (scan.memos.backtickNoCloser = {});
+  let res = parseBacktick(str, i, noCloser, options, globals);
+  if (res) {
+    scan.appendRaw(res.html);
+    return res.end;
+  }
+  let e = skipRun(str, i, '`');
+  scan.appendText(str.slice(i, e));
+  return e;
 });

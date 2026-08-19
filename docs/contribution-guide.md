@@ -8,6 +8,16 @@ If you have time to contribute to this project, we are happy to give you credit 
 
 We thank you in advance for your contribution!
 
+### Architecture principles
+
+The converter is built around five principles. Keep any contribution aligned with them:
+
+1. **One code path.** Every flavor (`original`, `vanilla`, `commonmark`, `gfm`) runs the same parsers. Express a flavor difference as an option gate inside the parser, never as a second engine for the same construct.
+2. **The subparser is the unit of design.** Each subparser enables one syntax construct and keeps its recognition, rendering, events, and option gates together in one file.
+3. **Helpers earn their keep by reuse.** Add a shared helper only when it has at least two genuine call sites; otherwise inline it into its single caller. Anything that enables a piece of syntax belongs in a subparser.
+4. **Direction over local optimization.** Prefer the change that keeps the code aligned with these principles over one that only trims lines locally.
+5. **Every spec syntax element has an owning subparser.** If a spec gives a construct its own section, a registered subparser owns it — recognition, rendering, events, and gates.
+
 ### Features
 
 You can request a new feature by submitting an issue. If you would like to implement a new feature,

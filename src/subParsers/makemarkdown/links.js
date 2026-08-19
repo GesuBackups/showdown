@@ -1,32 +1,52 @@
+/**
+ * @file      makemarkdown/links.js
+ * @summary   Renders an `<a>` anchor back to a Markdown link, converting children and reading `href`/`title`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown). Emits `makeMarkdown.links.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.links', function (node, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makeMarkdown.links.onStart', node.outerHTML);
-  startEvent
-    .setOutput(null)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  startEvent = globals.converter.dispatch(startEvent);
+  let input = node.outerHTML;
+  showdown.Event.dispatchStart('makeMarkdown.links.onStart', input, options, globals, {_node: node});
+
+  // render the link text (children) and gather the descriptive pieces
+  let hasChildren = node.hasChildNodes(),
+      innerTxt = '';
+  if (hasChildren) {
+    let children = node.childNodes,
+        childrenLength = children.length;
+    for (let i = 0; i < childrenLength; ++i) {
+      innerTxt += showdown.subParser('makeMarkdown.node')(children[i], options, globals);
+    }
+  }
+  let href  = node.hasAttribute('href') ? node.getAttribute('href') : '',
+      title = node.hasAttribute('title') ? node.getAttribute('title') : null;
+
+  let captureEvent = showdown.Event.dispatchCapture('makeMarkdown.links.onCapture', input, {
+    regexp: null,
+    matches: {_wholeMatch: input, _node: node, text: innerTxt, url: href, title: title},
+    attributes: null
+  }, options, globals);
 
   let result;
-  if (startEvent.output && startEvent.output !== '') {
-    result = startEvent.output;
+  if (captureEvent.output && captureEvent.output !== '') {
+    result = captureEvent.output;
   } else {
+    innerTxt = captureEvent.matches.text;
+    href = captureEvent.matches.url;
+    title = captureEvent.matches.title;
     result = (function () {
-      let txt = '';
-      if (!node.hasChildNodes()) {
-        return txt;
+      if (!hasChildren) {
+        return '';
       }
-      let children = node.childNodes,
-          childrenLength = children.length;
 
       // anchors without an href (e.g. named anchors) lose their link semantics but keep their text
       if (!node.hasAttribute('href')) {
-        for (let n = 0; n < childrenLength; ++n) {
-          txt += showdown.subParser('makeMarkdown.node')(children[n], options, globals);
-        }
-        return txt;
+        return innerTxt;
       }
 
       // special case for mentions
@@ -36,17 +56,8 @@ showdown.subParser('makeMarkdown.links', function (node, options, globals) {
       // otherwise is ignored
       let classes = node.getAttribute('class');
       if (options.ghMentions && /(?:^| )user-mention\b/.test(classes)) {
-        for (let ii = 0; ii < childrenLength; ++ii) {
-          txt += showdown.subParser('makeMarkdown.node')(children[ii], options, globals);
-        }
-        return txt;
+        return innerTxt;
       }
-
-      let innerTxt = '';
-      for (let i = 0; i < childrenLength; ++i) {
-        innerTxt += showdown.subParser('makeMarkdown.node')(children[i], options, globals);
-      }
-      let href = node.getAttribute('href');
 
       // autolink: when the link text is identical to the href and there's no title,
       // emit the compact <href> form instead of [href](<href>)
@@ -54,21 +65,14 @@ showdown.subParser('makeMarkdown.links', function (node, options, globals) {
         return '<' + showdown.helper.escapeMarkdownDestination(href) + '>';
       }
 
-      txt = '[' + innerTxt + '](<' + showdown.helper.escapeMarkdownDestination(href) + '>';
+      let txt = '[' + innerTxt + '](<' + showdown.helper.escapeMarkdownDestination(href) + '>';
       if (node.hasAttribute('title')) {
-        txt += ' "' + showdown.helper.escapeMarkdownTitle(node.getAttribute('title')) + '"';
+        txt += ' "' + showdown.helper.escapeMarkdownTitle(title) + '"';
       }
       txt += ')';
       return txt;
     })();
   }
 
-  let endEvent = new showdown.Event('makeMarkdown.links.onEnd', result);
-  endEvent
-    .setOutput(result)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  endEvent = globals.converter.dispatch(endEvent);
-  return endEvent.output;
+  return showdown.Event.dispatchEnd('makeMarkdown.links.onEnd', result, options, globals, {_node: node}).output;
 });

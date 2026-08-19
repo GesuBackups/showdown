@@ -1,57 +1,62 @@
+/**
+ * @file      makemarkdown/listItem.js
+ * @summary   Renders a single `<li>` back to a Markdown list item, indenting nested lists onto their own lines.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown). Emits `makeMarkdown.listItem.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.listItem', function (node, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makeMarkdown.listItem.onStart', node.outerHTML);
-  startEvent
-    .setOutput(null)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  startEvent = globals.converter.dispatch(startEvent);
+  let input = node.outerHTML;
+  showdown.Event.dispatchStart('makeMarkdown.listItem.onStart', input, options, globals, {_node: node});
+
+  let text = (function () {
+    let listItemTxt = '';
+
+    let children = node.childNodes,
+        childrenLenght = children.length;
+
+    for (let i = 0; i < childrenLenght; ++i) {
+      let child = children[i];
+      // A nested list must begin on its own line, otherwise the indentation step below
+      // glues it to the preceding inline text (e.g. `a<ul>…` would render as `- a- b`
+      // instead of `- a` followed by an indented `- b`).
+      if (child.nodeType === 1 && /^[ou]l$/i.test(child.tagName) &&
+          listItemTxt !== '' && !/\n$/.test(listItemTxt)) {
+        listItemTxt += '\n';
+      }
+      listItemTxt += showdown.subParser('makeMarkdown.node')(child, options, globals);
+    }
+    // if it's only one liner, we need to add a newline at the end
+    if (!/\n$/.test(listItemTxt)) {
+      listItemTxt += '\n';
+    } else {
+      // it's multiparagraph, so we need to indent
+      listItemTxt = listItemTxt
+        .split('\n')
+        .join('\n    ')
+        .replace(/^ {4}$/gm, '')
+        .replace(/\n\n+/g, '\n\n');
+    }
+
+    return listItemTxt;
+  })();
+
+  let captureEvent = showdown.Event.dispatchCapture('makeMarkdown.listItem.onCapture', input, {
+    regexp: null,
+    matches: {_wholeMatch: input, _node: node, text: text},
+    attributes: null
+  }, options, globals);
 
   let result;
-  if (startEvent.output && startEvent.output !== '') {
-    result = startEvent.output;
+  if (captureEvent.output && captureEvent.output !== '') {
+    result = captureEvent.output;
   } else {
-    result = (function () {
-      let listItemTxt = '';
-
-      let children = node.childNodes,
-          childrenLenght = children.length;
-
-      for (let i = 0; i < childrenLenght; ++i) {
-        let child = children[i];
-        // A nested list must begin on its own line, otherwise the indentation step below
-        // glues it to the preceding inline text (e.g. `a<ul>…` would render as `- a- b`
-        // instead of `- a` followed by an indented `- b`).
-        if (child.nodeType === 1 && /^[ou]l$/i.test(child.tagName) &&
-            listItemTxt !== '' && !/\n$/.test(listItemTxt)) {
-          listItemTxt += '\n';
-        }
-        listItemTxt += showdown.subParser('makeMarkdown.node')(child, options, globals);
-      }
-      // if it's only one liner, we need to add a newline at the end
-      if (!/\n$/.test(listItemTxt)) {
-        listItemTxt += '\n';
-      } else {
-        // it's multiparagraph, so we need to indent
-        listItemTxt = listItemTxt
-          .split('\n')
-          .join('\n    ')
-          .replace(/^ {4}$/gm, '')
-          .replace(/\n\n+/g, '\n\n');
-      }
-
-      return listItemTxt;
-    })();
+    result = captureEvent.matches.text;
   }
 
-  let endEvent = new showdown.Event('makeMarkdown.listItem.onEnd', result);
-  endEvent
-    .setOutput(result)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  endEvent = globals.converter.dispatch(endEvent);
-  return endEvent.output;
+  return showdown.Event.dispatchEnd('makeMarkdown.listItem.onEnd', result, options, globals, {_node: node}).output;
 });

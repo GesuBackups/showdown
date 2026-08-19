@@ -1,540 +1,245 @@
-////
-// makehtml/links.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Transforms MD links into `<a>` html anchors
-//
-// A link contains link text (the visible text), a link destination (the URI that is the link destination), and
-// optionally a link title. There are two basic kinds of links in Markdown.
-// In inline links the destination and title are given immediately after the link text.
-// In reference links the destination and title are defined elsewhere in the document.
-//
-// ***Author:***
-// - Estevão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/link.js
+ * @summary   Markdown links (`[..](..)` + reference forms) in the unified inline scan (CommonMark spec §6.3–6.5).
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * This file owns the shared bracket machinery: the `]` close-bracket resolution and the `<a>`
+ * builder. The bracket PUSHES (`[`, `![`) stay in the inline engine (spanGamut.js) — it records each
+ * open bracket on the scan.brackets stack; this file resolves the matching `]`. A `![` opener builds
+ * an image instead (image.js owns what an image renders as), invoked from here at close-bracket
+ * time.
+ *
+ * This is a `makehtml.inline.*` construct subparser (scan-state convention — (scan, options,
+ * globals) instead of (text, options, globals); see entity.js for the scan convention). The scanner
+ * sets scan.pos to the `]` and dispatches `makehtml.inline.link`; it ALWAYS returns a cursor index
+ * (mirroring the resolution's every-path return), so the scanner never stalls on a `]`. The scan
+ * state carries everything the resolution needs: the string (scan.str), the entry index (scan.pos),
+ * the bracket stack head (scan.brackets, read AND written), emphasis resolution
+ * (scan.processEmphasis), node rendering (scan.renderNodes), node-list surgery (scan.list.removeFrom
+ * / scan.appendRaw / scan.list.pruneDelimiters) and the shared link services (scan.normalizeDest,
+ * scan.buildTitleAttr, scan.hashSpan).
+ */
 
-showdown.subParser('makehtml.link', function (text, options, globals) {
+/* jshint esnext: false, esversion: 9 */
 
-  //
-  // Parser starts here
-  //
-  let startEvent = new showdown.Event('makehtml.link.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
-  text = startEvent.output;
+// Sticky regex anchored at the scan cursor (lastIndex) so it never slices the tail of the
+// string - keeps the tokenizer linear on `<`-heavy input. Reused across calls; it sets
+// lastIndex before exec and the parse is not re-entrant within a single string.
+// Showdown flavors only (see the `!cmSpec` gate at its call site in the resolution below): a
+// `data:...;base64,` inline-image destination may be split across newlines. Legacy image.js
+// matched base64 image URLs with a char class that allowed `\n` and then stripped all whitespace
+// out of the URL, so a payload wrapped across lines still resolves to one `src`.
+// cmScanDestination stops at the first newline (CommonMark forbids newlines in destinations), so
+// the Showdown flavors scan the base64 body with this recognizer instead and strip the embedded
+// whitespace. Sticky + anchored at the scan cursor; a single greedy class is linear / ReDoS-safe.
+const reInlineBase64Dest = /<?(data:[^\s<>]+?\/[^\s<>]+?;base64,[A-Za-z\d+/=\n]+)>?/y;
 
-  // Every markdown link/reference syntax requires a closing ']'. When there is none there is
-  // nothing for the (backtracking-prone) reference/inline passes to match, so skip them. This
-  // also neutralizes pathological inputs such as '['.repeat(n), which would otherwise cost
-  // O(n^2) as each pass scans forward for a ']' that never appears. Autolinks (< >) below do
-  // not need ']', so they stay outside this guard.
-  if (text.indexOf(']') !== -1) {
-  // 1. Handle reference-style links: [link text] [id]
-    // The label sub-pattern excludes `[` from the inner negated class (`[^\][]` not `[^\]]`) so a
-    // scan for the label's closing `]` cannot run across the `[` that starts the *next* bracket
-    // group. This keeps matching linear on inputs like `'[^'.repeat(n) + ' ]'` (which contain a
-    // stray `]` that defeats the earlier "no `]` at all" fast-path) without changing results.
-    let referenceRegex = /\[((?:\[[^\][]*]|[^[\]])*)] ?(?:\n *)?\[(.*?)]/g;
-    text = text.replace(referenceRegex, function (wholeMatch, text, linkId) {
-    // bail if we find 2 newlines somewhere
-      if (/\n\n/.test(wholeMatch)) {
-        return wholeMatch;
-      }
-      return writeAnchorTag ('reference', referenceRegex, wholeMatch, text, linkId);
-    });
+showdown.subParser('makehtml.inline.link', function (scan, options, globals) {
+  'use strict';
 
-    // 2. Handle inline-style links: [link text](url "optional title")
-    if (options.cmSpec) {
-    // CommonMark inline-link parsing: a manual scanner that handles balanced-paren
-    // and `<...>` destinations, titles in "...", '...' or (...), and backslash escapes.
-      text = parseCmInlineLinks(text);
-    } else if (text.indexOf(')') !== -1) {
-    // Every legacy inline-link syntax ends in ')'. Without one there is nothing to match, so
-    // skip these passes — this neutralizes pathological inputs like '[a](' + 'a('.repeat(n),
-    // whose destination scan would otherwise backtrack quadratically looking for a ')'.
-    // 2.1. Look for empty cases: []() and [empty]() and []("title")
-      // The link text and title captures exclude their own delimiters (`[^\]]*?` / `[^"']*`)
-      // rather than the unbounded `.*?` / `.*`. Run as the first inline pass over raw text, the
-      // old form re-scanned O(n) chars from every `[` on balanced nested input like
-      // `'[x]('.repeat(n) + 'u' + ')'.repeat(n)`, giving O(n^2). This mirrors the bounding already
-      // applied to the sibling inline/image regexes (the image parser likewise disallows `]` in alt).
-      let inlineEmptyRegex = /\[([^\]]*?)]\(<? ?>? ?(["']([^"']*)["'])?\)/g;
-      text = text.replace(inlineEmptyRegex, function (wholeMatch, text, m1, title) {
-        return writeAnchorTag ('inline', inlineEmptyRegex, wholeMatch, text, null, null, title, true);
-      });
+  let s = scan.str,
+      idx = scan.pos;
 
-      // 2.2. Look for cases with crazy urls like ./image/cat1).png
-      // the url mus be enclosed in <>
-      let inlineCrazyRegex = /\[((?:\[[^\][]*]|[^[\]])*)]\s?\([ \t]?<([^>]*)>(?:[ \t]*((["'])([^"]*?)\4))?[ \t]?\)/g;
-      text = text.replace(inlineCrazyRegex, function (wholeMatch, text, url, m1, m2, title) {
-        return writeAnchorTag ('inline', inlineCrazyRegex, wholeMatch, text, null, url, title);
-      });
+  let opener = scan.brackets;
+  if (opener === null) { scan.appendText(']'); return idx + 1; }
+  if (!opener.active) { scan.brackets = opener.prev; scan.appendText(']'); return idx + 1; }
 
-      // 2.3. inline links with no title or titles wrapped in ' or ":
-      // [text](url.com) || [text](<url.com>) || [text](url.com "title") || [text](<url.com> "title")
-      let inlineNormalRegex1 = /\[([\S ]*?)]\s?\( *<?([^\s'"]*?(?:\(\S{0,200}?\)\S{0,200}?)?)>?\s*(?:(['"])(.*?)\3)? *\)/g;
-      text = text.replace(inlineNormalRegex1, function (wholeMatch, text, url, m1, title) {
-        return writeAnchorTag ('inline', inlineNormalRegex1, wholeMatch, text, null, url, title);
-      });
+  // try to parse the destination/title or a reference that follows the `]`
+  // variant mirrors link.js/image.js: `inline` for `[..](..)`, `reference` for the
+  // reference-style forms (full/collapsed/shortcut) - drives the capture event name.
+  let dest = null, title = null, width = null, height = null, matched = false, endIdx = idx + 1,
+      variant = 'inline';
 
-      // 2.4. inline links with titles wrapped in (): [foo](bar.com (title))
-      let inlineNormalRegex2 = /\[([\S ]*?)]\s?\( *<?([^\s'"]*?(?:\(\S{0,200}?\)\S{0,200}?)?)>?\s+\((.*?)\) *\)/g;
-      text = text.replace(inlineNormalRegex2, function (wholeMatch, text, url, title) {
-        return writeAnchorTag ('inline', inlineNormalRegex2, wholeMatch, text, null, url, title);
-      });
+  if (s.charAt(idx + 1) === '(') {
+    let j = idx + 2, n2 = s.length, isWs = function (c) { return c === ' ' || c === '\t' || c === '\n'; };
+    while (j < n2 && isWs(s.charAt(j))) { j++; }
+    let d = null;
+    // Showdown flavors (legacy image.js base64 parity): a `data:...;base64,` destination may
+    // be split across newlines. cmScanDestination stops at the first newline, so scan the
+    // base64 body here (newlines tolerated) and strip the embedded whitespace, the way legacy's
+    // base64 image regex did. cmSpec keeps CommonMark's strict scan (no newlines in a URL).
+    if (!options.cmSpec) {
+      reInlineBase64Dest.lastIndex = j;
+      let b64 = reInlineBase64Dest.exec(s);
+      if (b64) { d = {url: b64[1].replace(/\s/g, ''), end: j + b64[0].length}; }
     }
-
-
-    // 3. Handle reference-style shortcuts: [link text]
-    // These must come last in case there's a [link text][1] or [link text](/foo)
-    let referenceShortcutRegex = /\[([^[\]]+)]/g;
-    text = text.replace(referenceShortcutRegex, function (wholeMatch, text) {
-      return writeAnchorTag ('reference', referenceShortcutRegex, wholeMatch, text);
-    });
-  }
-
-  // 4. Handle angle brackets links -> `<http://example.com/>`
-  // Must come after links, because you can use < and > delimiters in inline links like [this](<url>).
-
-  if (options.cmSpec) {
-    // CommonMark autolinks: any scheme (2-32 chars) URI, and emails, with no entity encoding.
-    // 4.1. URI autolinks: <scheme:rest>
-    // eslint-disable-next-line no-control-regex -- CommonMark autolinks exclude control chars (\x00-\x20) per spec
-    let cmUriAutolinkRegex = /<([A-Za-z][A-Za-z0-9+.-]{1,31}:[^<>\x00-\x20]*)>/g;
-    text = text.replace(cmUriAutolinkRegex, function (wholeMatch, uri) {
-      // backslash escapes do not work inside autolinks, so restore them to literal backslash + char
-      let raw = showdown.subParser('makehtml.unescapeSpecialChars')(uri.replace(/(¨E\d+E)/g, '\\$1'), options, globals);
-      // safeMode: neutralize dangerous autolink schemes but keep the visible text
-      let href = (options.safeMode && !showdown.helper.isSafeUrl(raw)) ? '' : cmEscapeHref(showdown.helper.cmEncodeURI(raw));
-      let otp = '<a href="' + href + '">' + cmEscapeText(raw) + '</a>';
-      return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
-    });
-
-    // 4.2. Email autolinks: <foo@bar.example.com>
-    let cmEmailAutolinkRegex = /<([a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)>/g;
-    text = text.replace(cmEmailAutolinkRegex, function (wholeMatch, email) {
-      let raw = showdown.subParser('makehtml.unescapeSpecialChars')(email.replace(/(¨E\d+E)/g, '\\$1'), options, globals);
-      let otp = '<a href="' + cmEscapeHref('mailto:' + raw) + '">' + cmEscapeText(raw) + '</a>';
-      return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
-    });
-
-  } else {
-    // 4.1. Handle links first
-    let angleBracketsLinksRegex = /<(((?:https?|ftp):\/\/|www\.)[^'">\s]+)>/gi;
-    text = text.replace(angleBracketsLinksRegex, function (wholeMatch, url, urlStart) {
-
-      // backslash escaped characters do not work inside autolinks (according to commonmark spec... sure)
-      // so let's unescape them (and add a backslash html entity before)
-      url = url.replace(/(¨E\d+E)/g, '\\$1');
-      url = showdown.subParser('makehtml.unescapeSpecialChars')(url, options, globals);
-      let text = url;
-
-      // now let's replace some entities which should be properly url encoded
-      url = showdown.helper.urlASCIIEncoding(url);
-
-      // noinspection HttpUrlsUsage
-      url = (urlStart === 'www.') ? (options.httpsAutoLinks ? 'https://' : 'http://') + url : url;
-      return writeAnchorTag ('angleBrackets', angleBracketsLinksRegex, wholeMatch, text, null, url);
-    });
-
-    // 4.2. Then mail adresses
-    let angleBracketsMailRegex = /<(?:mailto:)?([-.\w]+@[-a-z\d]+(\.[-a-z\d]+)*\.[a-z]+)>/gi;
-    text = text.replace(angleBracketsMailRegex, function (wholeMatch, mail) {
-      const m = parseMail(mail);
-      return writeAnchorTag ('angleBrackets', angleBracketsMailRegex, wholeMatch, m.mail, null, m.url);
-    });
-  }
-
-  // 5. Handle GithubMentions (if option is enabled)
-  if (options.ghMentions) {
-    let ghMentionsRegex = /(^|\s)(\\)?(@([a-z\d]+(?:[a-z\d._-]+?[a-z\d]+)*))/gi;
-    text = text.replace(ghMentionsRegex, function (wholeMatch, st, escape, mentions, username) {
-      // bail if the mentions was escaped
-      if (escape === '\\') {
-        return st + mentions;
+    if (!d) { d = showdown.helper.cmScanDestination(s, j); }
+    if (d) {
+      j = d.end;
+      // parseImgDimensions (Showdown extension, not CommonMark): an optional
+      // ` =WxH` between destination and title. The `=WxH` is always consumed here so
+      // it never leaks into the output; buildImage only renders it when the option is
+      // on. Regex fragment copied from the inline image regex in image.js.
+      let dimStart = j;
+      while (dimStart < n2 && isWs(s.charAt(dimStart))) { dimStart++; }
+      if (dimStart > j && s.charAt(dimStart) === '=') {
+        let dim = /^=([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4})/.exec(s.slice(dimStart));
+        if (dim) {
+          width = dim[1];
+          height = dim[2];
+          j = dimStart + dim[0].length;
+        }
       }
-      // check if options.ghMentionsLink is a string
-      // TODO Validation should be done at initialization not at runtime
-      if (!showdown.helper.isString(options.ghMentionsLink)) {
-        throw new Error('ghMentionsLink option must be a string');
+      let hadWs = false;
+      while (j < n2 && isWs(s.charAt(j))) { hadWs = true; j++; }
+      let tc = s.charAt(j), t = null;
+      if (hadWs && (tc === '"' || tc === '\'' || tc === '(')) {
+        t = showdown.helper.cmScanTitle(s, j);
+        if (t) { j = t.end; }
       }
-      let url = options.ghMentionsLink.replace(/\{u}/g, username);
-      return st + writeAnchorTag ('reference', ghMentionsRegex, wholeMatch, mentions, null, url);
-    });
+      while (j < n2 && isWs(s.charAt(j))) { j++; }
+      if (s.charAt(j) === ')') {
+        dest = d.url;
+        title = t ? t.title : null;
+        matched = true;
+        endIdx = j + 1;
+      }
+    }
   }
 
-  // 6 and 7 have to come here to prevent naked links to catch html
-  // 6. Handle <a> tags
-  text = text.replace(/<a\s[^>]*>[\s\S]*<\/a>/g, function (wholeMatch) {
-    return showdown.helper._hashHTMLSpan(wholeMatch, globals);
-  });
-
-  // 7. Handle <img> tags
-  text = text.replace(/<img\s[^>]*\/?>/g, function (wholeMatch) {
-    return showdown.helper._hashHTMLSpan(wholeMatch, globals);
-  });
-
-  // 8. Handle naked links (if option is enabled)
-  if (options.simplifiedAutoLink) {
-    // 8.1. Check for naked URLs
-    // we also include leading markdown magic chars [_*~] for cases like __https://www.google.com/foobar__
-    let nakedUrlRegex = /([_*~]*?)(((?:https?|ftp):\/\/|www\.)[^\s<>"'`´.-][^\s<>"'`´]*?\.[a-z\d.]+[^\s<>"']*)\1/gi;
-    text = text.replace(nakedUrlRegex, function (wholeMatch, leadingMDChars, url, urlPrefix) {
-      // we now will start traversing the url from the front to back, looking for punctuation chars [_*~,;:.!?\)\]]
-      const len = url.length;
-      let suffix = '';
-
-      for (let i = len - 1; i >= 0; --i) {
-        let char = url.charAt(i);
-        if (/[_*~,;:.!?]/.test(char)) {
-          // it's a punctuation char so we remove it from the url
-          url = url.slice(0, -1);
-          // and prepend it to the suffix
-          suffix = char + suffix;
-        } else if (/[)\]]/.test(char)) {
-          // it's a parenthesis so we need to check for "balance" (kinda)
-          let opPar, clPar;
-          if (/\)/.test(char)) {
-            // it's a curved parenthesis
-            opPar = url.match(/\(/g) || [];
-            clPar = url.match(/\)/g);
-          } else {
-            // it's a squared parenthesis
-            opPar = url.match(/\[/g) || [];
-            clPar = url.match(/]/g);
-          }
-          if (opPar.length < clPar.length) {
-            // there are more closing Parenthesis than opening so chop it!!!!!
-            url = url.slice(0, -1);
-            // and prepend it to the suffix
-            suffix = char + suffix;
-          } else {
-            // it's (kinda) balanced so our work is done
-            break;
-          }
+  if (!matched) {
+    // reference: full [label], collapsed [] or shortcut. Use the RAW source label
+    // (backslash escapes intact) - CommonMark matches labels by case-fold +
+    // whitespace only, so `[foo\!]` must not match a `[foo!]` definition.
+    variant = 'reference';
+    let labelText = s.slice(opener.sourceStart, idx),
+        refKey = null,
+        bracketPos = idx + 1;
+    // Gate B (reference-with-space). The Showdown flavors honor Original-Markdown's
+    // space-tolerant references — `[an example] [id]` — allowing optional whitespace (a
+    // space/tab run and at most one newline) between the `]` that closes the link text and
+    // the `[` that opens the label. cmSpec keeps CommonMark's strict no-space rule (a space
+    // there makes the first `[..]` a shortcut reference). Only the position of the `[` moves;
+    // the whitespace itself is not part of the label.
+    if (!options.cmSpec) {
+      let k = idx + 1, sawNewline = false;
+      while (k < s.length) {
+        let c = s.charAt(k);
+        if (c === ' ' || c === '\t') {
+          k++;
+        } else if (c === '\n' && !sawNewline) {
+          sawNewline = true;
+          k++;
         } else {
-          // it's not a punctuation or a parenthesis so our work is done
           break;
         }
       }
-
-      // we copy the treated url to the text variable
-      let txt = url;
-      // finally, if it's a www shortcut, we prepend http(s)
-      // noinspection HttpUrlsUsage
-      url = (urlPrefix === 'www.') ? (options.httpsAutoLinks ? 'https://' : 'http://') + url : url;
-
-      // url part is done so let's take care of text now
-      // we need to escape the text (because of links such as www.example.com/foo__bar__baz)
-      txt = txt.replace(showdown.helper.regexes.asteriskDashTildeAndColon, showdown.helper.escapeCharactersCallback);
-
-      // and return the link tag, with the leadingMDChars and  suffix. The leadingMDChars are added at the end too because
-      // we consumed those characters in the regexp
-      return leadingMDChars +
-        writeAnchorTag ('autoLink', nakedUrlRegex, wholeMatch, txt, null, url) +
-        suffix +
-        leadingMDChars;
-    });
-
-    // 8.2. Now check for naked mail
-    let nakedMailRegex = /(^|\s)(?:mailto:)?([A-Za-z\d!#$%&'*+-/=?^_`{|}~.]+@[-a-z\d]+(\.[-a-z\d]+)*\.[a-z]+)(?=$|\s)/gmi;
-    text = text.replace(nakedMailRegex, function (wholeMatch, leadingChar, mail) {
-      const m = parseMail(mail);
-      return leadingChar + writeAnchorTag ('autoLink', nakedMailRegex, wholeMatch, m.mail, null, m.url);
-    });
-  }
-
-  let afterEvent = new showdown.Event('makehtml.link.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
-  return afterEvent.output;
-
-
-
-  /**
-   * CommonMark inline-link scanner. Finds `[label](destination "title")` spans,
-   * parsing the destination and title with a hand-written cursor so that balanced
-   * parentheses, `<...>` destinations, the three title delimiters and backslash
-   * escapes are handled per the spec. Anything that does not parse as a valid
-   * inline link is left untouched (to be handled by the reference/shortcut passes).
-   * @param {string} str
-   * @returns {string}
-   */
-  function parseCmInlineLinks (str) {
-    let inlineLinkRegexp = /\[[\s\S]*?]\([\s\S]*?\)/, // representative pattern (for event metadata only)
-        n = str.length,
-        out = '',
-        last = 0,
-        i = 0;
-    while (i < n) {
-      if (str.charAt(i) !== '[') { i++; continue; }
-      // find the matching `]`, counting nested brackets and honoring backslash escapes
-      let depth = 1, k = i + 1, labelEnd = -1;
-      while (k < n) {
-        let c = str.charAt(k);
-        if (c === '\\' && k + 1 < n) { k += 2; continue; }
-        if (c === '[') { depth++; } else if (c === ']') {
-          depth--;
-          if (depth === 0) { labelEnd = k; break; }
-        }
-        k++;
-      }
-      if (labelEnd !== -1 && str.charAt(labelEnd + 1) === '(') {
-        let parsed = parseCmDestTitle(str, labelEnd + 2);
-        if (parsed) {
-          let label = str.slice(i + 1, labelEnd);
-          out += str.slice(last, i);
-          out += writeAnchorTag('inline', inlineLinkRegexp, str.slice(i, parsed.end + 1), label, null, parsed.url, parsed.title, parsed.emptyCase);
-          i = parsed.end + 1;
-          last = i;
-          continue;
-        }
-      }
-      // not a valid inline link here; advance past this `[` so a nested `[...]( )`
-      // still gets a chance to match
-      i++;
+      if (s.charAt(k) === '[') { bracketPos = k; }
     }
-    out += str.slice(last);
-    return out;
-  }
-
-  /**
-   * Parse a CommonMark link destination and optional title starting just after the
-   * opening `(`. Returns `{url, title, emptyCase, end}` where `end` is the index of
-   * the closing `)`, or `null` if the span is not a valid destination/title.
-   * @param {string} str
-   * @param {number} j index right after the opening `(`
-   * @returns {{url: string, title: (string|null), emptyCase: boolean, end: number}|null}
-   */
-  function parseCmDestTitle (str, j) {
-    let n = str.length,
-        isWs = function (c) { return c === ' ' || c === '\t' || c === '\n'; },
-        url,
-        emptyCase = false;
-
-    // optional leading whitespace
-    while (j < n && isWs(str.charAt(j))) { j++; }
-
-    if (str.charAt(j) === '<') {
-      // angle-bracket destination: up to an unescaped `>`, no raw newline or `<`
-      j++;
-      let buf = '';
-      while (j < n && str.charAt(j) !== '>') {
-        let c = str.charAt(j);
-        if (c === '\n' || c === '<') { return null; }
-        if (c === '\\' && j + 1 < n) { buf += c + str.charAt(j + 1); j += 2; continue; }
-        buf += c; j++;
+    if (s.charAt(bracketPos) === '[') {
+      let close = findRefClose(s, bracketPos + 1);
+      if (close !== -1) {
+        let inner = s.slice(bracketPos + 1, close);
+        refKey = inner.trim() === '' ? labelText : inner;
+        endIdx = close + 1;
       }
-      if (j >= n || str.charAt(j) !== '>') { return null; }
-      j++; // consume `>`
-      url = buf;
-      if (url === '') { emptyCase = true; }
     } else {
-      // bare destination: balanced parentheses, ends at whitespace or an unbalanced `)`
-      let depth = 0, buf = '';
-      while (j < n) {
-        let c = str.charAt(j);
-        if (c === '\\' && j + 1 < n) { buf += c + str.charAt(j + 1); j += 2; continue; }
-        if (isWs(c)) { break; }
-        if (c === '(') { depth++; buf += c; j++; continue; }
-        if (c === ')') {
-          if (depth === 0) { break; }
-          depth--; buf += c; j++; continue;
+      refKey = labelText; // shortcut
+      endIdx = idx + 1;
+    }
+    if (refKey !== null) {
+      let key = showdown.helper.cmNormalizeLabel(refKey);
+      if (key !== '' && !showdown.helper.isUndefined(globals.gUrls[key])) {
+        dest = globals.gUrls[key];
+        title = globals.gTitles[key];
+        // parseImgDimensions: reference-style dimensions stored by stripLinkDefinitions
+        if (globals.gDimensions[key]) {
+          width = globals.gDimensions[key].width;
+          height = globals.gDimensions[key].height;
         }
-        buf += c; j++;
+        matched = true;
       }
-      if (depth !== 0) { return null; } // unbalanced parens -> not a link
-      url = buf;
-      if (url === '') { emptyCase = true; }
     }
-
-    // optional whitespace separating destination and title
-    let hadWs = false;
-    while (j < n && isWs(str.charAt(j))) { hadWs = true; j++; }
-
-    let title = null,
-        tc = str.charAt(j);
-    if (j < n && (tc === '"' || tc === '\'' || tc === '(')) {
-      // a title must be separated from the destination by whitespace
-      if (!hadWs) { return null; }
-      let close = (tc === '(') ? ')' : tc,
-          buf = '';
-      j++;
-      let closed = false;
-      while (j < n) {
-        let c = str.charAt(j);
-        if (c === '\\' && j + 1 < n) { buf += c + str.charAt(j + 1); j += 2; continue; }
-        if (tc === '(' && c === '(') { return null; } // unescaped `(` invalid in (...) title
-        if (c === close) { closed = true; j++; break; }
-        buf += c; j++;
-      }
-      if (!closed) { return null; }
-      title = buf;
-    }
-
-    // optional trailing whitespace, then the required closing `)`
-    while (j < n && isWs(str.charAt(j))) { j++; }
-    if (j >= n || str.charAt(j) !== ')') { return null; }
-    return {url: url, title: title, emptyCase: emptyCase, end: j};
   }
 
-  /**
-   *
-   * @param {string} subEvtName
-   * @param {RegExp} pattern
-   * @param {string} wholeMatch
-   * @param {string} text
-   * @param {string|null} [linkId]
-   * @param {string|null} [url]
-   * @param {string|null} [title]
-   * @param {boolean} [emptyCase]
-   * @returns {string}
-   */
-  function writeAnchorTag (subEvtName, pattern, wholeMatch, text, linkId, url, title, emptyCase) {
+  if (!matched) { scan.brackets = opener.prev; scan.appendText(']'); return idx + 1; }
 
-    let matches = {
-          _wholeMatch: wholeMatch,
-          _linkId: linkId,
-          _url: url,
-          _title: title,
-          text: text
-        },
-        otp,
-        attributes = {};
+  // process emphasis on the delimiters inside the brackets
+  scan.processEmphasis(opener.prevDelim);
 
-    title = title || null;
-    url = url || null;
-    if (linkId) {
-      linkId = options.cmSpec ? showdown.helper.cmNormalizeLabel(linkId) : showdown.helper.caseFold(linkId);
-    } else {
-      linkId = null;
+  // Strikethrough pairing (place b): resolve tilde-run nodes inside the resolving label into `<del>`,
+  // AFTER emphasis, scoped to the label's node range. This is what makes label strikethrough work for
+  // ALL flavors (per the ruling) — a cmSpec link label now strikes too. applyGfm is false (a link
+  // cannot nest a link, so its inner is never linkified). Emoji is scan-native, already substituted
+  // inline inside the label for every flavor, so the pairing pass no longer takes an applyEmoji arg.
+  if (options.strikethrough) {
+    showdown.subParser('makehtml.inline.strikethrough.pair')(scan, options, globals, opener.node.next, null, false);
+  }
+
+  // collect and render the inner nodes
+  let innerHTML = scan.renderNodes(opener.node.next, null),
+      wholeMatch = s.slice(opener.matchStart, endIdx);
+
+  let otpHTML;
+  if (opener.image) {
+    otpHTML = showdown.subParser('makehtml.inline.image.build')(scan, options, globals, innerHTML, dest, title, width, height, variant, wholeMatch, s.slice(opener.sourceStart, idx));
+  } else {
+    otpHTML = buildLink(innerHTML, dest, title, variant, wholeMatch);
+  }
+
+  // drop the opener node and everything after it, append the built span
+  scan.list.removeFrom(opener.node);
+  scan.appendRaw(otpHTML);
+  // remove any emphasis delimiters that belonged to the consumed range
+  scan.list.pruneDelimiters(opener.prevDelim);
+
+  if (!opener.image) {
+    // a link cannot be nested in another link
+    for (let b = opener.prev; b !== null; b = b.prev) {
+      if (!b.image) { b.active = false; }
     }
-    emptyCase = !!emptyCase;
+  }
+  scan.brackets = opener.prev;
+  return endIdx;
 
-    if (emptyCase) {
-      url = '';
-    } else if (!url) {
-      if (!linkId) {
-        // lower-case and turn embedded newlines into spaces
-        linkId = options.cmSpec ? showdown.helper.cmNormalizeLabel(text) : showdown.helper.caseFold(text).replace(/ ?\n/g, ' ');
-      }
-      if (!showdown.helper.isUndefined(globals.gUrls[linkId])) {
-        url = globals.gUrls[linkId];
-        if (!showdown.helper.isUndefined(globals.gTitles[linkId])) {
-          title = globals.gTitles[linkId];
-        }
-      } else {
-        return wholeMatch;
-      }
-    }
-
-    url = showdown.helper.applyBaseUrl(options.relativePathBaseUrl, url);
+  // Real CommonMark links (`[..](..)` + reference forms). This dispatches the same
+  // event family the retired standalone link.js did — `makehtml.link.<variant>.*` (variant
+  // `inline`/`reference`) — so listener extensions work identically across flavors. The
+  // rendered output for listener-free conversions is unchanged: the attribute strings are
+  // rebuilt from the same values via _populateAttributes.
+  function buildLink (innerHTML, dest, title, variant, wholeMatch) {
     // safeMode: neutralize dangerous URL schemes (javascript:, vbscript:, data:, ...)
-    if (options.safeMode && !showdown.helper.isSafeUrl(url)) {
-      url = '';
-    }
-    if (options.cmSpec) {
-      url = showdown.helper.cmNormalizeURL(url);
-    }
-    url = url.replace(showdown.helper.regexes.asteriskDashTildeAndColon, showdown.helper.escapeCharactersCallback);
-    // escape characters that would otherwise break out of the quoted href attribute
-    // (a `"` in the destination is an attribute-injection vector). cmSpec flavors already
-    // percent-encode the URL above, so this is a no-op there.
-    url = url
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-    attributes.href = url;
+    let href = (options.safeMode && !showdown.helper.isSafeUrl(dest)) ? '' : scan.normalizeDest(dest);
+    // Emoji, strikethrough and ellipsis are all scan-native — the `:name:`/`~~`/`...` in the link
+    // label are already resolved by the scan (emoji substituted inline for every flavor, strikethrough
+    // via place (b) above, ellipsis inline), so none are re-applied here. Substituting emoji inside a
+    // resolving label now happens for every flavor, including cmSpec (previously the whole-text pass
+    // was re-applied here only off cmSpec); this is the ruled label-class parity change. The GFM link
+    // passes (applyGfmInlineLinks) are deliberately NOT run on link text — a link cannot be nested
+    // inside another link.
+    innerHTML = showdown.subParser('makehtml.hardLineBreaks')(innerHTML, options, globals);
+    let attributes = {href: href};
+    scan.buildTitleAttr(attributes, title);
 
-    if (title && showdown.helper.isString(title)) {
-      if (options.cmSpec) {
-        title = showdown.helper.cmEscapeTitle(title);
-      } else {
-        title = title
-          .replace(/"/g, '&quot;');
-      }
-      title = title.replace(showdown.helper.regexes.asteriskDashTildeAndColon, showdown.helper.escapeCharactersCallback);
-      attributes.title = title;
-    }
+    let capture = showdown.Event.dispatchCapture('makehtml.link.' + variant + '.onCapture', wholeMatch, {
+      regexp: null,
+      matches: {_wholeMatch: wholeMatch, _url: dest, _title: title, text: innerHTML},
+      attributes: attributes
+    }, options, globals);
 
-    let captureStartEvent = new showdown.Event('makehtml.link.' + subEvtName + '.onCapture', wholeMatch);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches(matches)
-      .setAttributes(attributes);
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
-
-    // if something was passed as output, it takes precedence
-    // and will be used as output
-    if (captureStartEvent.output && captureStartEvent.output !== '') {
-      otp = captureStartEvent.output;
+    let otp;
+    if (capture.output && capture.output !== '') {
+      otp = capture.output;
     } else {
-      attributes = captureStartEvent.attributes;
-      text = captureStartEvent.matches.text || '';
-      // Text can be a markdown element, so we run through the appropriate parsers
-      text = showdown.subParser('makehtml.codeSpan')(text, options, globals);
-      text = showdown.subParser('makehtml.emoji')(text, options, globals);
-      text = showdown.subParser('makehtml.underline')(text, options, globals);
-      text = showdown.subParser('makehtml.emphasisAndStrong')(text, options, globals);
-      text = showdown.subParser('makehtml.strikethrough')(text, options, globals);
-      text = showdown.subParser('makehtml.ellipsis')(text, options, globals);
-      text = showdown.subParser('makehtml.hashHTMLSpans')(text, options, globals);
-      otp = '<a' + showdown.helper._populateAttributes(attributes) + '>' + text + '</a>';
+      attributes = capture.attributes;
+      otp = '<a' + showdown.helper._populateAttributes(attributes) + '>' + capture.matches.text + '</a>';
     }
-
-    let beforeHashEvent = new showdown.Event('makehtml.link.' + subEvtName + '.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
-    otp = beforeHashEvent.output;
-    return showdown.subParser('makehtml.hashHTMLSpans')(otp, options, globals);
-  }
-
-  /**
-   * @param {string} mail
-   * @returns {{mail: string, url: string}}
-   */
-  function parseMail (mail) {
-    let url = 'mailto:';
-    mail = showdown.subParser('makehtml.unescapeSpecialChars')(mail, options, globals);
-    if (options.encodeEmails) {
-      url = showdown.helper.encodeEmailAddress(url + mail);
-      mail = showdown.helper.encodeEmailAddress(mail);
-    } else {
-      url = url + mail;
-    }
-    return {
-      mail: mail,
-      url: url
-    };
-  }
-
-  // HTML-escape an autolink href (the URL is already percent-encoded)
-  function cmEscapeHref (url) {
-    return url
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  // HTML-escape the visible autolink text (no percent-encoding)
-  function cmEscapeText (txt) {
-    return txt
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+    let hash = showdown.Event.dispatchHash('makehtml.link.' + variant + '.onHash', otp, options, globals);
+    return scan.hashSpan(hash.output);
   }
 });
+
+// find the closing `]` of a reference label, honoring backslash escapes
+function findRefClose (str, j) {
+  let n = str.length;
+  while (j < n) {
+    let c = str.charAt(j);
+    if (c === '\\' && j + 1 < n) { j += 2; continue; }
+    if (c === ']') { return j; }
+    if (c === '[') { return -1; }
+    j++;
+  }
+  return -1;
+}

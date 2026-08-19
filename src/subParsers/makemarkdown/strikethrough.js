@@ -1,39 +1,15 @@
-showdown.subParser('makeMarkdown.strikethrough', function (node, options, globals) {
-  'use strict';
+/**
+ * @file      makemarkdown/strikethrough.js
+ * @summary   Renders `<del>`/`<s>` back to GFM `~~`-delimited strikethrough.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown), registered through the shared
+ * `makeMarkdownWrapMarkerSubParser` factory. Emits `makeMarkdown.strikethrough.onStart`/`onCapture`/`onEnd`.
+ */
 
-  let startEvent = new showdown.Event('makeMarkdown.strikethrough.onStart', node.outerHTML);
-  startEvent
-    .setOutput(null)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  startEvent = globals.converter.dispatch(startEvent);
-
-  let result;
-  if (startEvent.output && startEvent.output !== '') {
-    result = startEvent.output;
-  } else {
-    result = (function () {
-      let txt = '';
-      if (node.hasChildNodes()) {
-        txt += '~~';
-        let children = node.childNodes,
-            childrenLength = children.length;
-        for (let i = 0; i < childrenLength; ++i) {
-          txt += showdown.subParser('makeMarkdown.node')(children[i], options, globals);
-        }
-        txt += '~~';
-      }
-      return txt;
-    })();
-  }
-
-  let endEvent = new showdown.Event('makeMarkdown.strikethrough.onEnd', result);
-  endEvent
-    .setOutput(result)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  endEvent = globals.converter.dispatch(endEvent);
-  return endEvent.output;
-});
+// Registered through the shared makeMarkdownWrapMarkerSubParser factory (defined in
+// emphasis.js): strikethrough differs from its siblings only in the `~~` wrap marker and
+// its event family. Keeps its own registration and full three-phase event family.
+showdown.subParser('makeMarkdown.strikethrough', makeMarkdownWrapMarkerSubParser('strikethrough', '~~'));

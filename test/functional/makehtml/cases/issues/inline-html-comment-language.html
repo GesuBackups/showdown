@@ -1,0 +1,10 @@
+<p>A comment ends at the first <code>--&gt;</code> whose leading dash run is aligned: x <!-- ok --> y</p>
+<p>The comment-end-bang form terminates too: x <!--a--!> y</p>
+<p>Both empty forms are comments: x <!--> y and x <!---> y</p>
+<p>Content may not end in a dash, so this is not a comment: x &lt;!--a---&gt; y</p>
+<p>An unterminated opener is not a comment either: x &lt;!--unterminated y</p>
+<p>A non-comment run does not swallow the markdown after it: x <!--a---> *em* <!--b--></p>
+<p>A real comment does swallow it: x <!-- a *em* b --> y</p>
+<p>Two comment-shaped runs in one paragraph: z <!--a---> z <!--b--></p>
+<!--a--->
+<p>z <!--b--></p>

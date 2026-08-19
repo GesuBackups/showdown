@@ -2,7 +2,7 @@
 // with NO build artifact. It concatenates the src files (same fixed, sorted order as the real
 // build) in-memory and wraps them in the build's IIFE, invoked with `.call(globalThis)`.
 //
-// helpers.js resolves the DOM lazily: an ambient window/document when one exists (the jsdom
+// src/helpers/lazyDocument.js resolves the DOM lazily: an ambient window/document when one exists (the jsdom
 // test environment, real browsers), otherwise `require('happy-dom')`. ESM modules have no
 // `require`, so for Node-environment tests (no window) the generated module shims one via
 // createRequire, anchored to the project root so happy-dom resolves from our node_modules.

@@ -1,5 +1,15 @@
 /**
- * Created by Estevao on 31-05-2015.
+ * @file      event.js
+ * @summary   The `showdown.Event` class and the static dispatch helpers powering the listener event system.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Implements the event object (name, `input`, `output`, `regexp`, `matches`, `attributes`, plus
+ * read-only `_globals`/`_options`/`_converter` context) with validating accessors and fluent
+ * builders, and the static dispatch helpers (`dispatchStart`/`dispatchCapture`/`dispatchHash`/
+ * `dispatchEnd`) that construct subparsers must use to emit `onStart`/`onCapture`/`onHash`/`onEnd`.
+ * This is the contract listener extensions hook into.
  */
 
 showdown.Event = class {
@@ -21,9 +31,7 @@ showdown.Event = class {
     params = params || {};
     let {output, regexp, matches, attributes, globals, options, converter} = params;
     if (!showdown.helper.isString(name)) {
-      if (!showdown.helper.isString(name)) {
-        throw new TypeError('Event.name must be a string but ' + typeof name + ' given');
-      }
+      throw new TypeError('Event.name must be a string but ' + typeof name + ' given');
     }
     this._name = name.toLowerCase();
     this.input = input;
@@ -32,7 +40,8 @@ showdown.Event = class {
     this.matches = matches || {};
     this.attributes = attributes || {};
     this._globals = globals || {};
-    this._options = showdown.helper.cloneObject(options, true) || {};
+    this._options = options || {};
+    this._optionsCopy = null;
     this._converter = converter || undefined;
   }
 
@@ -137,8 +146,23 @@ showdown.Event = class {
     return this._converter;
   }
 
+  /**
+   * The conversion options, as read-only context.
+   *
+   * `_options` is the converter's own live object, so exposing it directly would let a listener
+   * reconfigure the conversion mid-pipeline. A copy is handed out instead — made on first access
+   * rather than at dispatch time, because the overwhelming majority of events are never inspected
+   * by a listener and copying every one of them measurably slows conversion down. The copy is one
+   * level deep: it guards the option keys themselves, and unlike a deep clone it neither costs a
+   * full traversal nor chokes on function-valued options.
+   *
+   * @returns {{}}
+   */
   get options () {
-    return this._options;
+    if (this._optionsCopy === null) {
+      this._optionsCopy = showdown.helper.cloneObject(this._options) || {};
+    }
+    return this._optionsCopy;
   }
 
   get globals () {
@@ -196,8 +220,14 @@ showdown.Event = class {
     return this;
   }
 
+  /**
+   * @param {{}} value the converter's live options; listeners only ever see the copy the
+   *   `options` getter hands out
+   * @returns {showdown.Event}
+   */
   _setOptions (value) {
-    this._options = value;
+    this._options = value || {};
+    this._optionsCopy = null;
     return this;
   }
 
@@ -222,4 +252,164 @@ showdown.Event = class {
   getMatches () {
     return this.matches;
   }
+};
+
+// ---------------------------------------------------------------------------
+// Lifecycle dispatch helpers
+//
+// Shared event ceremony for the makehtml subparsers, the makeMarkdown subparsers
+// and the document-level event sites in converter.js. Each helper builds a
+// showdown.Event with the payload shape mandated by the event contract,
+// dispatches it through the converter and returns the dispatched event so callers
+// can read back the (possibly listener-mutated) output, matches and attributes.
+//
+// The contract (see docs/event-system.md for the full reference, including the
+// makeMarkdown counterpart):
+//   - onStart / onEnd / onHash : input, output (initially === input), options, globals
+//   - onCapture                : output = null, regexp (RegExp|null), matches, attributes
+//   - matches always carries the read-only `_wholeMatch` context key and, for
+//     every construct that has inner content, the main content under `text`;
+//     construct-specific extras use descriptive names (url, title, format, …).
+//
+// makeMarkdown lifecycle events additionally carry the source DOM node under the
+// read-only `matches._node` key (mutating that live node is how a listener rewrites
+// the input on `onStart`); their captures are node-based, so `regexp` and
+// `attributes` are ALWAYS null there (there is no regex match and markdown output
+// has no HTML attributes). The `makeMarkdown.*` namespace is detected from the event
+// name and validated accordingly.
+//
+// dispatchCapture validates the payload cheaply and throws a descriptive Error
+// on a malformed capture (missing matches, absent `_wholeMatch`, or a regexp /
+// attributes value that violates the namespace's shape) so contract violations
+// fail loudly at their source instead of producing a silently broken event.
+// ---------------------------------------------------------------------------
+
+/**
+ * Build, dispatch and return a lifecycle event whose input and output both start
+ * as `text`. Shared by dispatchStart / dispatchEnd / dispatchHash. An optional
+ * `matches` object attaches read-only/mutable context (the makeMarkdown lifecycle
+ * events pass `{_node: node}` so listeners can reach the live DOM node).
+ * @param {string} name
+ * @param {string} text
+ * @param {{}} options
+ * @param {{}} globals
+ * @param {{}} [matches]
+ * @returns {showdown.Event}
+ */
+showdown.Event._dispatchLifecycle = function (name, text, options, globals, matches) {
+  'use strict';
+  let event = new showdown.Event(name, text);
+  event
+    .setOutput(text)
+    ._setGlobals(globals)
+    ._setOptions(options);
+  if (matches) {
+    event.setMatches(matches);
+  }
+  return globals.converter.dispatch(event);
+};
+
+/**
+ * Dispatch a subparser's `onStart` event.
+ * @param {string} name
+ * @param {string} text
+ * @param {{}} options
+ * @param {{}} globals
+ * @param {{}} [matches]
+ * @returns {showdown.Event}
+ */
+showdown.Event.dispatchStart = function (name, text, options, globals, matches) {
+  'use strict';
+  return showdown.Event._dispatchLifecycle(name, text, options, globals, matches);
+};
+
+/**
+ * Dispatch a subparser's `onEnd` event.
+ * @param {string} name
+ * @param {string} text
+ * @param {{}} options
+ * @param {{}} globals
+ * @param {{}} [matches]
+ * @returns {showdown.Event}
+ */
+showdown.Event.dispatchEnd = function (name, text, options, globals, matches) {
+  'use strict';
+  return showdown.Event._dispatchLifecycle(name, text, options, globals, matches);
+};
+
+/**
+ * Dispatch a construct's `onHash` event, carrying the built output that is about
+ * to be hashed/returned.
+ * @param {string} name
+ * @param {string} output
+ * @param {{}} options
+ * @param {{}} globals
+ * @returns {showdown.Event}
+ */
+showdown.Event.dispatchHash = function (name, output, options, globals) {
+  'use strict';
+  return showdown.Event._dispatchLifecycle(name, output, options, globals);
+};
+
+/**
+ * Dispatch a construct's `onCapture` event. Sets the contract payload
+ * (`output: null`, plus the given regexp / matches / attributes) and returns the
+ * dispatched event so the caller can read back matches, attributes and any
+ * output a listener supplied.
+ * @param {string} name
+ * @param {string} input the captured content
+ * @param {{regexp: (RegExp|null), matches: {}, attributes: ({}|undefined)}} params
+ * @param {{}} options
+ * @param {{}} globals
+ * @returns {showdown.Event}
+ */
+showdown.Event.dispatchCapture = function (name, input, params, options, globals) {
+  'use strict';
+  params = params || {};
+  // makeMarkdown captures are node-based: they never carry a regexp or HTML attributes,
+  // so the contract there REQUIRES regexp === null and attributes === null. makehtml
+  // captures keep their shape (regexp is a RegExp or null, attributes is an object).
+  let isMakeMarkdown = /^makemarkdown\./i.test(name);
+  let regexp = (typeof params.regexp === 'undefined') ? null : params.regexp,
+      matches = params.matches,
+      attributes = (typeof params.attributes === 'undefined') ?
+        (isMakeMarkdown ? null : {}) :
+        params.attributes;
+
+  if (isMakeMarkdown) {
+    if (regexp !== null) {
+      throw new Error('Malformed "' + name + '" capture event: makeMarkdown captures are node-based and carry no regexp, so regexp must be null, but ' +
+        (regexp instanceof RegExp ? 'a RegExp' : typeof regexp) + ' given');
+    }
+    if (attributes !== null) {
+      throw new Error('Malformed "' + name + '" capture event: makeMarkdown output has no attributes, so attributes must be null, but ' +
+        typeof attributes + ' given');
+    }
+  } else {
+    if (regexp !== null && !(regexp instanceof RegExp)) {
+      throw new Error('Malformed "' + name + '" capture event: regexp must be a RegExp or null, but ' +
+        typeof regexp + ' given');
+    }
+    if (attributes === null || typeof attributes !== 'object') {
+      throw new Error('Malformed "' + name + '" capture event: attributes must be an object, but ' +
+        typeof attributes + ' given');
+    }
+  }
+  if (matches === null || typeof matches !== 'object') {
+    throw new Error('Malformed "' + name + '" capture event: matches must be an object, but ' +
+      typeof matches + ' given');
+  }
+  if (!Object.prototype.hasOwnProperty.call(matches, '_wholeMatch')) {
+    throw new Error('Malformed "' + name + '" capture event: matches must include a "_wholeMatch" key');
+  }
+
+  let event = new showdown.Event(name, input);
+  event
+    .setOutput(null)
+    ._setGlobals(globals)
+    ._setOptions(options)
+    .setRegexp(regexp)
+    .setMatches(matches)
+    .setAttributes(attributes);
+  return globals.converter.dispatch(event);
 };

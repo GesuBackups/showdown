@@ -1,21 +1,38 @@
-
-
+/**
+ * @file      makemarkdown/node.js
+ * @summary   The recursive HTML→Markdown dispatcher that routes each DOM node to the right construct subparser.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * The reverse-direction analogue of `blockGamut`/`spanGamut`: handles text nodes, HTML comments and
+ * unknown/raw elements itself, and dispatches known elements (headings, lists, links, tables, …) to
+ * their subparser, falling back to `renderRawElement` when a feature-gated construct's option is off.
+ * Emits `makeMarkdown.node.onStart`/`onCapture`/`onEnd` for every node — the one place to observe content without
+ * a dedicated subparser.
+ */
 showdown.subParser('makeMarkdown.node', function (node, options, globals, spansOnly) {
   'use strict';
 
   spansOnly = spansOnly || false;
 
-  let startEvent = new showdown.Event('makeMarkdown.node.onStart', node.outerHTML || node.nodeValue || '');
-  startEvent
-    .setOutput(null)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  startEvent = globals.converter.dispatch(startEvent);
+  let input = node.outerHTML || node.nodeValue || '';
+  showdown.Event.dispatchStart('makeMarkdown.node.onStart', input, options, globals, {_node: node});
+
+  // node is the recursive dispatcher (the makeMarkdown analogue of blockGamut/spanGamut) and
+  // has no syntax of its own, but it IS the sole observation point for content with no
+  // dedicated subparser — HTML comments and unknown/raw elements — so it emits a capture whose
+  // output-override lets a listener replace the default dispatch. It has no inner content of
+  // its own, so the capture carries no `text` key.
+  let captureEvent = showdown.Event.dispatchCapture('makeMarkdown.node.onCapture', input, {
+    regexp: null,
+    matches: {_wholeMatch: input, _node: node},
+    attributes: null
+  }, options, globals);
 
   let result;
-  if (startEvent.output && startEvent.output !== '') {
-    result = startEvent.output;
+  if (captureEvent.output && captureEvent.output !== '') {
+    result = captureEvent.output;
   } else {
     result = (function () {
       let txt = '';
@@ -205,12 +222,5 @@ showdown.subParser('makeMarkdown.node', function (node, options, globals, spansO
     })();
   }
 
-  let endEvent = new showdown.Event('makeMarkdown.node.onEnd', result);
-  endEvent
-    .setOutput(result)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  endEvent = globals.converter.dispatch(endEvent);
-  return endEvent.output;
+  return showdown.Event.dispatchEnd('makeMarkdown.node.onEnd', result, options, globals, {_node: node}).output;
 });

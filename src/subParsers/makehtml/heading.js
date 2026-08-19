@@ -1,27 +1,33 @@
-////
-// makehtml/blockquote.js
-// Copyright (c) 2018 ShowdownJS
-//
-// Transforms MD headings into `<h#>` html entities
-//
-// Setext-style headers:
-//	Header 1
-//	========
-//
-//	Header 2
-//	--------
-//
-// atx-style headers:
-//  # Header 1
-//  ## Header 2
-//  ## Header 2 with closing hashes ##
-//  ...
-//  ###### Header 6
-//
-// ***Author:***
-// - Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
-////
+/**
+ * @file      makehtml/heading.js
+ * @summary   Converts ATX (`#`) and Setext (`===`/`---`) headings into `<h1>`–`<h6>`, generating id attributes.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * An IIFE registering the heading subparser; a shared `parseHeader` handles both styles, namespacing
+ * events per style (`.atx`/`.setext`), each with its own lifecycle and capture. The heading-id
+ * generator emits the capture-only `makehtml.heading.id.onCapture` hook so listeners can supply
+ * custom slugs. The setext regex is the documented ReDoS-sensitive spot.
+ */
 (function () {
+
+  // Unicode whitespace class used by the trimEnd polyfill. Built via string concatenation (rather
+  // than a regex literal) so the single class definition lives in one place; ESLint cannot statically
+  // flag `no-control-regex` on a computed RegExp pattern. File-local to heading.js (its trimEnd is
+  // the sole user).
+  const CM_WS = '\\x09\\x0A\\x0B\\x0C\\x0D\\x20\\xA0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u202F\\u205F\\u3000\\u2028\\u2029\\uFEFF';
+  const CM_WS_END = new RegExp('[' + CM_WS + ']+$');
+
+  /**
+   * Polyfill method for trimEnd. File-local to heading.js (its setext HR/prepend checks are the
+   * sole callers).
+   * @param {string} text
+   * @returns {string}
+   */
+  function trimEnd (text) {
+    return (!String.prototype.trimEnd) ? text.replace(CM_WS_END, '') : text.trimEnd();
+  }
 
   /**
    *
@@ -36,68 +42,35 @@
    * @returns {string}
    */
   function parseHeader (subEvtName, pattern, wholeMatch, headingText, headingLevel, headingId, options, globals) {
-    let captureStartEvent = new showdown.Event('makehtml.heading.' + subEvtName + '.onCapture', headingText),
-        otp;
-
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches({
-        _wholeMatch: wholeMatch,
-        heading: headingText
-      })
-      .setAttributes({
-        id: headingId
-      });
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+    let otp,
+        captureStartEvent = showdown.Event.dispatchCapture('makehtml.heading.' + subEvtName + '.onCapture', headingText, {
+          regexp: pattern,
+          matches: {
+            _wholeMatch: wholeMatch,
+            text: headingText
+          },
+          attributes: {
+            id: headingId
+          }
+        }, options, globals);
     // if something was passed as output, it takes precedence
     // and will be used as output
     if (captureStartEvent.output && captureStartEvent.output !== '') {
       otp = captureStartEvent.output;
 
     } else {
-      headingText = captureStartEvent.matches.heading;
+      headingText = captureStartEvent.matches.text;
       let spanGamut = showdown.subParser('makehtml.spanGamut')(headingText, options, globals),
           attributes = captureStartEvent.attributes;
       otp = '<h' + headingLevel + showdown.helper._populateAttributes(attributes) + '>' + spanGamut + '</h' + headingLevel + '>';
     }
 
-    let beforeHashEvent = new showdown.Event('makehtml.heading.' + subEvtName + '.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.heading.' + subEvtName + '.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
 
-    return showdown.subParser('makehtml.hashBlock')(otp, options, globals);
+    return showdown.helper.hashBlock(otp, options, globals);
   }
 
-  showdown.subParser('makehtml.heading', function (text, options, globals) {
-    'use strict';
-
-    let startEvent = new showdown.Event('makehtml.heading.onStart', text);
-    startEvent
-      .setOutput(text)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    startEvent = globals.converter.dispatch(startEvent);
-    text = startEvent.output;
-
-    text = showdown.subParser('makehtml.heading.setext')(text, options, globals);
-    text = showdown.subParser('makehtml.heading.atx')(text, options, globals);
-
-    let afterEvent = new showdown.Event('makehtml.heading.onEnd', text);
-    afterEvent
-      .setOutput(text)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    afterEvent = globals.converter.dispatch(afterEvent);
-    return afterEvent.output;
-
-  });
 
   // Normalize the `headerIds` option into {enabled, prefix, raw}. Accepts `false`
   // (no ids), an object `{prefix, raw}`, or `true`/undefined (github ids, no prefix).
@@ -116,7 +89,13 @@
     return { enabled: true, prefix: '', raw: false };
   }
 
-  showdown.subParser('makehtml.heading.id', function (m, options, globals) {
+  // Generate a heading's `id` attribute from its text. A mechanism, not a construct, so it
+  // is a showdown.helper rather than a registered subparser — but it keeps one event:
+  // `makehtml.heading.id.onCapture`, whose `matches.text` is the generated id (mutable and
+  // honored, so a listener can implement custom slug generation). It returns an id string
+  // (or null when the headerIds option disables ids), not HTML, so there is no lifecycle or
+  // onHash phase. File-local to heading.js (its atx/setext passes are the only callers).
+  function headingId (m, options, globals) {
     let title;
 
     let cfg = resolveHeaderIds(options.headerIds);
@@ -132,11 +111,15 @@
       // minimal sanitization: only spaces, ', ", > and < become dashes (the prefix is
       // included, so it gets the same treatment). WARNING: may produce malformed ids.
       title = title
-        .replace(/ /g, '-')
+        // a space or an internal line break (multi-line setext heading text) becomes a
+        // dash — per-char so a run of spaces still yields a run of dashes. ATX ids never
+        // contain a newline (the m-flag `.+` capture never crosses lines).
+        .replace(/[ \r\n]/g, '-')
         // replace previously escaped chars (&, ¨ and $)
-        .replace(/&amp;/g, '&')
-        .replace(/¨T/g, '¨')
-        .replace(/¨D/g, '$')
+        .replace(/&amp;/g, '&');
+      // the sentinels must be restored in the inverse order of the producer (`¨D` before
+      // `¨T`), or a literal `¨D` in the heading text collapses into a `$`
+      title = showdown.helper.restoreDollarsAndTremas(title)
         // replace ", ', > and <
         .replace(/["'><]/g, '-')
         .toLowerCase();
@@ -144,7 +127,10 @@
       // default: GitHub-compatible ids (spaces become dashes, non-alphanumeric chars
       // are stripped). Borrowed from github's redcarpet so results are similar.
       title = title
-        .replace(/ /g, '-')
+        // a space or an internal line break (multi-line setext heading text) becomes a
+        // dash — per-char so a run of spaces still yields a run of dashes. ATX ids never
+        // contain a newline (the m-flag `.+` capture never crosses lines).
+        .replace(/[ \r\n]/g, '-')
         // replace previously escaped chars (&, ¨ and $)
         .replace(/&amp;/g, '')
         .replace(/¨T/g, '')
@@ -154,22 +140,32 @@
         .toLowerCase();
     }
 
+    // capture hook: the generated id is exposed under matches.text (mutable + honored), so a
+    // listener can supply a custom slug. The heading text is read-only context. No regexp and
+    // no attributes apply (an id is a bare string, not an HTML fragment). Deduplication runs
+    // after the hook so a listener-supplied slug is still made unique within the document.
+    let captureEvent = showdown.Event.dispatchCapture('makehtml.heading.id.onCapture', title, {
+      regexp: null,
+      matches: {
+        _wholeMatch: m,
+        _headingText: m,
+        text: title
+      },
+      attributes: {}
+    }, options, globals);
+    title = captureEvent.matches.text;
+
     if (globals.hashLinkCounts[title]) {
       title = title + '-' + (globals.hashLinkCounts[title]++);
     } else {
       globals.hashLinkCounts[title] = 1;
     }
     return title;
-  });
+  }
 
   showdown.subParser('makehtml.heading.setext', function (text, options, globals) {
 
-    let startEvent = new showdown.Event('makehtml.heading.setext.onStart', text);
-    startEvent
-      .setOutput(text)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    startEvent = globals.converter.dispatch(startEvent);
+    let startEvent = showdown.Event.dispatchStart('makehtml.heading.setext.onStart', text, options, globals);
     text = startEvent.output;
 
     // NOTE: the first line is `[^ \t\n].*` (single leading non-space + rest) rather
@@ -197,76 +193,121 @@
              /^ {0,3}(?:```|~~~)/.test(first);
     }
 
-    text = text.replace(setextRegexH1, function (wholeMatch, headingText, line1, line2, line3, line4) {
-      if (options.cmSpec && cmSkipSetext(headingText)) { return wholeMatch; }
-      return parseSetextHeading(setextRegexH2, options.headerLevelStart, wholeMatch, headingText, line1, line2, line3, line4);
-    });
+    // H1 (`=` underline) and H2 (`-` underline) run the identical callback; only the
+    // resulting heading level differs (H2 is one deeper). One closure, parameterized by
+    // level, drives both passes. Note both pass `setextRegexH2` as the event regexp — a
+    // long-standing quirk preserved here (the pattern is only surfaced in the capture event).
+    function setextReplacer (level) {
+      return function (wholeMatch, headingText, line1, line2, line3, line4) {
+        if (options.cmSpec && cmSkipSetext(headingText)) { return wholeMatch; }
+        return parseSetextHeading(setextRegexH2, level, wholeMatch, headingText, line1, line2, line3, line4);
+      };
+    }
 
-    text = text.replace(setextRegexH2, function (wholeMatch, headingText, line1, line2, line3, line4) {
-      if (options.cmSpec && cmSkipSetext(headingText)) { return wholeMatch; }
-      return parseSetextHeading(setextRegexH2, options.headerLevelStart + 1, wholeMatch, headingText, line1, line2, line3, line4);
-    });
+    text = text.replace(setextRegexH1, setextReplacer(options.headerLevelStart));
+    text = text.replace(setextRegexH2, setextReplacer(options.headerLevelStart + 1));
 
-    let afterEvent = new showdown.Event('makehtml.heading.setext.onEnd', text);
-    afterEvent
-      .setOutput(text)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    afterEvent = globals.converter.dispatch(afterEvent);
+    let afterEvent = showdown.Event.dispatchEnd('makehtml.heading.setext.onEnd', text, options, globals);
 
-    return showdown.subParser('makehtml.hashHTMLBlocks')(afterEvent.output, options, globals);
+    return showdown.helper.hashHTMLBlocks(afterEvent.output, options, globals);
 
 
+    // The greedy 3-line capture (setextRegexH1/H2) over-matches: an underline can appear
+    // directly under lines that are really a *different* block (a thematic break, a list
+    // item, a block quote, or a leaf/container block), which the underline would wrongly
+    // pull into "heading text". `parseSetextHeading` re-litigates those false positives.
+    //
+    // The two false-positive classes are disjoint by line-count and handled by one arm each:
+    //   - a one-line capture  -> resolveOneLinerFalsePositive (HR edge / one-liner list /
+    //                            one-liner block quote, each delegated to its own subparser)
+    //   - a multi-line capture -> resolveMultilineFalsePositive (HR in line1/line2, then a
+    //                            blockGamut reparse with ¨K/¨R sniffing)
+    //
+    // The list/block-quote delegations below are the `!cmSpec` half of the SAME question
+    // that `cmSkipSetext` (above) answers on the `cmSpec` path: "is this underline stealing
+    // a container's lines?". cmSpec skips the match up front and lets the container parsers
+    // claim the lines; the legacy path lets the underline match, then hands the stolen lines
+    // back to the container subparsers here. Merging the two is documented as a later step.
     function parseSetextHeading (pattern, headingLevel, wholeMatch, headingText, line1, line2, line3, line4) {
 
-      // count lines
-      let count = headingText.trim().split('\n').length;
-      let prepend = '';
-      let nPrepend;
       const hrCheckRgx = /^ {0,3}[-_*]([-_*] ?){2,}$/;
+      let count = headingText.trim().split('\n').length,
+          prepend = '';
 
-      // one liner edge cases
       if (count === 1) {
-        // hr
-        // let's find the hr edge case first
-        if (showdown.helper.trimEnd(line1).match(hrCheckRgx)) {
-          // it's the edge case, so it's a false positive
+        let oneLiner = resolveOneLinerFalsePositive(line1, line4);
+        // a non-null result means line1 was really an HR/list/block quote — return it verbatim
+        if (oneLiner !== null) {
+          return oneLiner;
+        }
+      } else {
+        let resolved = resolveMultilineFalsePositive(headingText, line1, line2, line3);
+        prepend = resolved.prepend;
+        headingText = resolved.headingText;
+      }
+
+      // trim stuff
+      headingText = headingText.trim();
+
+      // let's check if heading is empty
+      // after looking for blocks, heading text might be empty which is a false positive
+      if (!headingText) {
+        return prepend + line4;
+      }
+
+      // after this, we're pretty sure it's a heading so let's proceed
+      // (the id helper returns null when the headerIds option disables ids)
+      let id = headingId(headingText, options, globals);
+      return prepend + parseHeader('setext', pattern, wholeMatch, headingText, headingLevel, id, options, globals);
+
+
+      // One-line capture. Returns a finished replacement string when `line1` is really a
+      // thematic break, a one-liner list item, or a one-liner block quote that the greedy
+      // capture mis-swallowed; returns null when it is genuine heading text.
+      function resolveOneLinerFalsePositive (line1, line4) {
+        let prepend;
+
+        // thematic-break edge case (`- - -`): let the horizontalRule parser confirm it
+        if (trimEnd(line1).match(hrCheckRgx)) {
           prepend = showdown.subParser('makehtml.horizontalRule')(line1, options, globals);
           if (prepend !== line1) {
-            // it's an oneliner list
             return prepend.trim() + '\n' + line4;
           }
         }
 
-        // now check if it's an unordered list
+        // one-liner unordered list (`- foo` above an `=` underline): delegate to the list parser
         if (line1.match(/^ {0,3}[-*+][ \t]/)) {
           if (line4.trim().match(/^=+/)) {
             line1 += line4;
           }
           prepend = showdown.subParser('makehtml.list')(line1, options, globals);
           if (prepend !== line1) {
-            // it's an oneliner list
             return prepend.trim() + '\n' + line4;
           }
         }
 
-        // check if it's a blockquote
+        // one-liner block quote (`> foo`): delegate to the block-quote parser
         if (line1.match(/^ {0,3}>[ \t]?[^ \t]/)) {
           if (line4.trim().match(/^=+/)) {
             line1 += line4;
           }
           prepend = showdown.subParser('makehtml.blockquote')(line1, options, globals);
           if (prepend !== line1) {
-            // it's an oneliner blockquote
             return prepend.trim() + '\n' + line4;
           }
         }
 
-        // no edge case let's proceed as usual
-      } else {
-        let multilineText;
+        // no edge case: proceed as a real heading
+        return null;
+      }
 
-        // multiline is a bit trickier
+      // Multi-line capture. Peels any block(s) that precede the true heading text out into
+      // `prepend`, returning the (possibly reduced) heading text alongside. Never short-
+      // circuits — always falls through to the common heading tail above.
+      function resolveMultilineFalsePositive (headingText, line1, line2, line3) {
+        let prepend = '',
+            nPrepend;
+
         // first we must take care of the edge cases of:
         // case1: |  case2:
         // ---    |  ---
@@ -274,7 +315,7 @@
         // ---    |  bar
         //        |  ---
         //
-        if (showdown.helper.trimEnd(line1).match(hrCheckRgx)) {
+        if (trimEnd(line1).match(hrCheckRgx)) {
           nPrepend  = showdown.subParser('makehtml.horizontalRule')(line1, options, globals);
           if (nPrepend !== line1) {
             line1 = '';
@@ -292,7 +333,7 @@
         // ---    |  bar
         //        |  ---
         //
-        if (showdown.helper.trimEnd(line2).match(hrCheckRgx)) {
+        if (trimEnd(line2).match(hrCheckRgx)) {
           // This case sucks, because the first line could be anything!!!
           // first let's make sure it's a hr
           nPrepend  = showdown.subParser('makehtml.horizontalRule')(line2, options, globals);
@@ -315,50 +356,37 @@
           }
         }
 
-        // all edge cases should be treated now
-        multilineText = line1 + line2 + ((line3) ? line3 : '');
-        //if (line4.trim().match(/^=+/)) {
-        //  multilineText += line4;
-        //}
+        // all edge cases should be treated now: reparse the assembled text and let any
+        // block(s) found before the underline win (they take precedence over the heading)
+        let multilineText = line1 + line2 + ((line3) ? line3 : '');
 
         nPrepend = showdown.subParser('makehtml.blockGamut')(multilineText, options, globals, 'makehtml.heading.setext');
         if (nPrepend !== multilineText) {
           // we found one or more blocks, so we need to reparse (blocks should take precendence though)
-          nPrepend = showdown.helper.trimEnd(nPrepend);
+          nPrepend = trimEnd(nPrepend);
           // let's check if the last line is a parsed block
           let newLines = nPrepend.trim().split('\n');
           let nLastLine = newLines.pop().toString();
 
-          if (/^¨K\d+K$/.test(nLastLine) || /^\s*$/gm.test(nLastLine)) {
-            // everything before --- or === is a block or empty line, so it's a false positive
+          if (/^¨(?:K\d+K|R\d+R|M\d+M)$/.test(nLastLine) || /^\s*$/gm.test(nLastLine)) {
+            // everything before --- or === is a block (¨K hashed / ¨R raw HTML / ¨M markdown="1"
+            // block) or empty line, so it's a false positive
             prepend += nPrepend + '\n\n';
             headingText = '';
           } else {
             // the last line is something else... so let's look at the line before that
             let toHeading = nLastLine;
             nLastLine = newLines.pop().toString();
-            if (/^¨K\d+K$/.test(nLastLine) === false && /^\s*$/gm.test(nLastLine) === false) {
+            if (/^¨(?:K\d+K|R\d+R|M\d+M)$/.test(nLastLine) === false && /^\s*$/gm.test(nLastLine) === false) {
               toHeading = nLastLine + '\n' + toHeading;
             }
             headingText = toHeading;
             prepend = newLines.join('\n').trim();
           }
         }
+
+        return { prepend: prepend, headingText: headingText };
       }
-
-      // trim stuff
-      headingText = headingText.trim();
-
-      // let's check if heading is empty
-      // after looking for blocks, heading text might be empty which is a false positive
-      if (!headingText) {
-        return prepend + line4;
-      }
-
-      // after this, we're pretty sure it's a heading so let's proceed
-      // (the id subparser returns null when the headerIds option disables ids)
-      let id = showdown.subParser('makehtml.heading.id')(headingText, options, globals);
-      return prepend + parseHeader('setext', pattern, wholeMatch, headingText, headingLevel, id, options, globals);
     }
 
 
@@ -379,38 +407,30 @@
 
   showdown.subParser('makehtml.heading.atx', function (text, options, globals) {
 
-    let startEvent = new showdown.Event('makehtml.heading.atx.onStart', text);
-    startEvent
-      .setOutput(text)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    startEvent = globals.converter.dispatch(startEvent);
+    let startEvent = showdown.Event.dispatchStart('makehtml.heading.atx.onStart', text, options, globals);
     text = startEvent.output;
 
     // The default variant captures the heading text greedily (`(.+)$`) and strips the optional
     // trailing closing-hash sequence (of ANY length, per CommonMark) in code below. The old
     // `(.+?)[ \t]*#*[ \t]*$` form backtracked quadratically on a line of many `#` followed by
     // text (e.g. `'#'.repeat(n) + ' h'`), because the lazy text capture re-scanned the `#` run
-    // at every position. The requireSpace variant already can't backtrack that way (its `[ \t]+`
+    // at every position. The cmSpec variant already can't backtrack that way (its `[ \t]+`
     // after the opening hashes fails fast on a pure/`#`-prefixed line), so it is left unchanged.
-    const atxRegex = (options.requireSpaceBeforeHeadingText) ? /^ {0,3}(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm : /^ {0,3}(#{1,6})[ \t]*(.+)$/gm;
-    const stripClosing = !options.requireSpaceBeforeHeadingText;
+    // cmSpec (CommonMark) requires a space between the opening `#`s and the heading text; the
+    // legacy path does not.
+    const atxRegex = (options.cmSpec) ? /^ {0,3}(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm : /^ {0,3}(#{1,6})[ \t]*(.+)$/gm;
+    const stripClosing = !options.cmSpec;
     text = text.replace(atxRegex, function (wholeMatch, m1, m2) {
       let headingText = stripClosing ? stripAtxClosingSequence(m2) : m2,
           headingLevel = options.headerLevelStart - 1 + m1.length,
-          // the id subparser returns null when the headerIds option disables ids
-          id = showdown.subParser('makehtml.heading.id')(headingText, options, globals);
+          // the id helper returns null when the headerIds option disables ids
+          id = headingId(headingText, options, globals);
       return parseHeader('atx', atxRegex, wholeMatch, headingText, headingLevel, id, options, globals);
     });
 
-    let afterEvent = new showdown.Event('makehtml.heading.atx.onEnd', text);
-    afterEvent
-      .setOutput(text)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    afterEvent = globals.converter.dispatch(afterEvent);
+    let afterEvent = showdown.Event.dispatchEnd('makehtml.heading.atx.onEnd', text, options, globals);
 
-    return showdown.subParser('makehtml.hashHTMLBlocks')(afterEvent.output, options, globals);
+    return showdown.helper.hashHTMLBlocks(afterEvent.output, options, globals);
 
   });
 

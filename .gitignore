@@ -13,3 +13,5 @@ CLAUDE.md
 AGENTS.md
 .claude
 deliverables
+/.mcp.json
+/.codex/config.toml

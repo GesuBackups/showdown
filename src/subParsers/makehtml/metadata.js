@@ -1,5 +1,13 @@
 /**
- * Parse metadata at the top of the document
+ * @file      makehtml/metadata.js
+ * @summary   Parses a document front-matter metadata block at the top of the document, gated by `metadata`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Extracts the metadata block, records its parsed key/values into `globals.metadata` (consumed by
+ * `completeHTMLDocument`) and exposes the format tag and body. Emits the `makehtml.metadata.*`
+ * event family.
  */
 showdown.subParser('makehtml.metadata', function (text, options, globals) {
   'use strict';
@@ -8,12 +16,7 @@ showdown.subParser('makehtml.metadata', function (text, options, globals) {
     return text;
   }
 
-  let startEvent = new showdown.Event('makehtml.metadata.onStart', text);
-  startEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  startEvent = globals.converter.dispatch(startEvent);
+  let startEvent = showdown.Event.dispatchStart('makehtml.metadata.onStart', text, options, globals);
   text = startEvent.output;
 
   /**
@@ -25,22 +28,20 @@ showdown.subParser('makehtml.metadata', function (text, options, globals) {
    */
   function parseMetadataContents (pattern, wholeMatch, format, content) {
     let otp;
-    let captureStartEvent = new showdown.Event('makehtml.metadata.onCapture', content);
-    captureStartEvent
-      .setOutput(null)
-      ._setGlobals(globals)
-      ._setOptions(options)
-      .setRegexp(pattern)
-      .setMatches({
+    // the metadata block's body is the main captured content (`text`); the format tag
+    // (`yaml`, `toml`, …) is a descriptive extra.
+    let captureStartEvent = showdown.Event.dispatchCapture('makehtml.metadata.onCapture', content, {
+      regexp: pattern,
+      matches: {
         _wholeMatch: wholeMatch,
         format: format,
-        content: content
-      })
-      .setAttributes({});
-    captureStartEvent = globals.converter.dispatch(captureStartEvent);
+        text: content
+      },
+      attributes: {}
+    }, options, globals);
 
     format = captureStartEvent.matches.format;
-    content = captureStartEvent.matches.content;
+    content = captureStartEvent.matches.text;
 
     // if something was passed as output, it will be used as output
     if (captureStartEvent.output && captureStartEvent.output !== '') {
@@ -56,23 +57,15 @@ showdown.subParser('makehtml.metadata', function (text, options, globals) {
     // escape chars significant in html element and attribute contexts so metadata
     // values/keys can't break out of <title>, <meta ...> or the doctype when
     // completeHTMLDocument concatenates them into the document head
-    content = showdown.helper.escapeHTMLEntities(content)
-    // Restore dollar signs and tremas
-      .replace(/¨D/g, '$$')
-      .replace(/¨T/g, '¨')
-      // replace multiple spaces
+    // restore dollar signs and tremas, then collapse the indent that yaml wrapping adds
+    content = showdown.helper.restoreDollarsAndTremas(showdown.helper.escapeHTMLEntities(content))
       .replace(/\n {4}/g, ' ');
 
     content.replace(/^([\S ]+): +([\s\S]+?)$/gm, function (wm, key, value) {
       globals.metadata.parsed[key] = value;
       return '';
     });
-    let beforeHashEvent = new showdown.Event('makehtml.metadata.onHash', otp);
-    beforeHashEvent
-      .setOutput(otp)
-      ._setGlobals(globals)
-      ._setOptions(options);
-    beforeHashEvent = globals.converter.dispatch(beforeHashEvent);
+    let beforeHashEvent = showdown.Event.dispatchHash('makehtml.metadata.onHash', otp, options, globals);
     otp = beforeHashEvent.output;
     if (!otp) {
       otp = '¨M';
@@ -89,14 +82,9 @@ showdown.subParser('makehtml.metadata', function (text, options, globals) {
   // 2. Metadata with YAML delimiters
   const rgx2 = /^\s*---+\s*(\S*?)\n([\s\S]+?)\n---+\s*\n/;
   text = text.replace(rgx2, function (wholeMatch, format, content) {
-    return parseMetadataContents(rgx1, wholeMatch, format, content);
+    return parseMetadataContents(rgx2, wholeMatch, format, content);
   });
   text = text.replace(/¨M/g, '');
-  let afterEvent = new showdown.Event('makehtml.metadata.onEnd', text);
-  afterEvent
-    .setOutput(text)
-    ._setGlobals(globals)
-    ._setOptions(options);
-  afterEvent = globals.converter.dispatch(afterEvent);
+  let afterEvent = showdown.Event.dispatchEnd('makehtml.metadata.onEnd', text, options, globals);
   return afterEvent.output;
 });

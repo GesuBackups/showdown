@@ -1,0 +1,9 @@
+<p>The expected output below was taken from the CommonMark reference implementation
+(spec.commonmark.org/dingus), not from showdown, and pins the part of the comment grammar the
+generated spec suite does not exercise: comment content may not end in a dash, so <code>&lt;!--a---&gt;</code> is
+not a comment, and a comment-shaped run that fails to close keeps swallowing until one that does.</p>
+<!--a---> z <!--b-->
+<p>z <!--a---> z <!--b--></p>
+<p>z &lt;!--a---&gt;</p>
+<p>z <!--a---> *em* <!--b--></p>
+<p>Showdown additionally terminates a comment at <code>--!&gt;</code>, matching browsers: z <!--a--!> y</p>

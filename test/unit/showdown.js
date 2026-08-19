@@ -151,6 +151,12 @@ describe('showdown.setFlavor()', function () {
     showdown.setFlavor('vanilla');
   });
 
+  // The decodeEntities *behavior* is covered by the decodeEntities fixture section; what can
+  // only be asserted here is the linkage — that the commonmark preset is what turns it on.
+  it('should enable decodeEntities as part of the commonmark preset', function () {
+    expect(showdown.getFlavorOptions('commonmark').decodeEntities).toBe(true);
+  });
+
   it('should switch between flavors correctly', function () {
     showdown.setFlavor('gfm');
     let ghOpts = showdown.getFlavorOptions('gfm'),

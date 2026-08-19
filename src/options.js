@@ -1,7 +1,16 @@
 // noinspection HtmlRequiredLangAttribute
 
 /**
- * Created by Tivie on 13-07-2015.
+ * @file      options.js
+ * @summary   Declares every converter option with its default value, type, and description.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Exports a single `getDefaultOpts(simple)` function (called from sibling files via the shared
+ * concat scope) returning the canonical option-metadata table. When `simple` is true it returns
+ * just `{key: defaultValue}`; otherwise it returns the full `{defaultValue, describe, type}`
+ * descriptors used by the CLI's `--config-help`. Pure declaration — no conversion logic, no events.
  */
 
 // eslint-disable-next-line no-unused-vars -- called from sibling src files via the shared concat scope (see scripts/concat.mjs)
@@ -87,11 +96,6 @@ function getDefaultOpts (simple) {
     simpleLineBreaks: {
       defaultValue: false,
       describe: 'Parses simple line breaks as <br>',
-      type: 'boolean'
-    },
-    requireSpaceBeforeHeadingText: {
-      defaultValue: false,
-      describe: 'Makes adding a space between `#` and the header text mandatory (GFM Style)',
       type: 'boolean'
     },
     ghMentions: {

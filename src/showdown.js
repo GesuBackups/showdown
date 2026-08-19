@@ -1,5 +1,15 @@
 /**
- * Created by Tivie on 06-01-2015.
+ * @file      showdown.js
+ * @summary   The static `showdown` namespace: global options, subparser/extension registries, and flavor presets.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * Creates the shared `showdown` object and its private `parsers`, `extensions` and `globalOptions`
+ * state, and defines the flavor bundles (`commonmark`, `gfm`, `original`, `vanilla`, with `github`
+ * aliased to `gfm` — each flavor is just a set of option overrides). Exposes `subParser(name[, fn])`
+ * to get/register subparsers and `extension(...)`/`validate()` for the three extension types. Runs
+ * first in the concatenation so every later file can register against it.
  */
 // Private properties
 let showdown = {},
@@ -10,7 +20,6 @@ let showdown = {},
     flavor = {
       commonmark: {
         headerIds:                            false,
-        requireSpaceBeforeHeadingText:        true,
         decodeEntities:                       true,
         cmSpec:                               true,
         strikethrough:                        false,
@@ -18,7 +27,6 @@ let showdown = {},
       },
       gfm: {
         headerIds:                            false,
-        requireSpaceBeforeHeadingText:        true,
         decodeEntities:                       true,
         cmSpec:                               true,
         strikethrough:                        true,
@@ -104,17 +112,13 @@ showdown.resetOptions = function () {
  */
 showdown.setFlavor = function (name) {
   'use strict';
-  if (!Object.prototype.hasOwnProperty.call(flavor, name)) {
+  let preset = showdown.getFlavorOptions(name);
+  if (!preset) {
     throw Error(name + ' flavor was not found');
   }
   showdown.resetOptions();
-  let preset = flavor[name];
   setFlavor = name;
-  for (let option in preset) {
-    if (Object.prototype.hasOwnProperty.call(preset, option)) {
-      globalOptions[option] = preset[option];
-    }
-  }
+  showdown.helper.applyFlavor(preset, globalOptions); // fresh globalOptions after reset
 };
 
 /**

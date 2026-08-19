@@ -103,6 +103,32 @@ converter.makeHtml("<script>alert(1)</script>");    // => &lt;script>alert(1)&lt
 
 It (1) blocks dangerous URL schemes (`javascript:`, `vbscript:`, `data:` — except `data:image/...`), resolving entity/whitespace obfuscations, and (2) escapes all raw HTML tags and strips inline event-handler attributes (`onerror`, `onload`, …). It directly addresses the `[text](javascript:…)` and mixed HTML/Markdown attacks shown above.
 
+#### What `safeMode` neutralizes, and how
+
+The sanitizers operate on **real tags**, and what counts as a real tag depends on whether the inline engine recognizes the markup as HTML at all. That produces two different — but both inert — outcomes:
+
+* **Well-formed attribute separators** — a space, tab, newline, or a quote-adjacent attribute (no whitespace after the previous attribute's closing quote, e.g. `<a id="x"href="…">`) — are recognized as HTML. The tag stays **live**, and `safeMode` strips its `on*` handlers and empties any dangerous `href`/`src`/`formaction`:
+
+    ```js
+    converter.makeHtml('<img src=x\tonerror=alert(1)>');            // => <p><img src=x></p>
+    converter.makeHtml('<a id="x"href="javascript:alert(1)">c</a>'); // => <p><a id="x"href="">c</a></p>
+    ```
+
+* **A `/` between the tag name and the first attribute** (`<img/onerror=…>`, `<a/href=…>`) is a *malformed* separator that the inline engine does not recognize as HTML. The whole tag is entity-escaped **verbatim** instead, so there is no live element at all — the `onerror` or `javascript:` survives only as inert escaped text:
+
+    ```js
+    converter.makeHtml('<img/onerror=alert(1)>'); // => <p>&lt;img/onerror=alert(1)&gt;</p>
+    ```
+
+    The escaping is deliberately verbatim rather than sanitized in place: the sanitizers match per real `<…>` tag only, and matching already-escaped `&lt;…&gt;` text would strip characters out of the middle of inert text and corrupt it.
+
+* **`<input>` is not escaped** (it is kept so generated tasklist checkboxes survive), so its `formaction` is scheme-checked instead:
+
+    ```js
+    converter.makeHtml('<input formaction="javascript:alert(1)" type="submit">');
+    // => <p><input formaction="" type="submit"></p>
+    ```
+
 !!! danger "Still not a full sanitizer"
     `safeMode` is **defense-in-depth, not a replacement** for a dedicated sanitizer. Treat it as one layer, not the whole defense.
 
@@ -115,6 +141,7 @@ These apply regardless of options:
 * **`makeMarkdown` (HTML → Markdown) parses into an *inert* document.** Assigning untrusted HTML never executes `<script>` nor fires `on*` handlers such as `<img onerror>`/`<svg onload>`, even in a browser.
 * **`makeMarkdown` escapes emitted destinations/titles**, so a crafted attribute cannot inject a brand-new `[link](javascript:…)` when the Markdown is round-tripped back through `makeHtml`.
 * **Link/image and reference parsing are bounded**, so pathological inputs cannot cause catastrophic (quadratic) backtracking — a denial-of-service vector when converting large untrusted inputs.
+* **HTML comments end at `-->` or `--!>`** in every flavor. Browsers treat `--!>` (the HTML "comment end bang" sequence) as a comment terminator, so recognizing only `-->` would let content an author believes is commented out — e.g. `<!-- … --!><img src=x onerror=…>` — reach the browser as live HTML. This intentionally deviates from CommonMark, which recognizes only `-->`.
 
 ## Mitigate XSS
 

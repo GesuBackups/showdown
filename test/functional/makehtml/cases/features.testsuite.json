@@ -20,6 +20,28 @@
     }
   },
   {
+    "name": "metadata-title-entity-escaped",
+    "markdown": "---\ntitle: </title><script>alert(1)</script>\n---\n\n# hi\n",
+    "html": "<!DOCTYPE HTML>\n<html>\n<head>\n<title>&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;</title>\n<meta charset=\"utf-8\">\n</head>\n<body>\n<h1 id=\"hi\">hi</h1>\n</body>\n</html>",
+    "section": "completeHTMLDocument",
+    "number": 102,
+    "options": {
+      "metadata": true,
+      "completeHTMLDocument": true
+    }
+  },
+  {
+    "name": "metadata-doctype-entity-escaped",
+    "markdown": "---\ndoctype: html><script>alert(1)</script\n---\n\n# hi\n",
+    "html": "<!DOCTYPE html&gt;&lt;script&gt;alert(1)&lt;/script>\n<html>\n<head>\n<meta charset=\"utf-8\">\n</head>\n<body>\n<h1 id=\"hi\">hi</h1>\n</body>\n</html>",
+    "section": "completeHTMLDocument",
+    "number": 103,
+    "options": {
+      "metadata": true,
+      "completeHTMLDocument": true
+    }
+  },
+  {
     "name": "disableForced4SpacesIndentedSublists",
     "markdown": "* foo\n  * bar\n\n---\n\n* baz\n  1. bazinga\n",
     "html": "<ul>\n  <li>foo<ul>\n    <li>bar</li></ul></li>\n</ul>\n<hr />\n<ul>\n  <li>baz<ol>\n    <li>bazinga</li></ol></li>\n</ul>\n",
@@ -212,7 +234,7 @@
   {
     "name": "basic",
     "markdown": "some _foo_ yeah\n\nsome __foo__ yeah\n\nsome ___foo___ yeah\n\nsome word_foo_yeah\n\nsome word__foo__yeah\n\nsome word___foo___yeah\n\nstrippers, _hitler_, and stalin\n\nstrippers, __hitler__, and stalin\n\nstrippers, ___hitler___, and stalin\n\n___multiple___ italics and bolds in a ___paragraph___\n\n__multiple__ bolds in a __paragraph__\n\n_multiple_ italics in a _paragraph_",
-    "html": "<p>some <em>foo</em> yeah</p>\n<p>some <strong>foo</strong> yeah</p>\n<p>some <strong><em>foo</em></strong> yeah</p>\n<p>some word_foo_yeah</p>\n<p>some word__foo__yeah</p>\n<p>some word___foo___yeah</p>\n<p>strippers, <em>hitler</em>, and stalin</p>\n<p>strippers, <strong>hitler</strong>, and stalin</p>\n<p>strippers, <strong><em>hitler</em></strong>, and stalin</p>\n<p><strong><em>multiple</em></strong> italics and bolds in a <strong><em>paragraph</em></strong></p>\n<p><strong>multiple</strong> bolds in a <strong>paragraph</strong></p>\n<p><em>multiple</em> italics in a <em>paragraph</em></p>",
+    "html": "<p>some <em>foo</em> yeah</p>\n<p>some <strong>foo</strong> yeah</p>\n<p>some <em><strong>foo</strong></em> yeah</p>\n<p>some word_foo_yeah</p>\n<p>some word__foo__yeah</p>\n<p>some word___foo___yeah</p>\n<p>strippers, <em>hitler</em>, and stalin</p>\n<p>strippers, <strong>hitler</strong>, and stalin</p>\n<p>strippers, <em><strong>hitler</strong></em>, and stalin</p>\n<p><em><strong>multiple</strong></em> italics and bolds in a <em><strong>paragraph</strong></em></p>\n<p><strong>multiple</strong> bolds in a <strong>paragraph</strong></p>\n<p><em>multiple</em> italics in a <em>paragraph</em></p>",
     "section": "literalMidWordUnderscores",
     "number": 1003,
     "options": {
@@ -360,6 +382,26 @@
     }
   },
   {
+    "name": "raw-id-preserves-literal-trema-d",
+    "markdown": "# a ¨D b\n",
+    "html": "<h1 id=\"a-¨d-b\">a ¨D b</h1>",
+    "section": "rawHeaderId",
+    "number": 1402,
+    "options": {
+      "headerIds": { "raw": true }
+    }
+  },
+  {
+    "name": "raw-id-preserves-literal-dollar-sign",
+    "markdown": "# a $5 b\n",
+    "html": "<h1 id=\"a-$5-b\">a $5 b</h1>",
+    "section": "rawHeaderId",
+    "number": 1403,
+    "options": {
+      "headerIds": { "raw": true }
+    }
+  },
+  {
     "name": "relativePathBaseUrl",
     "markdown": "[inline relative linky](that_dude_mike.js)\n\n[inline absolute linky](ftp://wikis.com/micky.txt)\n\n[global relative linky][relative_linky]\n\n[global absolute linky][absolute_linky]\n\n![inline relative image](mona-lisa.png)\n\n![inline absolute image](http://images.com/mona-lisa.png)\n\n![global relative image][relative_image]\n\n![global absolute image][absolute_image]\n\n[just an anchor](#holdin_it_down)\n\n[relative_linky]: painters/Michelangelo.html\n[relative_image]: ./mona-lisa.png\n[absolute_linky]: https://www.my-wikis-site.com/peeps/Michelangelo.html\n[absolute_image]: https://www.my-photo-site.com/mona-lisa.png\n",
     "html": "<p><a href=\"http://my.site.com/that_dude_mike.js\">inline relative linky</a></p>\n<p><a href=\"ftp://wikis.com/micky.txt\">inline absolute linky</a></p>\n<p><a href=\"http://my.site.com/painters/Michelangelo.html\">global relative linky</a></p>\n<p><a href=\"https://www.my-wikis-site.com/peeps/Michelangelo.html\">global absolute linky</a></p>\n<p><img src=\"http://my.site.com/mona-lisa.png\" alt=\"inline relative image\" /></p>\n<p><img src=\"http://images.com/mona-lisa.png\" alt=\"inline absolute image\" /></p>\n<p><img src=\"http://my.site.com/mona-lisa.png\" alt=\"global relative image\" /></p>\n<p><img src=\"https://www.my-photo-site.com/mona-lisa.png\" alt=\"global absolute image\" /></p>\n<p><a href=\"#holdin_it_down\">just an anchor</a></p>\n",
@@ -370,13 +412,13 @@
     }
   },
   {
-    "name": "requireSpaceBeforeHeadingText",
+    "name": "cmSpec-requires-space-before-heading-text",
     "markdown": "# header\n\n#header\n",
     "html": "<h1 id=\"header\">header</h1>\n<p>#header</p>\n",
-    "section": "requireSpaceBeforeHeadingText",
+    "section": "cmSpec",
     "number": 1601,
     "options": {
-      "requireSpaceBeforeHeadingText": true
+      "cmSpec": true
     }
   },
   {
@@ -912,7 +954,7 @@
   {
     "name": "fulltext",
     "markdown": "Markdown test adapted from BitBucket\n====================\n\n[Markdown][fireball] for readmes is pretty popular.  So, I've given you a demo\nhere of all the markup we support. In some cases, I copied the doc/examples entirely from the Fireball Markdown site. \n\nI didn't duplicate all the Markdown doc everything tho. For the entire docs and a deeper explanation of Markdown, you still need to go to the [Markdown][fireball] site.\n\nYou can also use [Markdown mark up][BBmarkup] in comments, issues, and commit messages.\n\nOn this page:\n\n\n* [Span Elements](https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-span-elements)\n    * [Emphasis](https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-emphasis)\n\n    * [Strikethrough](https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-strikethrough)\n    \n    * [Preformatted code](https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-preformatted-code)\n\n    * [Links](https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-links)\n\n    * [Images](https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-images)\n\n* [Block Elements](https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-block-elements)\n    * [Headings](https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-headings)\n\n    * [Paragraphs and blockquotes](https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-paragraphs-and-blockquotes)\n\n    * [Lists](https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-lists)\n\n    * [Tables](https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-tables)\n\n    * [Code and Syntax highlighting](https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-code-and-syntax-highlighting)\n\n    * [Horizontal rules](https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-horizontal-rules)\n\n- - -\n\n# Span Elements\n\nThese elements occur within a line of text.  So, for example font changes or links.\n\n \n## Emphasis\n\nMarkdown treats * (asterisk) as emphasis markers. \n\n*single asterisks*\n**double asterisks**\n\nAll are created from this:\n\n    *single asterisks*\n\n    **double asterisks**\n\n\n## Underline [experimental]\n\n\n__double underscores__\n\n___triple underscores___\n\n\nAll are created from this:\n\n\n    __double underscores__\n\n    ___triple underscores___\n\n\nYou must use the same character must be used to open and close an emphasis span. Emphasis can be used in the mi*dd*le of a word.\n\n    Emphasis can be used in the mi*dd*le of a word.\n\nBut if you surround an * or _ with spaces, it will be treated as a literal asterisk or underscore.\n\nTo produce a literal asterisk or underscore at a position where it would otherwise be used as an emphasis delimiter, you can backslash escape it:\n\n    \\*this text is surrounded by literal asterisks\\*\n\n## Strikethrough\n\nMarkdown's Markdown parser supports strikethrough by wrapping text in `~~`:\n\n~~text that has been struckthrough~~\n\nis created from:\n\n    ~~text that has been struckthrough~~\n\n## Preformatted code\n\nTo indicate a span of code, wrap it with `` ` `` (backtick). Unlike a pre-formatted code block, a code span indicates code within a normal paragraph. For example:\n\nUse the `printf()` function.\n\nis produced from:\n\n    Use the `printf()` function.\n    \nTo include a literal backtick character within a code span, you can use multiple backticks as the opening and closing delimiters:\n\n``There is a literal backtick (`) here.``    \n\n\n## Links\n\nMarkdown supports inline and reference links. In both styles, the link text is delimited by [square brackets]. To create an inline link, use this syntax:\n\n    [ Text for the link ](URL)\n\nSo an inline link to [Yahoo](http://www.yahoo.com) looks like this:\n\n    So an inline link to [Yahoo](http://www.yahoo.com) looks like this:\n\nReference-style links use a second set of square brackets, inside which you place a label of your choosing to identify the link:\n\n    This is [an example][id] reference-style link.\n    \nWhich gives you a link like this:\n\nThis is [an example][id] reference-style link.\n    \nElsewhere in the document, usually at the bottom of the file, you define your link label on a line by itself:\n\n    [id]: http://example.com/  \"Optional Title Here\"\n    \nLinks can get pretty fancy, so if you want the long form version, visit the \n official [Markdown][fireball] docs.\n\n\n## Images\n\nMarkdown uses an image syntax that is intended to resemble the syntax for links, allowing for two styles: inline and reference. Images appear like this:\n\n![Alt text](http://www.addictedtoibiza.com/wp-content/uploads/2012/12/example.png)\n\n\n\n    ![Alt text](http://www.addictedtoibiza.com/wp-content/uploads/2012/12/example.png)\n\n    ![Alt text](http://www.addictedtoibiza.com/wp-content/uploads/2012/12/example.png \"Optional title\")\n    \n- - -\n# Block Elements\n\nThese are elements that are a single or multiple lines in length\n\n\n\n## Headings\nYou can create Atx-style headings by prefixing with a # (hash mark)\n\n# Heading 1 markup  `# Heading 1`\n# \n## Heading 2 markup  `## Heading 2`\n## \n### Heading 3 markup   `### Heading 3`\n### \n#### Heading 4 markup  `#### Heading 4`\n#### \n##### Heading 5 markup  `##### Heading 5`\n##### \n###### Heading 6 markup  `###### Heading 6`\n###### \nYou can also create Setext-style headings which have two levels.\n\nLevel 1 markup use an equal sign = (equal sign) \n==============================\n\n\n     Level 1 markup use an equal sign = (equal sign)        \n     ==============================\n     \nLevel 2 markup uses - (dashes) \n-------------\n\n\n    Level 2 markup uses - (dashes) \n    -------------\n\n\n\n\n## PARAGRAPHS and BLOCKQUOTES\n\n\nA paragraph is one or more consecutive lines of text separated by one or more\nblank lines. A blank line contains nothing but spaces or tabs. Do not indent\nnormal paragraphs with spaces or tabs. New lines/carriage returns within paragraphs require two spaces at the end of the preceding line.\n\nThis is one paragraph.\n\nThis is a second.\n\n    This is one paragraph.\n\n    This is a second.\n\nMarkdown uses email-style > (greater than) characters for blockquoting. If youâ€™re familiar with quoting passages of text in an email message, then you know how to create a blockquote in Markdown. It looks best if you hard wrap the text and put a > before every line:\n\n> This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,\n> consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.\n> \n> Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse\n> id sem consectetuer libero luctus adipiscing.\n\n\n    > This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,\n    > consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.\n    > \n    > Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse\n    > id sem consectetuer libero luctus adipiscing.\n    \nBlockquotes can be nested (i.e. a blockquote-in-a-blockquote):\n\n> This is the first level of quoting.\n>\n> > This is nested blockquote.\n>\n> Back to the first level.\n\n    > This is the first level of quoting.\n    >\n    > > This is nested blockquote.\n    >\n    > Back to the first level.\n\nBlockquotes can contain other Markdown elements, including headers, lists, and code blocks:\n\n> ## This is a header.\n> \n> 1.   This is the first list item.\n> 2.   This is the second list item.\n> \n> Here's some example code:\n> \n>     return shell_exec(\"echo $input | $markdown_script\");\n\n\n    > ## This is a header.\n    > \n    > 1.   This is the first list item.\n    > 2.   This is the second list item.\n    > \n    > Here's some example code:\n    > \n    >     return shell_exec(\"echo $input | $markdown_script\");\n    \n\n\n\n## Lists\n\nMarkdown supports ordered (numbered) and unordered (bulleted) lists.  List markers typically start at the left margin, but may be indented by up to three spaces. List markers must be followed by one or more spaces or a tab.\n\nForm bulleted lists with any of * (asterisk), + (plus), or - (dash). You can one or any or mix of these to form a list:\n\n* Red \n+ Green \n- Blue\n\n\n        * Red\n        + Green\n        - Blue\n    \nOrdered lists require a numeric character followed by a . (period).\n\n1. Item one\n1. Item two \n1. Item three\n\n        1. Item one\n        1. Item two \n        1. Item three\n    \nNotice the actual value of the number doesn't matter in the list result. However, for readability better to use this markup:\n\n        1. Item one\n        2. Item two \n        3. Item three\n        \nLists can be embedded in lists. List items may consist of multiple paragraphs. Each subsequent paragraph in a list item must be indented by either 4 spaces or one tab:\n\n* Red \n+ Green \n    * dark  green \n    * lime    \n- Blue        \n    1. Item one\n        1. subitem 1 \n        1. subitem 2\n    1. Item two \n    \n        This is is a first paragraph. \n        \n        * Green \n        * Blue\n        \n        This is a second paragraph.\n        \n    1. Item three\n    \nThe code for these embedded lists or paragraphs is:\n\n            * Red \n            + Green \n                * dark  green \n                * lime    \n            - Blue        \n                1. Item one\n                    1. subitem 1\n                    1. subitem 2\n                1. Item two \n    \n                    This is is a first paragraph. \n        \n                    * Green \n                    * Blue\n        \n                    This is a second paragraph.\n        \n                1. Item three\n\nYou can also embed blockquotes in a list.\n\n* Green\n> What is this?  It is embedded blockquote.  Mix 'em and match 'em.\n* Blue\n* Red\n\n        * Green\n        > What is this?  It is embedded blockquote.  Mix 'em and match 'em.\n        * Blue\n        * Red\n\n\n\nYou can also embed code blocks in a list.\n\n* Green\n\n    Try this code:\n\n        This is an embedded code block.\n\n    Then this:\n\n        More code!\n\n* Blue\n* Red\n\n        * Green\n\n            Try this code:\n\n                This is an embedded code block.\n\n            Then this:\n\n                More code!\n\n        * Blue\n        * Red\n\n\n## Tables\n\n\n\nMarkdown does not support `<html>` so you need to use the - (dash) and the | (pipe) symbols to construct a table. The first line contains column headers. Separate columns with the pipe symbol.\n\nThe  second line must be a mandatory separator line between the headers and the content. Subsequent lines are table rows. Columns are always separated by the pipe (|) character.  For example this table:\n\nFirst Header  | Second Header\n------------- | -------------\nContent Cell  | Content Cell\nContent Cell  | Content Cell\n\nComes from this code:\n\n    First Header  | Second Header\n    ------------- | -------------\n    Content Cell  | Content Cell\n    Content Cell  | Content Cell\n    \n    \nYou can only put simple lines in a table.\n\nYou can specify alignment for each column by adding colons to separator lines. A colon at the left of the separator line, left-aligns the column. A colon on the right, right-aligns the column. Add colons to both sides to center the column is center-aligned.\n\nRight     | Left   | Center \n---------:| :----- |:-----:\nComputer  |  $1600 | one\nPhone     |    $12 | three\nPipe      |     $1 | eleven\n\n    Right     | Left   | Center \n    ---------:| :----- |:-----:\n    Computer  |  $1600 | one\n    Phone     |    $12 | three\n    Pipe      |     $1 | eleven\n\n\nYou can apply inline formatting (span-level changes such as fonts or links) to the content of each cell using regular Markdown syntax:\n\n\n| Function name | Description                    |\n| ------------- | ------------------------------ |\n| `help()`      | Display the __help__ window.   |\n| `destroy()`   | **Destroy your computer!**     |\n\n    | Function name | Description                    |\n    | ------------- | ------------------------------ |\n    | `help()`      | Display the __help__ window.   |\n    | `destroy()`   | **Destroy your computer!**     |\n\n\n\n\n- -  -\n\n\n## Code and Syntax highlighting\n\n\nPre-formatted code blocks are used for writing about programming or markup source code. Rather than forming normal paragraphs, the code block linesare interpreted literally.  Markdown wraps a code block in both `<pre>` and `<code>` tags.\n\nTo produce a code block in Markdown, indent every line of the block by at least 4 spaces or 1 tab. For :\n\nThis is a normal paragraph:\n\n    This is a code block.\n\nThe code reveals the indentation.\n\n        This is a normal paragraph:\n\n            This is a code block.\n\nA code block continues until it reaches a line that is not indented (or the end of the page).\n\nWithin a code block, & (ampersands) and < > (angle brackets) are automatically converted into HTML entities. This makes it very easy to include example HTML source code using Markdown â€” just paste it and indent it. Markdown will handle the hassle of encoding the ampersands and angle brackets. For example, this:\n\n<p>Here is an example of AppleScript:</p>\n\n    <p>Here is an example of AppleScript:</p>\n\nTo produce a code block in Markdown, simply indent every line of the block by at least 4 spaces or 1 tab. For example, given this input:\n\n\nYou can also highlight snippets of text (Markdown uses the excellent [Pygments][] library) to allow you to use code highlighting  Here's an example of some Python code:\n\n```\n#!python\n#\ndef wiki_rocks(text): formatter = lambda t: \"funky\"+t return formatter(text)         \n```\n\nTo do this, do not indent the block. Start the block with ` ``` ` three ticks. Then, provide the comment with the type of syntax you are using.  There is a [the vast library of Pygment lexers][lexers]. Markdown accepts the 'short name' or the 'mimetype' of anything in there.\n\nYou can also use a fence style for code.\n\n```\nThis is a code block, fenced-style\n```\n\nWhich you create with this code:\n\n    ```\n    This is a code block, fenced-style\n    ```\n    \nSee [Michel Fortin's blog][extra] to try out more examples of this coding style. Not everything he demos is guaranteed to work though.\n\n\n- - -\n\n# Horizontal Rules\n\nYou can produce a horizontal line with any of the following codes:\n\n    * * *\n\n    ***\n\n    *****\n\n    - - - -\n\n    -----------------------\n    \nThe output looks like this:\n\n* * *\n\n***\n\n*****\n\n- - - \n\n-----------------------\n\n- - -\n\n\n\n[lexers]: http://pygments.org/docs/lexers/\n[fireball]: http://daringfireball.net/projects/markdown/ \n[Pygments]: http://pygments.org/ \n[Extra]: http://michelf.ca/projects/php-markdown/extra/\n[id]: http://example.com/  \"Optional Title Here\"\n[BBmarkup]: https://confluence.atlassian.com/x/xTAvEw",
-    "html": "<h1 id=\"markdown-test-adapted-from-bitbucket\">Markdown test adapted from BitBucket</h1>\n<p><a href=\"http://daringfireball.net/projects/markdown/\">Markdown</a> for readmes is pretty popular.  So, I've given you a demo\n    here of all the markup we support. In some cases, I copied the doc/examples entirely from the Fireball Markdown site. </p>\n<p>I didn't duplicate all the Markdown doc everything tho. For the entire docs and a deeper explanation of Markdown, you still need to go to the <a href=\"http://daringfireball.net/projects/markdown/\">Markdown</a> site.</p>\n<p>You can also use <a href=\"https://confluence.atlassian.com/x/xTAvEw\">Markdown mark up</a> in comments, issues, and commit messages.</p>\n<p>On this page:</p>\n<ul>\n    <li><p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-span-elements\">Span Elements</a></p>\n        <ul>\n            <li><p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-emphasis\">Emphasis</a></p></li>\n            <li><p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-strikethrough\">Strikethrough</a></p></li>\n            <li><p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-preformatted-code\">Preformatted code</a></p></li>\n            <li><p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-links\">Links</a></p></li>\n            <li><p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-images\">Images</a></p></li></ul></li>\n    <li><p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-block-elements\">Block Elements</a></p>\n        <ul>\n            <li><p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-headings\">Headings</a></p></li>\n            <li><p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-paragraphs-and-blockquotes\">Paragraphs and blockquotes</a></p></li>\n            <li><p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-lists\">Lists</a></p></li>\n            <li><p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-tables\">Tables</a></p></li>\n            <li><p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-code-and-syntax-highlighting\">Code and Syntax highlighting</a></p></li>\n            <li><p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-horizontal-rules\">Horizontal rules</a></p></li></ul></li>\n</ul>\n<hr />\n<h1 id=\"span-elements\">Span Elements</h1>\n<p>These elements occur within a line of text.  So, for example font changes or links.</p>\n<h2 id=\"emphasis\">Emphasis</h2>\n<p>Markdown treats * (asterisk) as emphasis markers. </p>\n<p><em>single asterisks</em>\n    <strong>double asterisks</strong></p>\n<p>All are created from this:</p>\n<pre><code>*single asterisks*\n\n**double asterisks**\n</code></pre>\n<h2 id=\"underline-experimental\">Underline [experimental]</h2>\n<p><u>double underscores</u></p>\n<p><u>triple underscores</u></p>\n<p>All are created from this:</p>\n<pre><code>__double underscores__\n\n___triple underscores___\n</code></pre>\n<p>You must use the same character must be used to open and close an emphasis span. Emphasis can be used in the mi<em>dd</em>le of a word.</p>\n<pre><code>Emphasis can be used in the mi*dd*le of a word.\n</code></pre>\n<p>But if you surround an * or _ with spaces, it will be treated as a literal asterisk or underscore.</p>\n<p>To produce a literal asterisk or underscore at a position where it would otherwise be used as an emphasis delimiter, you can backslash escape it:</p>\n<pre><code>\\*this text is surrounded by literal asterisks\\*\n</code></pre>\n<h2 id=\"strikethrough\">Strikethrough</h2>\n<p>Markdown's Markdown parser supports strikethrough by wrapping text in <code>~~</code>:</p>\n<p><del>text that has been struckthrough</del></p>\n<p>is created from:</p>\n<pre><code>~~text that has been struckthrough~~\n</code></pre>\n<h2 id=\"preformatted-code\">Preformatted code</h2>\n<p>To indicate a span of code, wrap it with <code>`</code> (backtick). Unlike a pre-formatted code block, a code span indicates code within a normal paragraph. For example:</p>\n<p>Use the <code>printf()</code> function.</p>\n<p>is produced from:</p>\n<pre><code>Use the `printf()` function.\n</code></pre>\n<p>To include a literal backtick character within a code span, you can use multiple backticks as the opening and closing delimiters:</p>\n<p><code>There is a literal backtick (`) here.</code>    </p>\n<h2 id=\"links\">Links</h2>\n<p>Markdown supports inline and reference links. In both styles, the link text is delimited by [square brackets]. To create an inline link, use this syntax:</p>\n<pre><code>[ Text for the link ](URL)\n</code></pre>\n<p>So an inline link to <a href=\"http://www.yahoo.com\">Yahoo</a> looks like this:</p>\n<pre><code>So an inline link to [Yahoo](http://www.yahoo.com) looks like this:\n</code></pre>\n<p>Reference-style links use a second set of square brackets, inside which you place a label of your choosing to identify the link:</p>\n<pre><code>This is [an example][id] reference-style link.\n</code></pre>\n<p>Which gives you a link like this:</p>\n<p>This is <a href=\"http://example.com/\" title=\"Optional Title Here\">an example</a> reference-style link.</p>\n<p>Elsewhere in the document, usually at the bottom of the file, you define your link label on a line by itself:</p>\n<pre><code>[id]: http://example.com/  &quot;Optional Title Here&quot;\n</code></pre>\n<p>Links can get pretty fancy, so if you want the long form version, visit the\n    official <a href=\"http://daringfireball.net/projects/markdown/\">Markdown</a> docs.</p>\n<h2 id=\"images\">Images</h2>\n<p>Markdown uses an image syntax that is intended to resemble the syntax for links, allowing for two styles: inline and reference. Images appear like this:</p>\n<p><img src=\"http://www.addictedtoibiza.com/wp-content/uploads/2012/12/example.png\" alt=\"Alt text\" /></p>\n<pre><code>![Alt text](http://www.addictedtoibiza.com/wp-content/uploads/2012/12/example.png)\n\n![Alt text](http://www.addictedtoibiza.com/wp-content/uploads/2012/12/example.png &quot;Optional title&quot;)\n</code></pre>\n<hr />\n<h1 id=\"block-elements\">Block Elements</h1>\n<p>These are elements that are a single or multiple lines in length</p>\n<h2 id=\"headings\">Headings</h2>\n<p>You can create Atx-style headings by prefixing with a # (hash mark)</p>\n<h1 id=\"heading-1-markup---heading-1\">Heading 1 markup  <code># Heading 1</code></h1>\n<h1 id=\"-\"> </h1>\n<h2 id=\"heading-2-markup---heading-2\">Heading 2 markup  <code>## Heading 2</code></h2>\n<h2 id=\"--1\"> </h2>\n<h3 id=\"heading-3-markup----heading-3\">Heading 3 markup   <code>### Heading 3</code></h3>\n<h3 id=\"--2\"> </h3>\n<h4 id=\"heading-4-markup---heading-4\">Heading 4 markup  <code>#### Heading 4</code></h4>\n<h4 id=\"--3\"> </h4>\n<h5 id=\"heading-5-markup---heading-5\">Heading 5 markup  <code>##### Heading 5</code></h5>\n<h5 id=\"--4\"> </h5>\n<h6 id=\"heading-6-markup---heading-6\">Heading 6 markup  <code>###### Heading 6</code></h6>\n<h6 id=\"--5\"> </h6>\n<p>You can also create Setext-style headings which have two levels.</p>\n<h1 id=\"level-1-markup-use-an-equal-sign--equal-sign\">Level 1 markup use an equal sign = (equal sign)</h1>\n<pre><code> Level 1 markup use an equal sign = (equal sign)        \n ==============================\n</code></pre>\n<h2 id=\"level-2-markup-uses---dashes\">Level 2 markup uses - (dashes)</h2>\n<pre><code>Level 2 markup uses - (dashes) \n-------------\n</code></pre>\n<h2 id=\"paragraphs-and-blockquotes\">PARAGRAPHS and BLOCKQUOTES</h2>\n<p>A paragraph is one or more consecutive lines of text separated by one or more\n    blank lines. A blank line contains nothing but spaces or tabs. Do not indent\n    normal paragraphs with spaces or tabs. New lines/carriage returns within paragraphs require two spaces at the end of the preceding line.</p>\n<p>This is one paragraph.</p>\n<p>This is a second.</p>\n<pre><code>This is one paragraph.\n\nThis is a second.\n</code></pre>\n<p>Markdown uses email-style &gt; (greater than) characters for blockquoting. If youâ€™re familiar with quoting passages of text in an email message, then you know how to create a blockquote in Markdown. It looks best if you hard wrap the text and put a &gt; before every line:</p>\n<blockquote>\n    <p>This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,\n        consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.</p>\n    <p>Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse\n        id sem consectetuer libero luctus adipiscing.</p>\n</blockquote>\n<pre><code>&gt; This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,\n&gt; consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.\n&gt; \n&gt; Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse\n&gt; id sem consectetuer libero luctus adipiscing.\n</code></pre>\n<p>Blockquotes can be nested (i.e. a blockquote-in-a-blockquote):</p>\n<blockquote>\n    <p>This is the first level of quoting.</p>\n    <blockquote>\n        <p>This is nested blockquote.</p>\n    </blockquote>\n    <p>Back to the first level.</p>\n</blockquote>\n<pre><code>&gt; This is the first level of quoting.\n&gt;\n&gt; &gt; This is nested blockquote.\n&gt;\n&gt; Back to the first level.\n</code></pre>\n<p>Blockquotes can contain other Markdown elements, including headers, lists, and code blocks:</p>\n<blockquote>\n    <h2 id=\"this-is-a-header\">This is a header.</h2>\n    <ol>\n        <li>This is the first list item.</li>\n        <li>This is the second list item.</li>\n    </ol>\n    <p>Here's some example code:</p>\n    <pre><code>return shell_exec(&quot;echo $input | $markdown_script&quot;);\n</code></pre>\n</blockquote>\n<pre><code>&gt; ## This is a header.\n&gt; \n&gt; 1.   This is the first list item.\n&gt; 2.   This is the second list item.\n&gt; \n&gt; Here's some example code:\n&gt; \n&gt;     return shell_exec(&quot;echo $input | $markdown_script&quot;);\n</code></pre>\n<h2 id=\"lists\">Lists</h2>\n<p>Markdown supports ordered (numbered) and unordered (bulleted) lists.  List markers typically start at the left margin, but may be indented by up to three spaces. List markers must be followed by one or more spaces or a tab.</p>\n<p>Form bulleted lists with any of * (asterisk), + (plus), or - (dash). You can one or any or mix of these to form a list:</p>\n<ul>\n    <li><p>Red </p></li>\n    <li><p>Green </p></li>\n    <li><p>Blue</p>\n        <pre><code>* Red\n+ Green\n- Blue\n</code></pre></li>\n</ul>\n<p>Ordered lists require a numeric character followed by a . (period).</p>\n<ol>\n    <li><p>Item one</p></li>\n    <li><p>Item two </p></li>\n    <li><p>Item three</p>\n        <pre><code>1. Item one\n1. Item two \n1. Item three\n</code></pre></li>\n</ol>\n<p>Notice the actual value of the number doesn't matter in the list result. However, for readability better to use this markup:</p>\n<pre><code>    1. Item one\n    2. Item two \n    3. Item three\n</code></pre>\n<p>Lists can be embedded in lists. List items may consist of multiple paragraphs. Each subsequent paragraph in a list item must be indented by either 4 spaces or one tab:</p>\n<ul>\n    <li><p>Red </p></li>\n    <li><p>Green </p>\n        <ul>\n            <li>dark  green </li>\n            <li>lime    </li></ul></li>\n    <li><p>Blue        </p>\n        <ol>\n            <li><p>Item one</p>\n                <ol>\n                    <li>subitem 1 </li>\n                    <li>subitem 2</li></ol></li>\n            <li><p>Item two </p>\n                <p>This is is a first paragraph. </p>\n                <ul>\n                    <li>Green </li>\n                    <li>Blue</li></ul>\n                <p>This is a second paragraph.</p></li>\n            <li><p>Item three</p></li></ol></li>\n</ul>\n<p>The code for these embedded lists or paragraphs is:</p>\n<pre><code>        * Red \n        + Green \n            * dark  green \n            * lime    \n        - Blue        \n            1. Item one\n                1. subitem 1\n                1. subitem 2\n            1. Item two \n\n                This is is a first paragraph. \n\n                * Green \n                * Blue\n\n                This is a second paragraph.\n\n            1. Item three\n</code></pre>\n<p>You can also embed blockquotes in a list.</p>\n<ul>\n    <li><p>Green\n&gt; What is this?  It is embedded blockquote.  Mix 'em and match 'em.</p></li>\n    <li><p>Blue</p></li>\n    <li><p>Red</p>\n<pre><code>* Green\n&gt; What is this?  It is embedded blockquote.  Mix 'em and match 'em.\n* Blue\n* Red\n</code></pre></li>\n</ul>\n<p>You can also embed code blocks in a list.</p>\n<ul>\n    <li><p>Green</p>\n        <p>Try this code:</p>\n        <pre><code>This is an embedded code block.\n</code></pre>\n        <p>Then this:</p>\n        <pre><code>More code!\n</code></pre></li>\n    <li><p>Blue</p></li>\n    <li><p>Red</p>\n<pre><code>* Green\n\n    Try this code:\n\n        This is an embedded code block.\n\n    Then this:\n\n        More code!\n\n* Blue\n* Red\n</code></pre></li>\n</ul>\n<h2 id=\"tables\">Tables</h2>\n<p>Markdown does not support <code>&lt;html&gt;</code> so you need to use the - (dash) and the | (pipe) symbols to construct a table. The first line contains column headers. Separate columns with the pipe symbol.</p>\n<p>The  second line must be a mandatory separator line between the headers and the content. Subsequent lines are table rows. Columns are always separated by the pipe (|) character.  For example this table:</p>\n<p>First Header  | Second Header\n    ------------- | -------------\n    Content Cell  | Content Cell\n    Content Cell  | Content Cell</p>\n<p>Comes from this code:</p>\n<pre><code>First Header  | Second Header\n------------- | -------------\nContent Cell  | Content Cell\nContent Cell  | Content Cell\n</code></pre>\n<p>You can only put simple lines in a table.</p>\n<p>You can specify alignment for each column by adding colons to separator lines. A colon at the left of the separator line, left-aligns the column. A colon on the right, right-aligns the column. Add colons to both sides to center the column is center-aligned.</p>\n<p>Right     | Left   | Center\n    ---------:| :----- |:-----:\n    Computer  |  $1600 | one\n    Phone     |    $12 | three\n    Pipe      |     $1 | eleven</p>\n<pre><code>Right     | Left   | Center \n---------:| :----- |:-----:\nComputer  |  $1600 | one\nPhone     |    $12 | three\nPipe      |     $1 | eleven\n</code></pre>\n<p>You can apply inline formatting (span-level changes such as fonts or links) to the content of each cell using regular Markdown syntax:</p>\n<p>| Function name | Description                    |\n    | ------------- | ------------------------------ |\n    | <code>help()</code>      | Display the <u>help</u> window.   |\n    | <code>destroy()</code>   | <strong>Destroy your computer!</strong>     |</p>\n<pre><code>| Function name | Description                    |\n| ------------- | ------------------------------ |\n| `help()`      | Display the __help__ window.   |\n| `destroy()`   | **Destroy your computer!**     |\n</code></pre>\n<hr />\n<h2 id=\"code-and-syntax-highlighting\">Code and Syntax highlighting</h2>\n<p>Pre-formatted code blocks are used for writing about programming or markup source code. Rather than forming normal paragraphs, the code block linesare interpreted literally.  Markdown wraps a code block in both <code>&lt;pre&gt;</code> and <code>&lt;code&gt;</code> tags.</p>\n<p>To produce a code block in Markdown, indent every line of the block by at least 4 spaces or 1 tab. For :</p>\n<p>This is a normal paragraph:</p>\n<pre><code>This is a code block.\n</code></pre>\n<p>The code reveals the indentation.</p>\n<pre><code>    This is a normal paragraph:\n\n        This is a code block.\n</code></pre>\n<p>A code block continues until it reaches a line that is not indented (or the end of the page).</p>\n<p>Within a code block, &amp; (ampersands) and < > (angle brackets) are automatically converted into HTML entities. This makes it very easy to include example HTML source code using Markdown â€” just paste it and indent it. Markdown will handle the hassle of encoding the ampersands and angle brackets. For example, this:</p>\n<p>Here is an example of AppleScript:</p>\n<pre><code>&lt;p&gt;Here is an example of AppleScript:&lt;/p&gt;\n</code></pre>\n<p>To produce a code block in Markdown, simply indent every line of the block by at least 4 spaces or 1 tab. For example, given this input:</p>\n<p>You can also highlight snippets of text (Markdown uses the excellent <a href=\"http://pygments.org/\">Pygments</a> library) to allow you to use code highlighting  Here's an example of some Python code:</p>\n<pre><code>#!python\n#\ndef wiki_rocks(text): formatter = lambda t: &quot;funky&quot;+t return formatter(text)\n</code></pre>\n<p>To do this, do not indent the block. Start the block with <code>```</code> three ticks. Then, provide the comment with the type of syntax you are using.  There is a <a href=\"http://pygments.org/docs/lexers/\">the vast library of Pygment lexers</a>. Markdown accepts the 'short name' or the 'mimetype' of anything in there.</p>\n<p>You can also use a fence style for code.</p>\n<pre><code>This is a code block, fenced-style\n</code></pre>\n<p>Which you create with this code:</p>\n<pre><code>```\nThis is a code block, fenced-style\n```\n</code></pre>\n<p>See <a href=\"http://michelf.ca/projects/php-markdown/extra/\">Michel Fortin's blog</a> to try out more examples of this coding style. Not everything he demos is guaranteed to work though.</p>\n<hr />\n<h1 id=\"horizontal-rules\">Horizontal Rules</h1>\n<p>You can produce a horizontal line with any of the following codes:</p>\n<pre><code>* * *\n\n***\n\n*****\n\n- - - -\n\n-----------------------\n</code></pre>\n<p>The output looks like this:</p>\n<hr />\n<hr />\n<hr />\n<hr />\n<hr />\n<hr />\n",
+    "html": "<h1 id=\"markdown-test-adapted-from-bitbucket\">Markdown test adapted from BitBucket</h1>\n<p><a href=\"http://daringfireball.net/projects/markdown/\">Markdown</a> for readmes is pretty popular.  So, I've given you a demo\nhere of all the markup we support. In some cases, I copied the doc/examples entirely from the Fireball Markdown site. </p>\n<p>I didn't duplicate all the Markdown doc everything tho. For the entire docs and a deeper explanation of Markdown, you still need to go to the <a href=\"http://daringfireball.net/projects/markdown/\">Markdown</a> site.</p>\n<p>You can also use <a href=\"https://confluence.atlassian.com/x/xTAvEw\">Markdown mark up</a> in comments, issues, and commit messages.</p>\n<p>On this page:</p>\n<ul>\n<li>\n<p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-span-elements\">Span Elements</a></p>\n<ul>\n<li>\n<p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-emphasis\">Emphasis</a></p>\n</li>\n<li>\n<p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-strikethrough\">Strikethrough</a></p>\n</li>\n<li>\n<p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-preformatted-code\">Preformatted code</a></p>\n</li>\n<li>\n<p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-links\">Links</a></p>\n</li>\n<li>\n<p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-images\">Images</a></p>\n</li>\n</ul>\n</li>\n<li>\n<p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-block-elements\">Block Elements</a></p>\n<ul>\n<li>\n<p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-headings\">Headings</a></p>\n</li>\n<li>\n<p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-paragraphs-and-blockquotes\">Paragraphs and blockquotes</a></p>\n</li>\n<li>\n<p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-lists\">Lists</a></p>\n</li>\n<li>\n<p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-tables\">Tables</a></p>\n</li>\n<li>\n<p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-code-and-syntax-highlighting\">Code and Syntax highlighting</a></p>\n</li>\n<li>\n<p><a href=\"https://Markdown.org/tutorials/markdowndemo/overview#markdown-header-horizontal-rules\">Horizontal rules</a></p>\n</li>\n</ul>\n</li>\n</ul>\n<hr />\n<h1 id=\"span-elements\">Span Elements</h1>\n<p>These elements occur within a line of text.  So, for example font changes or links.</p>\n<h2 id=\"emphasis\">Emphasis</h2>\n<p>Markdown treats * (asterisk) as emphasis markers. </p>\n<p><em>single asterisks</em>\n<strong>double asterisks</strong></p>\n<p>All are created from this:</p>\n<pre><code>*single asterisks*\n\n**double asterisks**\n</code></pre>\n<h2 id=\"underline-experimental\">Underline [experimental]</h2>\n<p><u>double underscores</u></p>\n<p><u>triple underscores</u></p>\n<p>All are created from this:</p>\n<pre><code>__double underscores__\n\n___triple underscores___\n</code></pre>\n<p>You must use the same character must be used to open and close an emphasis span. Emphasis can be used in the mi<em>dd</em>le of a word.</p>\n<pre><code>Emphasis can be used in the mi*dd*le of a word.\n</code></pre>\n<p>But if you surround an * or _ with spaces, it will be treated as a literal asterisk or underscore.</p>\n<p>To produce a literal asterisk or underscore at a position where it would otherwise be used as an emphasis delimiter, you can backslash escape it:</p>\n<pre><code>\\*this text is surrounded by literal asterisks\\*\n</code></pre>\n<h2 id=\"strikethrough\">Strikethrough</h2>\n<p>Markdown's Markdown parser supports strikethrough by wrapping text in <code>~~</code>:</p>\n<p><del>text that has been struckthrough</del></p>\n<p>is created from:</p>\n<pre><code>~~text that has been struckthrough~~\n</code></pre>\n<h2 id=\"preformatted-code\">Preformatted code</h2>\n<p>To indicate a span of code, wrap it with <code>`</code> (backtick). Unlike a pre-formatted code block, a code span indicates code within a normal paragraph. For example:</p>\n<p>Use the <code>printf()</code> function.</p>\n<p>is produced from:</p>\n<pre><code>Use the `printf()` function.\n</code></pre>\n<p>To include a literal backtick character within a code span, you can use multiple backticks as the opening and closing delimiters:</p>\n<p><code>There is a literal backtick (`) here.</code>    </p>\n<h2 id=\"links\">Links</h2>\n<p>Markdown supports inline and reference links. In both styles, the link text is delimited by [square brackets]. To create an inline link, use this syntax:</p>\n<pre><code>[ Text for the link ](URL)\n</code></pre>\n<p>So an inline link to <a href=\"http://www.yahoo.com\">Yahoo</a> looks like this:</p>\n<pre><code>So an inline link to [Yahoo](http://www.yahoo.com) looks like this:\n</code></pre>\n<p>Reference-style links use a second set of square brackets, inside which you place a label of your choosing to identify the link:</p>\n<pre><code>This is [an example][id] reference-style link.\n</code></pre>\n<p>Which gives you a link like this:</p>\n<p>This is <a href=\"http://example.com/\" title=\"Optional Title Here\">an example</a> reference-style link.</p>\n<p>Elsewhere in the document, usually at the bottom of the file, you define your link label on a line by itself:</p>\n<pre><code>[id]: http://example.com/  &quot;Optional Title Here&quot;\n</code></pre>\n<p>Links can get pretty fancy, so if you want the long form version, visit the\n official <a href=\"http://daringfireball.net/projects/markdown/\">Markdown</a> docs.</p>\n<h2 id=\"images\">Images</h2>\n<p>Markdown uses an image syntax that is intended to resemble the syntax for links, allowing for two styles: inline and reference. Images appear like this:</p>\n<p><img src=\"http://www.addictedtoibiza.com/wp-content/uploads/2012/12/example.png\" alt=\"Alt text\" /></p>\n<pre><code>![Alt text](http://www.addictedtoibiza.com/wp-content/uploads/2012/12/example.png)\n\n![Alt text](http://www.addictedtoibiza.com/wp-content/uploads/2012/12/example.png &quot;Optional title&quot;)\n</code></pre>\n<hr />\n<h1 id=\"block-elements\">Block Elements</h1>\n<p>These are elements that are a single or multiple lines in length</p>\n<h2 id=\"headings\">Headings</h2>\n<p>You can create Atx-style headings by prefixing with a # (hash mark)</p>\n<h1 id=\"heading-1-markup---heading-1\">Heading 1 markup  <code># Heading 1</code></h1>\n<h1 id=\"-\"> </h1>\n<h2 id=\"heading-2-markup---heading-2\">Heading 2 markup  <code>## Heading 2</code></h2>\n<h2 id=\"--1\"> </h2>\n<h3 id=\"heading-3-markup----heading-3\">Heading 3 markup   <code>### Heading 3</code></h3>\n<h3 id=\"--2\"> </h3>\n<h4 id=\"heading-4-markup---heading-4\">Heading 4 markup  <code>#### Heading 4</code></h4>\n<h4 id=\"--3\"> </h4>\n<h5 id=\"heading-5-markup---heading-5\">Heading 5 markup  <code>##### Heading 5</code></h5>\n<h5 id=\"--4\"> </h5>\n<h6 id=\"heading-6-markup---heading-6\">Heading 6 markup  <code>###### Heading 6</code></h6>\n<h6 id=\"--5\"> </h6>\n<p>You can also create Setext-style headings which have two levels.</p>\n<h1 id=\"level-1-markup-use-an-equal-sign--equal-sign\">Level 1 markup use an equal sign = (equal sign)</h1>\n<pre><code> Level 1 markup use an equal sign = (equal sign)        \n ==============================\n</code></pre>\n<h2 id=\"level-2-markup-uses---dashes\">Level 2 markup uses - (dashes)</h2>\n<pre><code>Level 2 markup uses - (dashes) \n-------------\n</code></pre>\n<h2 id=\"paragraphs-and-blockquotes\">PARAGRAPHS and BLOCKQUOTES</h2>\n<p>A paragraph is one or more consecutive lines of text separated by one or more\nblank lines. A blank line contains nothing but spaces or tabs. Do not indent\nnormal paragraphs with spaces or tabs. New lines/carriage returns within paragraphs require two spaces at the end of the preceding line.</p>\n<p>This is one paragraph.</p>\n<p>This is a second.</p>\n<pre><code>This is one paragraph.\n\nThis is a second.\n</code></pre>\n<p>Markdown uses email-style &gt; (greater than) characters for blockquoting. If youâ€™re familiar with quoting passages of text in an email message, then you know how to create a blockquote in Markdown. It looks best if you hard wrap the text and put a &gt; before every line:</p>\n<blockquote>\n  <p>This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,\n  consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.</p>\n  <p>Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse\n  id sem consectetuer libero luctus adipiscing.</p>\n</blockquote>\n<pre><code>&gt; This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,\n&gt; consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.\n&gt; \n&gt; Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse\n&gt; id sem consectetuer libero luctus adipiscing.\n</code></pre>\n<p>Blockquotes can be nested (i.e. a blockquote-in-a-blockquote):</p>\n<blockquote>\n  <p>This is the first level of quoting.</p>\n  <blockquote>\n    <p>This is nested blockquote.</p>\n  </blockquote>\n  <p>Back to the first level.</p>\n</blockquote>\n<pre><code>&gt; This is the first level of quoting.\n&gt;\n&gt; &gt; This is nested blockquote.\n&gt;\n&gt; Back to the first level.\n</code></pre>\n<p>Blockquotes can contain other Markdown elements, including headers, lists, and code blocks:</p>\n<blockquote>\n  <h2 id=\"this-is-a-header\">This is a header.</h2>\n  <ol>\n  <li>This is the first list item.</li>\n  <li>This is the second list item.</li>\n  </ol>\n  <p>Here's some example code:</p>\n<pre><code>return shell_exec(&quot;echo $input | $markdown_script&quot;);\n</code></pre>\n</blockquote>\n<pre><code>&gt; ## This is a header.\n&gt; \n&gt; 1.   This is the first list item.\n&gt; 2.   This is the second list item.\n&gt; \n&gt; Here's some example code:\n&gt; \n&gt;     return shell_exec(&quot;echo $input | $markdown_script&quot;);\n</code></pre>\n<h2 id=\"lists\">Lists</h2>\n<p>Markdown supports ordered (numbered) and unordered (bulleted) lists.  List markers typically start at the left margin, but may be indented by up to three spaces. List markers must be followed by one or more spaces or a tab.</p>\n<p>Form bulleted lists with any of * (asterisk), + (plus), or - (dash). You can one or any or mix of these to form a list:</p>\n<ul>\n<li>\n<p>Red </p>\n</li>\n<li>\n<p>Green </p>\n</li>\n<li>\n<p>Blue</p>\n<pre><code>* Red\n+ Green\n- Blue\n</code></pre>\n</li>\n</ul>\n<p>Ordered lists require a numeric character followed by a . (period).</p>\n<ol>\n<li>\n<p>Item one</p>\n</li>\n<li>\n<p>Item two </p>\n</li>\n<li>\n<p>Item three</p>\n<pre><code>1. Item one\n1. Item two \n1. Item three\n</code></pre>\n</li>\n</ol>\n<p>Notice the actual value of the number doesn't matter in the list result. However, for readability better to use this markup:</p>\n<pre><code>    1. Item one\n    2. Item two \n    3. Item three\n</code></pre>\n<p>Lists can be embedded in lists. List items may consist of multiple paragraphs. Each subsequent paragraph in a list item must be indented by either 4 spaces or one tab:</p>\n<ul>\n<li>\n<p>Red </p>\n</li>\n<li>\n<p>Green </p>\n<ul>\n<li>dark  green </li>\n<li>lime    </li>\n</ul>\n</li>\n<li>\n<p>Blue        </p>\n<ol>\n<li>\n<p>Item one</p>\n<ol>\n<li>subitem 1 </li>\n<li>subitem 2</li>\n</ol>\n</li>\n<li>\n<p>Item two </p>\n<p>This is is a first paragraph. </p>\n<ul>\n<li>Green </li>\n<li>Blue</li>\n</ul>\n<p>This is a second paragraph.</p>\n</li>\n<li>\n<p>Item three</p>\n</li>\n</ol>\n</li>\n</ul>\n<p>The code for these embedded lists or paragraphs is:</p>\n<pre><code>        * Red \n        + Green \n            * dark  green \n            * lime    \n        - Blue        \n            1. Item one\n                1. subitem 1\n                1. subitem 2\n            1. Item two \n\n                This is is a first paragraph. \n\n                * Green \n                * Blue\n\n                This is a second paragraph.\n\n            1. Item three\n</code></pre>\n<p>You can also embed blockquotes in a list.</p>\n<ul>\n<li>\n<p>Green\n&gt; What is this?  It is embedded blockquote.  Mix 'em and match 'em.</p>\n</li>\n<li>\n<p>Blue</p>\n</li>\n<li>\n<p>Red</p>\n<pre><code>* Green\n&gt; What is this?  It is embedded blockquote.  Mix 'em and match 'em.\n* Blue\n* Red\n</code></pre>\n</li>\n</ul>\n<p>You can also embed code blocks in a list.</p>\n<ul>\n<li>\n<p>Green</p>\n<p>Try this code:</p>\n<pre><code>This is an embedded code block.\n</code></pre>\n<p>Then this:</p>\n<pre><code>More code!\n</code></pre>\n</li>\n<li>\n<p>Blue</p>\n</li>\n<li>\n<p>Red</p>\n<pre><code>* Green\n\n    Try this code:\n\n        This is an embedded code block.\n\n    Then this:\n\n        More code!\n\n* Blue\n* Red\n</code></pre>\n</li>\n</ul>\n<h2 id=\"tables\">Tables</h2>\n<p>Markdown does not support <code>&lt;html&gt;</code> so you need to use the - (dash) and the | (pipe) symbols to construct a table. The first line contains column headers. Separate columns with the pipe symbol.</p>\n<p>The  second line must be a mandatory separator line between the headers and the content. Subsequent lines are table rows. Columns are always separated by the pipe (|) character.  For example this table:</p>\n<p>First Header  | Second Header\n------------- | -------------\nContent Cell  | Content Cell\nContent Cell  | Content Cell</p>\n<p>Comes from this code:</p>\n<pre><code>First Header  | Second Header\n------------- | -------------\nContent Cell  | Content Cell\nContent Cell  | Content Cell\n</code></pre>\n<p>You can only put simple lines in a table.</p>\n<p>You can specify alignment for each column by adding colons to separator lines. A colon at the left of the separator line, left-aligns the column. A colon on the right, right-aligns the column. Add colons to both sides to center the column is center-aligned.</p>\n<p>Right     | Left   | Center\n---------:| :----- |:-----:\nComputer  |  $1600 | one\nPhone     |    $12 | three\nPipe      |     $1 | eleven</p>\n<pre><code>Right     | Left   | Center \n---------:| :----- |:-----:\nComputer  |  $1600 | one\nPhone     |    $12 | three\nPipe      |     $1 | eleven\n</code></pre>\n<p>You can apply inline formatting (span-level changes such as fonts or links) to the content of each cell using regular Markdown syntax:</p>\n<p>| Function name | Description                    |\n| ------------- | ------------------------------ |\n| <code>help()</code>      | Display the <u>help</u> window.   |\n| <code>destroy()</code>   | <strong>Destroy your computer!</strong>     |</p>\n<pre><code>| Function name | Description                    |\n| ------------- | ------------------------------ |\n| `help()`      | Display the __help__ window.   |\n| `destroy()`   | **Destroy your computer!**     |\n</code></pre>\n<hr />\n<h2 id=\"code-and-syntax-highlighting\">Code and Syntax highlighting</h2>\n<p>Pre-formatted code blocks are used for writing about programming or markup source code. Rather than forming normal paragraphs, the code block linesare interpreted literally.  Markdown wraps a code block in both <code>&lt;pre&gt;</code> and <code>&lt;code&gt;</code> tags.</p>\n<p>To produce a code block in Markdown, indent every line of the block by at least 4 spaces or 1 tab. For :</p>\n<p>This is a normal paragraph:</p>\n<pre><code>This is a code block.\n</code></pre>\n<p>The code reveals the indentation.</p>\n<pre><code>    This is a normal paragraph:\n\n        This is a code block.\n</code></pre>\n<p>A code block continues until it reaches a line that is not indented (or the end of the page).</p>\n<p>Within a code block, &amp; (ampersands) and &lt; &gt; (angle brackets) are automatically converted into HTML entities. This makes it very easy to include example HTML source code using Markdown â€” just paste it and indent it. Markdown will handle the hassle of encoding the ampersands and angle brackets. For example, this:</p>\n<p>Here is an example of AppleScript:</p>\n<pre><code>&lt;p&gt;Here is an example of AppleScript:&lt;/p&gt;\n</code></pre>\n<p>To produce a code block in Markdown, simply indent every line of the block by at least 4 spaces or 1 tab. For example, given this input:</p>\n<p>You can also highlight snippets of text (Markdown uses the excellent <a href=\"http://pygments.org/\">Pygments</a> library) to allow you to use code highlighting  Here's an example of some Python code:</p>\n<pre><code>#!python\n#\ndef wiki_rocks(text): formatter = lambda t: &quot;funky&quot;+t return formatter(text)         \n</code></pre>\n<p>To do this, do not indent the block. Start the block with <code>```</code> three ticks. Then, provide the comment with the type of syntax you are using.  There is a <a href=\"http://pygments.org/docs/lexers/\">the vast library of Pygment lexers</a>. Markdown accepts the 'short name' or the 'mimetype' of anything in there.</p>\n<p>You can also use a fence style for code.</p>\n<pre><code>This is a code block, fenced-style\n</code></pre>\n<p>Which you create with this code:</p>\n<pre><code>```\nThis is a code block, fenced-style\n```\n</code></pre>\n<p>See <a href=\"http://michelf.ca/projects/php-markdown/extra/\">Michel Fortin's blog</a> to try out more examples of this coding style. Not everything he demos is guaranteed to work though.</p>\n<hr />\n<h1 id=\"horizontal-rules\">Horizontal Rules</h1>\n<p>You can produce a horizontal line with any of the following codes:</p>\n<pre><code>* * *\n\n***\n\n*****\n\n- - - -\n\n-----------------------\n</code></pre>\n<p>The output looks like this:</p>\n<hr />\n<hr />\n<hr />\n<hr />\n<hr />\n<hr />",
     "section": "underline",
     "number": 2401,
     "options": {
@@ -1158,6 +1200,563 @@
     }
   },
   {
+    "name": "disabled-preserves-named-entity",
+    "markdown": "&copy;\n",
+    "html": "<p>&copy;</p>",
+    "section": "decodeEntities",
+    "number": 2601,
+    "options": {
+      "decodeEntities": false
+    }
+  },
+  {
+    "name": "disabled-preserves-numeric-entity",
+    "markdown": "&#35;\n",
+    "html": "<p>&#35;</p>",
+    "section": "decodeEntities",
+    "number": 2602,
+    "options": {
+      "decodeEntities": false
+    }
+  },
+  {
+    "name": "decodes-named-reference",
+    "markdown": "&copy;\n",
+    "html": "<p>©</p>",
+    "section": "decodeEntities",
+    "number": 2603,
+    "options": {
+      "decodeEntities": true
+    }
+  },
+  {
+    "name": "decodes-decimal-numeric-reference",
+    "markdown": "&#35;\n",
+    "html": "<p>#</p>",
+    "section": "decodeEntities",
+    "number": 2604,
+    "options": {
+      "decodeEntities": true
+    }
+  },
+  {
+    "name": "decodes-hexadecimal-numeric-reference",
+    "markdown": "&#xcab;\n",
+    "html": "<p>ಫ</p>",
+    "section": "decodeEntities",
+    "number": 2605,
+    "options": {
+      "decodeEntities": true
+    }
+  },
+  {
+    "name": "escapes-unknown-entity-reference",
+    "markdown": "&MadeUpEntity;\n",
+    "html": "<p>&amp;MadeUpEntity;</p>",
+    "section": "decodeEntities",
+    "number": 2606,
+    "options": {
+      "decodeEntities": true
+    }
+  },
+  {
+    "name": "replaces-disallowed-code-point",
+    "markdown": "&#0;\n",
+    "html": "<p>�</p>",
+    "section": "decodeEntities",
+    "number": 2607,
+    "options": {
+      "decodeEntities": true
+    }
+  },
+  {
+    "name": "decoded-markdown-character-is-literal",
+    "markdown": "&#42;foo&#42;\n",
+    "html": "<p>*foo*</p>",
+    "section": "decodeEntities",
+    "number": 2608,
+    "options": {
+      "decodeEntities": true
+    }
+  },
+  {
+    "name": "link-javascript-neutralized",
+    "markdown": "[x](javascript:alert(1))\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2701,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "image-javascript-neutralized-alt-preserved",
+    "markdown": "![x](javascript:alert(1))\n",
+    "html": "<p><img src=\"\" alt=\"x\" /></p>",
+    "section": "safeMode",
+    "number": 2702,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "link-vbscript-neutralized",
+    "markdown": "[x](vbscript:msgbox(1))\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2703,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "link-entity-obfuscated-javascript-neutralized",
+    "markdown": "[x](java&#115;cript:alert(1))\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2704,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "link-http-preserved",
+    "markdown": "[a](http://example.com)\n",
+    "html": "<p><a href=\"http://example.com\">a</a></p>",
+    "section": "safeMode",
+    "number": 2705,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "link-relative-path-preserved",
+    "markdown": "[a](/rel/path)\n",
+    "html": "<p><a href=\"/rel/path\">a</a></p>",
+    "section": "safeMode",
+    "number": 2706,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "link-anchor-fragment-preserved",
+    "markdown": "[a](#frag)\n",
+    "html": "<p><a href=\"#frag\">a</a></p>",
+    "section": "safeMode",
+    "number": 2707,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "link-mailto-preserved",
+    "markdown": "[a](mailto:a@b.com)\n",
+    "html": "<p><a href=\"mailto:a@b.com\">a</a></p>",
+    "section": "safeMode",
+    "number": 2708,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "link-data-text-html-neutralized",
+    "markdown": "[a](data:text/html,<script>)\n",
+    "html": "<p><a href=\"\">a</a></p>",
+    "section": "safeMode",
+    "number": 2709,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "image-data-image-preserved",
+    "markdown": "![a](data:image/png;base64,AAAA)\n",
+    "html": "<p><img src=\"data:image/png;base64,AAAA\" alt=\"a\" /></p>",
+    "section": "safeMode",
+    "number": 2710,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "cmSpec-link-javascript-neutralized",
+    "markdown": "[x](javascript:alert(1))\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2711,
+    "options": {
+      "safeMode": true,
+      "cmSpec": true
+    }
+  },
+  {
+    "name": "cmSpec-autolink-javascript-neutralized",
+    "markdown": "<javascript:alert(1)>\n",
+    "html": "<p><a href=\"\">javascript:alert(1)</a></p>",
+    "section": "safeMode",
+    "number": 2712,
+    "options": {
+      "safeMode": true,
+      "cmSpec": true
+    }
+  },
+  {
+    "name": "cmSpec-link-https-preserved",
+    "markdown": "[a](https://example.com)\n",
+    "html": "<p><a href=\"https://example.com\">a</a></p>",
+    "section": "safeMode",
+    "number": 2713,
+    "options": {
+      "safeMode": true,
+      "cmSpec": true
+    }
+  },
+  {
+    "name": "raw-script-escaped",
+    "markdown": "<script>alert(1)</script>\n",
+    "html": "&lt;script>alert(1)&lt;/script>",
+    "section": "safeMode",
+    "number": 2714,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-img-onerror-separator-space-stripped",
+    "markdown": "<img src=x onerror=alert(1)>\n",
+    "html": "<p><img src=x></p>",
+    "section": "safeMode",
+    "number": 2715,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-onclick-stripped",
+    "markdown": "<a href=\"#\" onclick=\"alert(1)\">t</a>\n",
+    "html": "<p><a href=\"#\">t</a></p>",
+    "section": "safeMode",
+    "number": 2716,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-svg-onload-neutralized",
+    "markdown": "<svg onload=alert(1)></svg>\n",
+    "html": "<p>&lt;svg>&lt;/svg></p>",
+    "section": "safeMode",
+    "number": 2717,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-img-onerror-separator-tab-stripped",
+    "markdown": "<img src=x\tonerror=alert(1)>\n",
+    "html": "<p><img src=x></p>",
+    "section": "safeMode",
+    "number": 2718,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-img-onerror-separator-newline-stripped",
+    "markdown": "<img src=x\nonerror=alert(1)>\n",
+    "html": "<p><img src=x></p>",
+    "section": "safeMode",
+    "number": 2719,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-onmouseover-separator-quote-adjacent-stripped",
+    "markdown": "<a href=\"x\"onmouseover=\"alert(1)\">y</a>\n",
+    "html": "<p><a href=\"x\">y</a></p>",
+    "section": "safeMode",
+    "number": 2720,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-img-onerror-separator-slash-inert",
+    "markdown": "<img/onerror=alert(1)>\n",
+    "html": "<p>&lt;img/onerror=alert(1)&gt;</p>",
+    "section": "safeMode",
+    "number": 2721,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "input-formaction-quoted-javascript-neutralized",
+    "markdown": "<input formaction=\"javascript:alert(1)\" type=\"submit\">\n",
+    "html": "<p><input formaction=\"\" type=\"submit\"></p>",
+    "section": "safeMode",
+    "number": 2722,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "input-formaction-unquoted-javascript-neutralized",
+    "markdown": "<input formaction=javascript:alert(1) type=submit>\n",
+    "html": "<p><input formaction=\"\" type=submit></p>",
+    "section": "safeMode",
+    "number": 2723,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "input-formaction-relative-preserved",
+    "markdown": "<input formaction=\"/submit\" type=\"submit\">\n",
+    "html": "<p><input formaction=\"/submit\" type=\"submit\"></p>",
+    "section": "safeMode",
+    "number": 2724,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-quoted-javascript-neutralized",
+    "markdown": "<a href=\"javascript:alert(1)\">x</a>\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2725,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-unquoted-javascript-neutralized",
+    "markdown": "<a href=javascript:alert(1)>x</a>\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2726,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-leading-whitespace-javascript-neutralized",
+    "markdown": "<a href=\"  javascript:alert(1)\">x</a>\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2727,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-entity-obfuscated-javascript-neutralized",
+    "markdown": "<a href=\"java&#115;cript:alert(1)\">x</a>\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2728,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-vbscript-neutralized",
+    "markdown": "<a href=\"vbscript:x\">x</a>\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2729,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-data-text-html-neutralized",
+    "markdown": "<a href=\"data:text/html,x\">x</a>\n",
+    "html": "<p><a href=\"\">x</a></p>",
+    "section": "safeMode",
+    "number": 2730,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-area-href-javascript-neutralized",
+    "markdown": "<area href=\"javascript:alert(1)\">\n",
+    "html": "<p><area href=\"\"></p>",
+    "section": "safeMode",
+    "number": 2731,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-https-preserved",
+    "markdown": "<a href=\"https://ok.com\">x</a>\n",
+    "html": "<p><a href=\"https://ok.com\">x</a></p>",
+    "section": "safeMode",
+    "number": 2732,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-relative-preserved",
+    "markdown": "<a href=\"/rel\">x</a>\n",
+    "html": "<p><a href=\"/rel\">x</a></p>",
+    "section": "safeMode",
+    "number": 2733,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-data-text-html-containing-gt-neutralized",
+    "markdown": "<a href=\"data:text/html,<b>x</b>\">y</a>\n",
+    "html": "<p><a href=\"\">y</a></p>",
+    "section": "safeMode",
+    "number": 2734,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-javascript-containing-gt-neutralized",
+    "markdown": "<a href=\"javascript:alert(1)>z\">y</a>\n",
+    "html": "<p><a href=\"\">y</a></p>",
+    "section": "safeMode",
+    "number": 2735,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-safe-url-containing-gt-preserved",
+    "markdown": "<a href=\"http://ok/a>b\">y</a>\n",
+    "html": "<p><a href=\"http://ok/a>b\">y</a></p>",
+    "section": "safeMode",
+    "number": 2736,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "code-span-anchor-href-not-corrupted",
+    "markdown": "`<a href=\"javascript:x\">`\n",
+    "html": "<p><code>&lt;a href=&quot;javascript:x&quot;&gt;</code></p>",
+    "section": "safeMode",
+    "number": 2737,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-quote-adjacent-javascript-neutralized",
+    "markdown": "<a id=\"x\"href=\"javascript:alert(1)\">click</a>\n",
+    "html": "<p><a id=\"x\"href=\"\">click</a></p>",
+    "section": "safeMode",
+    "number": 2738,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-single-quote-adjacent-javascript-neutralized",
+    "markdown": "<a id='x'href='javascript:alert(1)'>click</a>\n",
+    "html": "<p><a id='x'href=\"\">click</a></p>",
+    "section": "safeMode",
+    "number": 2739,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-separator-slash-inert",
+    "markdown": "<a/href=\"javascript:alert(1)\">click</a>\n",
+    "html": "<p>&lt;a/href=&quot;javascript:alert(1)&quot;&gt;click</a></p>",
+    "section": "safeMode",
+    "number": 2740,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-area-separator-slash-inert",
+    "markdown": "<area/href=\"javascript:alert(1)\">\n",
+    "html": "<p>&lt;area/href=&quot;javascript:alert(1)&quot;&gt;</p>",
+    "section": "safeMode",
+    "number": 2741,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "raw-anchor-href-quote-adjacent-safe-preserved",
+    "markdown": "<a id=\"x\"href=\"https://ok\">y</a>\n",
+    "html": "<p><a id=\"x\"href=\"https://ok\">y</a></p>",
+    "section": "safeMode",
+    "number": 2742,
+    "options": {
+      "safeMode": true
+    }
+  },
+  {
+    "name": "disabled-link-javascript-passthrough",
+    "markdown": "[x](javascript:alert(1))\n",
+    "html": "<p><a href=\"javascript:alert(1)\">x</a></p>",
+    "section": "safeMode",
+    "number": 2743,
+    "options": {
+      "safeMode": false
+    }
+  },
+  {
+    "name": "disabled-raw-script-passthrough",
+    "markdown": "<script>alert(1)</script>\n",
+    "html": "<script>alert(1)</script>",
+    "section": "safeMode",
+    "number": 2744,
+    "options": {
+      "safeMode": false
+    }
+  },
+  {
+    "name": "tasklist-checkbox-preserved",
+    "markdown": "- [x] done\n",
+    "html": "<ul>\n<li><input checked disabled type=\"checkbox\"> done</li>\n</ul>",
+    "section": "safeMode",
+    "number": 2745,
+    "options": {
+      "tasklists": true,
+      "safeMode": true
+    }
+  },
+  {
+    "name": "completeHTMLDocument-head-preserved",
+    "markdown": "# hi\n",
+    "html": "<!DOCTYPE HTML>\n<html>\n<head>\n<meta charset=\"utf-8\">\n</head>\n<body>\n<h1 id=\"hi\">hi</h1>\n</body>\n</html>",
+    "section": "safeMode",
+    "number": 2746,
+    "options": {
+      "safeMode": true,
+      "completeHTMLDocument": true
+    }
+  },
+  {
+    "name": "metadata-title-preserved",
+    "markdown": "---\ntitle: Hello World\n---\n\n# hi\n",
+    "html": "<!DOCTYPE HTML>\n<html>\n<head>\n<title>Hello World</title>\n<meta charset=\"utf-8\">\n</head>\n<body>\n<h1 id=\"hi\">hi</h1>\n</body>\n</html>",
+    "section": "safeMode",
+    "number": 2747,
+    "options": {
+      "safeMode": true,
+      "completeHTMLDocument": true,
+      "metadata": true
+    }
+  },
+  {
     "name": "#179.parse-md-in-table-ths",
     "markdown": "| *foo* | **bar** | ~~baz~~ |\n|-------|---------|---------|\n| 100   | blabla  |  aaa    |\n",
     "html": "<table>\n  <thead>\n    <tr>\n      <th><em>foo</em></th>\n      <th><strong>bar</strong></th>\n      <th><del>baz</del></th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td>100</td>\n      <td>blabla</td>\n      <td>aaa</td>\n    </tr>\n  </tbody>\n</table>\n",
@@ -1387,7 +1986,7 @@
   {
     "name": "emphasis-and-strikethrough",
     "markdown": "*http://www.google.com/foobar*\n\n**http://www.google.com/foobar**\n\n***http://www.google.com/foobar***\n\n~~http://www.google.com/foobar~~\n\n_http://www.google.com/foobar_\n\n__http://www.google.com/foobar__\n\n___http://www.google.com/foobar___",
-    "html": "<p><em><a href=\"http://www.google.com/foobar\">http://www.google.com/foobar</a></em></p>\n<p><strong><a href=\"http://www.google.com/foobar\">http://www.google.com/foobar</a></strong></p>\n<p><strong><em><a href=\"http://www.google.com/foobar\">http://www.google.com/foobar</a></em></strong></p>\n<p><del><a href=\"http://www.google.com/foobar\">http://www.google.com/foobar</a></del></p>\n<p><em><a href=\"http://www.google.com/foobar\">http://www.google.com/foobar</a></em></p>\n<p><strong><a href=\"http://www.google.com/foobar\">http://www.google.com/foobar</a></strong></p>\n<p><strong><em><a href=\"http://www.google.com/foobar\">http://www.google.com/foobar</a></em></strong></p>\n",
+    "html": "<p><em><a href=\"http://www.google.com/foobar\">http://www.google.com/foobar</a></em></p>\n<p><strong><a href=\"http://www.google.com/foobar\">http://www.google.com/foobar</a></strong></p>\n<p><em><strong><a href=\"http://www.google.com/foobar\">http://www.google.com/foobar</a></strong></em></p>\n<p><del><a href=\"http://www.google.com/foobar\">http://www.google.com/foobar</a></del></p>\n<p><em><a href=\"http://www.google.com/foobar\">http://www.google.com/foobar</a></em></p>\n<p><strong><a href=\"http://www.google.com/foobar\">http://www.google.com/foobar</a></strong></p>\n<p><em><strong><a href=\"http://www.google.com/foobar\">http://www.google.com/foobar</a></strong></em></p>",
     "section": "interop",
     "number": 10021,
     "options": {

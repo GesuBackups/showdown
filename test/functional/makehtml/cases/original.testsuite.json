@@ -1,0 +1,704 @@
+[
+  {
+    "markdown": "→foo\n",
+    "html": "<pre><code>foo\n</code></pre>\n",
+    "section": "Tabs",
+    "number": 1
+  },
+  {
+    "markdown": "    foo\n→bar\n",
+    "html": "<pre><code>foo\nbar\n</code></pre>\n",
+    "section": "Tabs",
+    "number": 2
+  },
+  {
+    "markdown": "\\*literal asterisks\\*\n",
+    "html": "<p>*literal asterisks*</p>\n",
+    "section": "Backslash escapes",
+    "number": 3
+  },
+  {
+    "markdown": "\\a \\\" \\$ \\< \\>\n",
+    "html": "<p>\\a \\\" \\$ \\&lt; ></p>\n",
+    "section": "Backslash escapes",
+    "number": 4
+  },
+  {
+    "markdown": "`\\*foo\\*`\n",
+    "html": "<p><code>\\*foo\\*</code></p>\n",
+    "section": "Backslash escapes",
+    "number": 5
+  },
+  {
+    "markdown": "    \\*foo\\*\n",
+    "html": "<pre><code>\\*foo\\*\n</code></pre>\n",
+    "section": "Backslash escapes",
+    "number": 6
+  },
+  {
+    "markdown": "1986\\. What a great season.\n",
+    "html": "<p>1986. What a great season.</p>\n",
+    "section": "Backslash escapes",
+    "number": 7
+  },
+  {
+    "markdown": "- `one\n- two`\n",
+    "html": "<ul>\n<li>`one</li>\n<li>two`</li>\n</ul>\n",
+    "section": "Precedence",
+    "number": 8
+  },
+  {
+    "markdown": "* * *\n\n***\n\n*****\n\n- - -\n\n---------------------------------------\n\n___\n",
+    "html": "<hr />\n<hr />\n<hr />\n<hr />\n<hr />\n<hr />\n",
+    "section": "Horizontal rules",
+    "number": 9
+  },
+  {
+    "markdown": "**\n",
+    "html": "<p>**</p>\n",
+    "section": "Horizontal rules",
+    "number": 10
+  },
+  {
+    "markdown": "*-*\n",
+    "html": "<p><em>-</em></p>\n",
+    "section": "Horizontal rules",
+    "number": 11
+  },
+  {
+    "markdown": "---a---\n",
+    "html": "<p>---a---</p>\n",
+    "section": "Horizontal rules",
+    "number": 12
+  },
+  {
+    "markdown": " ***\n",
+    "html": "<hr />\n",
+    "section": "Horizontal rules",
+    "number": 13
+  },
+  {
+    "markdown": "    ***\n",
+    "html": "<pre><code>***\n</code></pre>\n",
+    "section": "Horizontal rules",
+    "number": 14
+  },
+  {
+    "markdown": "Foo\n---\nbar\n",
+    "html": "<h2>Foo</h2>\n<p>bar</p>\n",
+    "section": "Horizontal rules",
+    "number": 15
+  },
+  {
+    "markdown": "* Foo\n* * *\n* Bar\n",
+    "html": "<ul>\n<li>Foo</li>\n</ul>\n<hr />\n<ul>\n<li>Bar</li>\n</ul>\n",
+    "section": "Horizontal rules",
+    "number": 16
+  },
+  {
+    "markdown": "# This is an H1\n\n## This is an H2\n\n###### This is an H6\n",
+    "html": "<h1>This is an H1</h1>\n<h2>This is an H2</h2>\n<h6>This is an H6</h6>\n",
+    "section": "ATX headers",
+    "number": 17
+  },
+  {
+    "markdown": "#Foo\n\n#5 bolt\n",
+    "html": "<h1>Foo</h1>\n<h1>5 bolt</h1>\n",
+    "section": "ATX headers",
+    "number": 18
+  },
+  {
+    "markdown": "####### foo\n",
+    "html": "<h6># foo</h6>\n",
+    "section": "ATX headers",
+    "number": 19
+  },
+  {
+    "markdown": "\\## foo\n",
+    "html": "<p>## foo</p>\n",
+    "section": "ATX headers",
+    "number": 20
+  },
+  {
+    "markdown": "# This is an H1 #\n\n## This is an H2 ##\n\n### This is an H3 ######\n",
+    "html": "<h1>This is an H1</h1>\n<h2>This is an H2</h2>\n<h3>This is an H3</h3>\n",
+    "section": "ATX headers",
+    "number": 21
+  },
+  {
+    "markdown": "# foo#\n",
+    "html": "<h1>foo</h1>\n",
+    "section": "ATX headers",
+    "number": 22
+  },
+  {
+    "markdown": "# Foo *bar*\n",
+    "html": "<h1>Foo <em>bar</em></h1>\n",
+    "section": "ATX headers",
+    "number": 23
+  },
+  {
+    "markdown": "foo\n# bar\nbaz\n",
+    "html": "<p>foo</p>\n<h1>bar</h1>\n<p>baz</p>\n",
+    "section": "ATX headers",
+    "number": 24
+  },
+  {
+    "markdown": "This is an H1\n=============\n\nThis is an H2\n-------------\n",
+    "html": "<h1>This is an H1</h1>\n<h2>This is an H2</h2>\n",
+    "section": "Setext headers",
+    "number": 25
+  },
+  {
+    "markdown": "Foo\n=\n\nBar\n-\n",
+    "html": "<h1>Foo</h1>\n<h2>Bar</h2>\n",
+    "section": "Setext headers",
+    "number": 26
+  },
+  {
+    "markdown": "foo\nbar\n===\n",
+    "html": "<p>foo</p>\n<h1>bar</h1>\n",
+    "section": "Setext headers",
+    "number": 27
+  },
+  {
+    "markdown": "Foo\n= =\n",
+    "html": "<p>Foo\n= =</p>\n",
+    "section": "Setext headers",
+    "number": 28
+  },
+  {
+    "markdown": "Foo *bar*\n=========\n",
+    "html": "<h1>Foo <em>bar</em></h1>\n",
+    "section": "Setext headers",
+    "number": 29
+  },
+  {
+    "markdown": "This is a normal paragraph:\n\n    This is a code block.\n",
+    "html": "<p>This is a normal paragraph:</p>\n<pre><code>This is a code block.\n</code></pre>\n",
+    "section": "Indented code blocks",
+    "number": 30
+  },
+  {
+    "markdown": "Here is an example of AppleScript:\n\n    tell application \"Foo\"\n        beep\n    end tell\n",
+    "html": "<p>Here is an example of AppleScript:</p>\n<pre><code>tell application \"Foo\"\n    beep\nend tell\n</code></pre>\n",
+    "section": "Indented code blocks",
+    "number": 31
+  },
+  {
+    "markdown": "    <div class=\"footer\">\n        &copy; 2004 Foo Corporation\n    </div>\n",
+    "html": "<pre><code>&lt;div class=\"footer\"&gt;\n    &amp;copy; 2004 Foo Corporation\n&lt;/div&gt;\n</code></pre>\n",
+    "section": "Indented code blocks",
+    "number": 32
+  },
+  {
+    "markdown": "    *this is not emphasis*\n",
+    "html": "<pre><code>*this is not emphasis*\n</code></pre>\n",
+    "section": "Indented code blocks",
+    "number": 33
+  },
+  {
+    "markdown": "    chunk one\n\n    chunk two\n",
+    "html": "<pre><code>chunk one\n\nchunk two\n</code></pre>\n",
+    "section": "Indented code blocks",
+    "number": 34
+  },
+  {
+    "markdown": "Foo\n    bar\n",
+    "html": "<p>Foo\n    bar</p>\n",
+    "section": "Indented code blocks",
+    "number": 35
+  },
+  {
+    "markdown": "    foo\n\n\nbar\n",
+    "html": "<pre><code>foo\n</code></pre>\n<p>bar</p>\n",
+    "section": "Indented code blocks",
+    "number": 36
+  },
+  {
+    "markdown": "This is a regular paragraph.\n\n<table>\n    <tr>\n        <td>Foo</td>\n    </tr>\n</table>\n\nThis is another regular paragraph.\n",
+    "html": "<p>This is a regular paragraph.</p>\n<table>\n    <tr>\n        <td>Foo</td>\n    </tr>\n</table>\n<p>This is another regular paragraph.</p>\n",
+    "section": "HTML blocks",
+    "number": 37
+  },
+  {
+    "markdown": "<div>\n*this is not emphasis*\n</div>\n",
+    "html": "<div>\n*this is not emphasis*\n</div>\n",
+    "section": "HTML blocks",
+    "number": 38
+  },
+  {
+    "markdown": "<div>\n    <div>\n    indented inner tags are fine\n    </div>\n</div>\n",
+    "html": "<div>\n    <div>\n    indented inner tags are fine\n    </div>\n</div>\n",
+    "section": "HTML blocks",
+    "number": 39
+  },
+  {
+    "markdown": "Foo\n<div>\nbar\n</div>\n",
+    "html": "<p>Foo</p>\n<div>\nbar\n</div>\n",
+    "section": "HTML blocks",
+    "number": 40
+  },
+  {
+    "markdown": "Foo\n\n<!-- this is a\ncomment -->\n\nBar\n",
+    "html": "<p>Foo</p>\n<!-- this is a\ncomment -->\n<p>Bar</p>\n",
+    "section": "HTML blocks",
+    "number": 41
+  },
+  {
+    "markdown": "Foo\n\n<hr />\n\nBar\n",
+    "html": "<p>Foo</p>\n<hr />\n<p>Bar</p>\n",
+    "section": "HTML blocks",
+    "number": 42
+  },
+  {
+    "markdown": "[foo]: http://example.com/  \"Optional Title Here\"\n\n[foo][]\n",
+    "html": "<p><a href=\"http://example.com/\" title=\"Optional Title Here\">foo</a></p>\n",
+    "section": "Link reference definitions",
+    "number": 43
+  },
+  {
+    "markdown": "[a]: http://example.com/  \"Title\"\n[b]: http://example.com/  'Title'\n[c]: http://example.com/  (Title)\n\n[foo][a], [foo][b], [foo][c]\n",
+    "html": "<p><a href=\"http://example.com/\" title=\"Title\">foo</a>, <a href=\"http://example.com/\" title=\"Title\">foo</a>, <a href=\"http://example.com/\" title=\"Title\">foo</a></p>\n",
+    "section": "Link reference definitions",
+    "number": 44
+  },
+  {
+    "markdown": "[id]: <http://example.com/>  \"Optional Title Here\"\n\n[id][]\n",
+    "html": "<p><a href=\"http://example.com/\" title=\"Optional Title Here\">id</a></p>\n",
+    "section": "Link reference definitions",
+    "number": 45
+  },
+  {
+    "markdown": "[id]: http://example.com/longish/path/to/resource/here\n    \"Optional Title Here\"\n\n[id][]\n",
+    "html": "<p><a href=\"http://example.com/longish/path/to/resource/here\" title=\"Optional Title Here\">id</a></p>\n",
+    "section": "Link reference definitions",
+    "number": 46
+  },
+  {
+    "markdown": "[link text][A]\n\n[a]: http://example.com/\n",
+    "html": "<p><a href=\"http://example.com/\">link text</a></p>\n",
+    "section": "Link reference definitions",
+    "number": 47
+  },
+  {
+    "markdown": "[unused]: http://example.com/\n",
+    "html": "",
+    "section": "Link reference definitions",
+    "number": 48
+  },
+  {
+    "markdown": "aaa\n\nbbb\n",
+    "html": "<p>aaa</p>\n<p>bbb</p>\n",
+    "section": "Paragraphs",
+    "number": 49
+  },
+  {
+    "markdown": "aaa\nbbb\nccc\n",
+    "html": "<p>aaa\nbbb\nccc</p>\n",
+    "section": "Paragraphs",
+    "number": 50
+  },
+  {
+    "markdown": "   aaa\n",
+    "html": "<p>aaa</p>\n",
+    "section": "Paragraphs",
+    "number": 51
+  },
+  {
+    "markdown": "\n\naaa\n\n\n\nbbb\n\n\n",
+    "html": "<p>aaa</p>\n<p>bbb</p>\n",
+    "section": "Blank lines",
+    "number": 52
+  },
+  {
+    "markdown": "> This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,\n> consectetuer adipiscing elit.\n>\n> Donec sit amet nisl. Aliquam semper ipsum sit amet velit.\n",
+    "html": "<blockquote>\n<p>This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,\nconsectetuer adipiscing elit.</p>\n<p>Donec sit amet nisl. Aliquam semper ipsum sit amet velit.</p>\n</blockquote>\n",
+    "section": "Blockquotes",
+    "number": 53
+  },
+  {
+    "markdown": ">foo\n",
+    "html": "<blockquote>\n<p>foo</p>\n</blockquote>\n",
+    "section": "Blockquotes",
+    "number": 54
+  },
+  {
+    "markdown": "> This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,\nconsectetuer adipiscing elit.\n\n> Donec sit amet nisl. Aliquam semper ipsum sit amet velit.\n",
+    "html": "<blockquote>\n<p>This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,\nconsectetuer adipiscing elit.</p>\n<p>Donec sit amet nisl. Aliquam semper ipsum sit amet velit.</p>\n</blockquote>\n",
+    "section": "Blockquotes",
+    "number": 55
+  },
+  {
+    "markdown": "> quoted\n\nnot quoted\n",
+    "html": "<blockquote>\n<p>quoted</p>\n</blockquote>\n<p>not quoted</p>\n",
+    "section": "Blockquotes",
+    "number": 56
+  },
+  {
+    "markdown": "> This is the first level of quoting.\n>\n> > This is nested blockquote.\n>\n> Back to the first level.\n",
+    "html": "<blockquote>\n<p>This is the first level of quoting.</p>\n<blockquote>\n<p>This is nested blockquote.</p>\n</blockquote>\n<p>Back to the first level.</p>\n</blockquote>\n",
+    "section": "Blockquotes",
+    "number": 57
+  },
+  {
+    "markdown": "> ## This is a header.\n>\n> 1.   This is the first list item.\n> 2.   This is the second list item.\n>\n> Here's some example code:\n>\n>     return shell_exec(\"echo $input | $markdown_script\");\n",
+    "html": "<blockquote>\n<h2>This is a header.</h2>\n<ol>\n<li>This is the first list item.</li>\n<li>This is the second list item.</li>\n</ol>\n<p>Here's some example code:</p>\n<pre><code>return shell_exec(\"echo $input | $markdown_script\");\n</code></pre>\n</blockquote>\n",
+    "section": "Blockquotes",
+    "number": 58
+  },
+  {
+    "markdown": "foo\n> bar\n",
+    "html": "<p>foo</p>\n<blockquote>\n<p>bar</p>\n</blockquote>\n",
+    "section": "Blockquotes",
+    "number": 59
+  },
+  {
+    "markdown": "*   Red\n*   Green\n*   Blue\n",
+    "html": "<ul>\n<li>Red</li>\n<li>Green</li>\n<li>Blue</li>\n</ul>\n",
+    "section": "List items",
+    "number": 60
+  },
+  {
+    "markdown": "*foo*\n",
+    "html": "<p><em>foo</em></p>\n",
+    "section": "List items",
+    "number": 61
+  },
+  {
+    "markdown": "   * foo\n",
+    "html": "<ul>\n<li>foo</li>\n</ul>\n",
+    "section": "List items",
+    "number": 62
+  },
+  {
+    "markdown": "*   Lorem ipsum dolor sit amet, consectetuer adipiscing elit.\n    Aliquam hendrerit mi posuere lectus.\n*   Donec sit amet nisl. Aliquam semper ipsum sit amet velit.\n    Suspendisse id sem consectetuer libero luctus adipiscing.\n",
+    "html": "<ul>\n<li>Lorem ipsum dolor sit amet, consectetuer adipiscing elit.\nAliquam hendrerit mi posuere lectus.</li>\n<li>Donec sit amet nisl. Aliquam semper ipsum sit amet velit.\nSuspendisse id sem consectetuer libero luctus adipiscing.</li>\n</ul>\n",
+    "section": "List items",
+    "number": 63
+  },
+  {
+    "markdown": "*   Lorem ipsum dolor sit amet, consectetuer adipiscing elit.\nAliquam hendrerit mi posuere lectus.\n*   Donec sit amet nisl. Aliquam semper ipsum sit amet velit.\nSuspendisse id sem consectetuer libero luctus adipiscing.\n",
+    "html": "<ul>\n<li>Lorem ipsum dolor sit amet, consectetuer adipiscing elit.\nAliquam hendrerit mi posuere lectus.</li>\n<li>Donec sit amet nisl. Aliquam semper ipsum sit amet velit.\nSuspendisse id sem consectetuer libero luctus adipiscing.</li>\n</ul>\n",
+    "section": "List items",
+    "number": 64
+  },
+  {
+    "markdown": "1.  This is a list item with two paragraphs. Lorem ipsum dolor\n    sit amet, consectetuer adipiscing elit.\n\n    Vestibulum enim wisi, viverra nec, fringilla in, laoreet\n    vitae, risus.\n\n2.  Suspendisse id sem consectetuer libero luctus adipiscing.\n",
+    "html": "<ol>\n<li><p>This is a list item with two paragraphs. Lorem ipsum dolor\nsit amet, consectetuer adipiscing elit.</p>\n<p>Vestibulum enim wisi, viverra nec, fringilla in, laoreet\nvitae, risus.</p></li>\n<li><p>Suspendisse id sem consectetuer libero luctus adipiscing.</p></li>\n</ol>\n",
+    "section": "List items",
+    "number": 65
+  },
+  {
+    "markdown": "*   This is a list item with two paragraphs.\n\n    This is the second paragraph in the list item. You're\nonly required to indent the first line.\n\n*   Another item in the same list.\n",
+    "html": "<ul>\n<li><p>This is a list item with two paragraphs.</p>\n<p>This is the second paragraph in the list item. You're\nonly required to indent the first line.</p></li>\n<li><p>Another item in the same list.</p></li>\n</ul>\n",
+    "section": "List items",
+    "number": 66
+  },
+  {
+    "markdown": "*   A list item with a blockquote:\n\n    > This is a blockquote\n    > inside a list item.\n",
+    "html": "<ul>\n<li><p>A list item with a blockquote:</p>\n<blockquote>\n<p>This is a blockquote\ninside a list item.</p>\n</blockquote></li>\n</ul>\n",
+    "section": "List items",
+    "number": 67
+  },
+  {
+    "markdown": "*   A list item with a code block:\n\n        <code goes here>\n",
+    "html": "<ul>\n<li><p>A list item with a code block:</p>\n<pre><code>&lt;code goes here&gt;\n</code></pre></li>\n</ul>\n",
+    "section": "List items",
+    "number": 68
+  },
+  {
+    "markdown": "*   Item\n    *   Nested item\n    *   Another nested item\n*   Second top-level item\n",
+    "html": "<ul>\n<li>Item\n<ul>\n<li>Nested item</li>\n<li>Another nested item</li>\n</ul>\n</li>\n<li>Second top-level item</li>\n</ul>\n",
+    "section": "List items",
+    "number": 69
+  },
+  {
+    "markdown": "* foo\n  * bar\n",
+    "html": "<ul>\n<li>foo\n<ul>\n<li>bar</li>\n</ul>\n</li>\n</ul>\n",
+    "section": "List items",
+    "number": 70
+  },
+  {
+    "markdown": "  * foo\n  * bar\n",
+    "html": "<ul>\n<li>foo</li>\n<li>bar</li>\n</ul>\n",
+    "section": "List items",
+    "number": 71
+  },
+  {
+    "markdown": "Foo\n* bar\n",
+    "html": "<p>Foo\n* bar</p>\n",
+    "section": "Lists",
+    "number": 72
+  },
+  {
+    "markdown": "* Red\n+ Green\n- Blue\n",
+    "html": "<ul>\n<li>Red</li>\n<li>Green</li>\n<li>Blue</li>\n</ul>\n",
+    "section": "Lists",
+    "number": 73
+  },
+  {
+    "markdown": "1.  Bird\n2.  McHale\n3.  Parish\n",
+    "html": "<ol>\n<li>Bird</li>\n<li>McHale</li>\n<li>Parish</li>\n</ol>\n",
+    "section": "Lists",
+    "number": 74
+  },
+  {
+    "markdown": "1.  Bird\n1.  McHale\n1.  Parish\n",
+    "html": "<ol>\n<li>Bird</li>\n<li>McHale</li>\n<li>Parish</li>\n</ol>\n",
+    "section": "Lists",
+    "number": 75
+  },
+  {
+    "markdown": "3. Bird\n1. McHale\n8. Parish\n",
+    "html": "<ol>\n<li>Bird</li>\n<li>McHale</li>\n<li>Parish</li>\n</ol>\n",
+    "section": "Lists",
+    "number": 76
+  },
+  {
+    "markdown": "1. one\n* two\n",
+    "html": "<ol>\n<li>one</li>\n<li>two</li>\n</ol>\n",
+    "section": "Lists",
+    "number": 77
+  },
+  {
+    "markdown": "*   Bird\n*   Magic\n",
+    "html": "<ul>\n<li>Bird</li>\n<li>Magic</li>\n</ul>\n",
+    "section": "Lists",
+    "number": 78
+  },
+  {
+    "markdown": "*   Bird\n\n*   Magic\n",
+    "html": "<ul>\n<li><p>Bird</p></li>\n<li><p>Magic</p></li>\n</ul>\n",
+    "section": "Lists",
+    "number": 79
+  },
+  {
+    "markdown": "* a\n\n  continuation of a\n\n* b\n* c\n",
+    "html": "<ul>\n<li><p>a</p>\n<p>continuation of a</p></li>\n<li><p>b</p></li>\n<li><p>c</p></li>\n</ul>\n",
+    "section": "Lists",
+    "number": 80
+  },
+  {
+    "markdown": "*   First\n\n    *   Nested A\n    *   Nested B\n\n*   Second\n",
+    "html": "<ul>\n<li><p>First</p>\n<ul>\n<li>Nested A</li>\n<li>Nested B</li>\n</ul>\n</li>\n<li><p>Second</p></li>\n</ul>\n",
+    "section": "Lists",
+    "number": 81
+  },
+  {
+    "markdown": "* item one\n\n* item two\n\nnot an item\n",
+    "html": "<ul>\n<li><p>item one</p></li>\n<li><p>item two</p></li>\n</ul>\n<p>not an item</p>\n",
+    "section": "Lists",
+    "number": 82
+  },
+  {
+    "markdown": "1986. What a great season.\n",
+    "html": "<ol>\n<li>What a great season.</li>\n</ol>\n",
+    "section": "Lists",
+    "number": 83
+  },
+  {
+    "markdown": "1986\\. What a great season.\n",
+    "html": "<p>1986. What a great season.</p>\n",
+    "section": "Lists",
+    "number": 84
+  },
+  {
+    "markdown": "Use the `printf()` function.\n",
+    "html": "<p>Use the <code>printf()</code> function.</p>\n",
+    "section": "Code spans",
+    "number": 85
+  },
+  {
+    "markdown": "``There is a literal backtick (`) here.``\n",
+    "html": "<p><code>There is a literal backtick (`) here.</code></p>\n",
+    "section": "Code spans",
+    "number": 86
+  },
+  {
+    "markdown": "A single backtick in a code span: `` ` ``\n\nA backtick-delimited string in a code span: `` `foo` ``\n",
+    "html": "<p>A single backtick in a code span: <code>`</code></p>\n<p>A backtick-delimited string in a code span: <code>`foo`</code></p>\n",
+    "section": "Code spans",
+    "number": 87
+  },
+  {
+    "markdown": "Please don't use any `<blink>` tags.\n",
+    "html": "<p>Please don't use any <code>&lt;blink&gt;</code> tags.</p>\n",
+    "section": "Code spans",
+    "number": 88
+  },
+  {
+    "markdown": "`&#8212;` is the decimal-encoded equivalent of `&mdash;`.\n",
+    "html": "<p><code>&amp;#8212;</code> is the decimal-encoded equivalent of <code>&amp;mdash;</code>.</p>\n",
+    "section": "Code spans",
+    "number": 89
+  },
+  {
+    "markdown": "`foo\n",
+    "html": "<p>`foo</p>\n",
+    "section": "Code spans",
+    "number": 90
+  },
+  {
+    "markdown": "*single asterisks*\n\n_single underscores_\n\n**double asterisks**\n\n__double underscores__\n",
+    "html": "<p><em>single asterisks</em></p>\n<p><em>single underscores</em></p>\n<p><strong>double asterisks</strong></p>\n<p><strong>double underscores</strong></p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 91
+  },
+  {
+    "markdown": "un * frigging * believable\n",
+    "html": "<p>un * frigging * believable</p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 92
+  },
+  {
+    "markdown": "un*frigging*believable\n\nun_frigging_believable\n",
+    "html": "<p>un<em>frigging</em>believable</p>\n<p>un<em>frigging</em>believable</p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 93
+  },
+  {
+    "markdown": "***foo***\n\n___foo___\n",
+    "html": "<p><em><strong>foo</strong></em></p>\n<p><em><strong>foo</strong></em></p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 94
+  },
+  {
+    "markdown": "*foo **bar** baz*\n",
+    "html": "<p><em>foo <strong>bar</strong> baz</em></p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 95
+  },
+  {
+    "markdown": "*foo\n",
+    "html": "<p>*foo</p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 96
+  },
+  {
+    "markdown": "\\*this text is surrounded by literal asterisks\\*\n",
+    "html": "<p>*this text is surrounded by literal asterisks*</p>\n",
+    "section": "Emphasis and strong emphasis",
+    "number": 97
+  },
+  {
+    "markdown": "This is [an example](http://example.com/ \"Title\") inline link.\n\n[This link](http://example.net/) has no title attribute.\n",
+    "html": "<p>This is <a href=\"http://example.com/\" title=\"Title\">an example</a> inline link.</p>\n<p><a href=\"http://example.net/\">This link</a> has no title attribute.</p>\n",
+    "section": "Links",
+    "number": 98
+  },
+  {
+    "markdown": "See my [About](/about/) page for details.\n",
+    "html": "<p>See my <a href=\"/about/\">About</a> page for details.</p>\n",
+    "section": "Links",
+    "number": 99
+  },
+  {
+    "markdown": "[link](<http://example.com/>)\n",
+    "html": "<p><a href=\"http://example.com/\">link</a></p>\n",
+    "section": "Links",
+    "number": 100
+  },
+  {
+    "markdown": "This is [an example][id] reference-style link.\n\n[id]: http://example.com/  \"Optional Title Here\"\n",
+    "html": "<p>This is <a href=\"http://example.com/\" title=\"Optional Title Here\">an example</a> reference-style link.</p>\n",
+    "section": "Links",
+    "number": 101
+  },
+  {
+    "markdown": "This is [an example] [id] reference-style link.\n\n[id]: http://example.com/\n",
+    "html": "<p>This is <a href=\"http://example.com/\">an example</a> reference-style link.</p>\n",
+    "section": "Links",
+    "number": 102
+  },
+  {
+    "markdown": "Visit [Daring Fireball][] for more information.\n\n[Daring Fireball]: http://daringfireball.net/\n",
+    "html": "<p>Visit <a href=\"http://daringfireball.net/\">Daring Fireball</a> for more information.</p>\n",
+    "section": "Links",
+    "number": 103
+  },
+  {
+    "markdown": "[foo][undefined]\n",
+    "html": "<p>[foo][undefined]</p>\n",
+    "section": "Links",
+    "number": 104
+  },
+  {
+    "markdown": "[*emphasized* link](/url)\n",
+    "html": "<p><a href=\"/url\"><em>emphasized</em> link</a></p>\n",
+    "section": "Links",
+    "number": 105
+  },
+  {
+    "markdown": "[link [with brackets]](/url)\n",
+    "html": "<p><a href=\"/url\">link [with brackets]</a></p>\n",
+    "section": "Links",
+    "number": 106
+  },
+  {
+    "markdown": "![Alt text](/path/to/img.jpg)\n\n![Alt text](/path/to/img.jpg \"Optional title\")\n",
+    "html": "<p><img src=\"/path/to/img.jpg\" alt=\"Alt text\" /></p>\n<p><img src=\"/path/to/img.jpg\" alt=\"Alt text\" title=\"Optional title\" /></p>\n",
+    "section": "Images",
+    "number": 107
+  },
+  {
+    "markdown": "![Alt text][id]\n\n[id]: url/to/image  \"Optional title attribute\"\n",
+    "html": "<p><img src=\"url/to/image\" alt=\"Alt text\" title=\"Optional title attribute\" /></p>\n",
+    "section": "Images",
+    "number": 108
+  },
+  {
+    "markdown": "<http://example.com/>\n",
+    "html": "<p><a href=\"http://example.com/\">http://example.com/</a></p>\n",
+    "section": "Automatic links",
+    "number": 109
+  },
+  {
+    "markdown": "<http://example.com/?find=this&that>\n",
+    "html": "<p><a href=\"http://example.com/?find=this&amp;that\">http://example.com/?find=this&amp;that</a></p>\n",
+    "section": "Automatic links",
+    "number": 110
+  },
+  {
+    "markdown": "<address@example.com>\n",
+    "html": "<p><a href=\"mailto:address@example.com\">address@example.com</a></p>\n",
+    "section": "Automatic links",
+    "number": 111
+  },
+  {
+    "markdown": "<span>*foo*</span>\n",
+    "html": "<p><span><em>foo</em></span></p>\n",
+    "section": "Inline HTML",
+    "number": 112
+  },
+  {
+    "markdown": "<a href=\"http://example.com/_a_b_\">link</a>\n",
+    "html": "<p><a href=\"http://example.com/_a_b_\">link</a></p>\n",
+    "section": "Inline HTML",
+    "number": 113
+  },
+  {
+    "markdown": "AT&T sells &quot;phones&quot; &mdash; for &#36;5.\n",
+    "html": "<p>AT&amp;T sells &quot;phones&quot; &mdash; for &#36;5.</p>\n",
+    "section": "Automatic escaping",
+    "number": 114
+  },
+  {
+    "markdown": "4 < 5 and 6 > 3\n",
+    "html": "<p>4 &lt; 5 and 6 > 3</p>\n",
+    "section": "Automatic escaping",
+    "number": 115
+  },
+  {
+    "markdown": "Roses are red,  \nviolets are blue.\n",
+    "html": "<p>Roses are red,<br />\nviolets are blue.</p>\n",
+    "section": "Hard line breaks",
+    "number": 116
+  },
+  {
+    "markdown": "hello $.;'there\n",
+    "html": "<p>hello $.;'there</p>\n",
+    "section": "Textual content",
+    "number": 117
+  }
+]

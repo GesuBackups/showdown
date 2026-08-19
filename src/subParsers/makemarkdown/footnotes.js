@@ -1,3 +1,14 @@
+/**
+ * @file      makemarkdown/footnotes.js
+ * @summary   Reverses GFM footnotes: a `<sup class="footnote-ref">` becomes `[^id]` and a `<section class="footnotes">` becomes `[^id]: body` definitions.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown), gated by the `footnotes` option in
+ * `makeMarkdown.node`, mirroring makeHtml. Emits `makeMarkdown.footnotes.onStart`/`onCapture`/`onEnd`.
+ */
+
 // Reverse direction (HTML -> Markdown) for GFM footnotes. Handles the two shapes the
 // forward parser (and GitHub) produce:
 //   <sup class="footnote-ref"><a href="#fn-ID" ...>N</a></sup>      -> [^ID]
@@ -7,39 +18,35 @@
 showdown.subParser('makeMarkdown.footnotes', function (node, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makeMarkdown.footnotes.onStart', node.outerHTML);
-  startEvent
-    .setOutput(null)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  startEvent = globals.converter.dispatch(startEvent);
+  let input = node.outerHTML;
+  showdown.Event.dispatchStart('makeMarkdown.footnotes.onStart', input, options, globals, {_node: node});
+
+  let text = (function () {
+    let tagName = node.tagName.toLowerCase();
+
+    if (tagName === 'sup') {
+      return renderReference(node);
+    }
+    if (tagName === 'section') {
+      return renderSection(node);
+    }
+    return '';
+  })();
+
+  let captureEvent = showdown.Event.dispatchCapture('makeMarkdown.footnotes.onCapture', input, {
+    regexp: null,
+    matches: {_wholeMatch: input, _node: node, text: text},
+    attributes: null
+  }, options, globals);
 
   let result;
-  if (startEvent.output && startEvent.output !== '') {
-    result = startEvent.output;
+  if (captureEvent.output && captureEvent.output !== '') {
+    result = captureEvent.output;
   } else {
-    result = (function () {
-      let tagName = node.tagName.toLowerCase();
-
-      if (tagName === 'sup') {
-        return renderReference(node);
-      }
-      if (tagName === 'section') {
-        return renderSection(node);
-      }
-      return '';
-    })();
+    result = captureEvent.matches.text;
   }
 
-  let endEvent = new showdown.Event('makeMarkdown.footnotes.onEnd', result);
-  endEvent
-    .setOutput(result)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  endEvent = globals.converter.dispatch(endEvent);
-  return endEvent.output;
+  return showdown.Event.dispatchEnd('makeMarkdown.footnotes.onEnd', result, options, globals, {_node: node}).output;
 
   // the label lives in the `#fn-<label>` href (percent-encoded by makeHtml); recover it
   function decodeLabel (s) {

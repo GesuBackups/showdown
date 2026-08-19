@@ -48,7 +48,7 @@ console.log('wrote dist/showdown.min.js (+ .map)');
 
 // --- ESM readable (+ minified, maps) ---
 // Wrap the body (minus loader.js) in an IIFE invoked with a real `this` (globalThis) so
-// helpers.js's `this`-based environment detection works, then export the namespace.
+// the helpers' `this`-based environment detection works, then export the namespace.
 const esmBodyNoLoader = concatSources({ omitLoader: true });
 const esm = `/*! ${stamp} */\nconst showdown = (function () {\n${esmBodyNoLoader}\nreturn showdown;\n}).call(globalThis);\nexport default showdown;\nexport { showdown };\n`;
 write('dist/showdown.esm.js', esm);
@@ -62,7 +62,7 @@ await esbuild.build({
   banner: { js: minBanner },
   legalComments: 'none',
   write: true,
-  // helpers.js has a Node-only lazy `require('happy-dom')` branch, unreachable in the
+  // src/helpers/lazyDocument.js has a Node-only lazy `require('happy-dom')` branch, unreachable in the
   // browser/bundler context this ESM build targets (Node consumers resolve to the UMD via
   // the exports map).
   logOverride: { 'unsupported-require-call': 'silent' },

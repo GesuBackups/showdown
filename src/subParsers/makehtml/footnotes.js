@@ -1,12 +1,15 @@
 /**
- * GFM footnotes (cmark-gfm footnotes extension).
+ * @file      makehtml/footnotes.js
+ * @summary   GFM footnotes: collects `[^id]: body` definitions and renders `[^id]` references into a `<section class="footnotes">`.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
  *
- * Runs in two phases (selected by the `phase` argument):
- *   'strip' - before stripLinkDefinitions: collect `[^label]: body` definitions
- *             into globals and replace `[^label]` references that have a definition
- *             with a hashed `<sup>` span (numbered by order of first reference).
- *   'build' - after paragraphs: render the referenced footnotes into a
- *             `<section class="footnotes">` and append it to the document.
+ * Runs in two phases (selected by the `phase` argument): 'strip' (before `stripLinkDefinitions`)
+ * collects definitions into `globals` and replaces referenced markers with hashed numbered `<sup>`
+ * spans; 'build' (after `paragraphs`) renders the footnote section and appends it to the document.
+ * Emits lifecycle `onStart`/`onEnd` plus per-item `makehtml.footnotes.definition.*` and
+ * `makehtml.footnotes.reference.*` events.
  */
 showdown.subParser('makehtml.footnotes', function (text, options, globals, phase) {
   'use strict';
@@ -15,15 +18,24 @@ showdown.subParser('makehtml.footnotes', function (text, options, globals, phase
     return text;
   }
 
+  // Lifecycle events (fired for each phase the converter invokes). onStart lets a
+  // listener rewrite the input before footnote processing; onEnd lets it post-process
+  // the result. The per-definition and per-reference capture/hash events are emitted
+  // inside collectDefinitions / replaceReferences (makehtml.footnotes.definition.* and
+  // makehtml.footnotes.reference.*).
+  text = showdown.Event.dispatchStart('makehtml.footnotes.onStart', text, options, globals).output;
+
+  let result;
   if (phase === 'strip') {
     text = collectDefinitions(text);
-    text = replaceReferences(text);
-    return text;
+    result = replaceReferences(text);
+  } else if (phase === 'build') {
+    result = buildSection(text);
+  } else {
+    result = text;
   }
-  if (phase === 'build') {
-    return buildSection(text);
-  }
-  return text;
+
+  return showdown.Event.dispatchEnd('makehtml.footnotes.onEnd', result, options, globals).output;
 
   // ---- phase 1a: collect (and remove) `[^label]: body` definitions ----------
 
@@ -40,7 +52,24 @@ showdown.subParser('makehtml.footnotes', function (text, options, globals, phase
       if (def) {
         let norm = showdown.helper.cmNormalizeLabel(def.rawLabel);
         if (norm !== '' && showdown.helper.isUndefined(globals.gFootnotes[norm])) {
-          globals.gFootnotes[norm] = { bodyRaw: def.body, rawLabel: def.rawLabel };
+          // per-definition capture: the footnote body is the main content (`text`, mutable +
+          // honored - it is later rendered via a nested conversion). The (normalized and raw)
+          // label is read-only context; a line scanner, so regexp is null. A definition
+          // renders no inline output, so onHash carries the empty removed-from-text output
+          // (default: the definition is stripped from the document).
+          let wholeMatch = str.slice(i, def.end);
+          let captureStartEvent = showdown.Event.dispatchCapture('makehtml.footnotes.definition.onCapture', def.body, {
+            regexp: null,
+            matches: {
+              _wholeMatch: wholeMatch,
+              _label: norm,
+              _rawLabel: def.rawLabel,
+              text: def.body
+            },
+            attributes: {}
+          }, options, globals);
+          globals.gFootnotes[norm] = { bodyRaw: captureStartEvent.matches.text, rawLabel: def.rawLabel };
+          out += showdown.Event.dispatchHash('makehtml.footnotes.definition.onHash', '', options, globals).output;
         }
         i = def.end;
         continue;
@@ -164,7 +193,8 @@ showdown.subParser('makehtml.footnotes', function (text, options, globals, phase
     // `[` is excluded from the label too: it can never appear in a valid label, and
     // excluding it stops the scan from running past the label start of the *next*
     // `[^...` (which would otherwise backtrack quadratically on inputs like `[^`.repeat(n)).
-    str = str.replace(/\[\^([^\s\][]+)]/g, function (whole, rawLabel, offset, full) {
+    const footnoteRefRgx = /\[\^([^\s\][]+)]/g;
+    str = str.replace(footnoteRefRgx, function (whole, rawLabel, offset, full) {
       // an escaped reference (`\[^id]`, an odd number of leading back-slashes) is literal
       let bs = 0, p = offset - 1;
       while (p >= 0 && full.charAt(p) === '\\') { bs++; p--; }
@@ -189,9 +219,32 @@ showdown.subParser('makehtml.footnotes', function (text, options, globals, phase
       let idSuffix = (ref.occurrences === 1) ? '' : '-' + ref.occurrences,
           sup = '<sup class="footnote-ref"><a href="#fn-' + ref.encId +
             '" id="fnref-' + ref.encId + idSuffix + '" data-footnote-ref>' + ref.number + '</a></sup>';
+
+      // per-reference capture: a footnote reference renders as a generated `<sup>` anchor and
+      // has no re-parseable inner content, so (like horizontalRule) it carries no `text` key -
+      // only the read-only label/number context. A listener can override `output` to replace
+      // the whole marker. `attributes` are a no-op placeholder (the sup markup is fixed).
+      let otp;
+      let captureStartEvent = showdown.Event.dispatchCapture('makehtml.footnotes.reference.onCapture', whole, {
+        regexp: footnoteRefRgx,
+        matches: {
+          _wholeMatch: whole,
+          _label: norm,
+          _rawLabel: rawLabel,
+          _number: ref.number
+        },
+        attributes: {}
+      }, options, globals);
+      if (captureStartEvent.output && captureStartEvent.output !== '') {
+        otp = captureStartEvent.output;
+      } else {
+        otp = sup;
+      }
+      otp = showdown.Event.dispatchHash('makehtml.footnotes.reference.onHash', otp, options, globals).output;
+
       // `raw` (footnote bodies): emit the markup inline so the nested conversion keeps it;
       // otherwise (main text) hash it so the inline parser leaves it alone.
-      return raw ? sup : showdown.helper._hashHTMLSpan(sup, globals);
+      return raw ? otp : showdown.helper._hashHTMLSpan(otp, globals);
     });
 
     // restore the protected code spans

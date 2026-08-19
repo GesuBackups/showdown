@@ -1,47 +1,54 @@
+/**
+ * @file      makemarkdown/input.js
+ * @summary   Renders a checkbox `<input>` back to a `[ ]`/`[x]` task marker (inside a list item, when `tasklists` is on).
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown): only emits the marker inside a list item with
+ * following content and when `tasklists` is on; otherwise emits the raw `<input>` so it round-trips.
+ * Emits `makeMarkdown.input.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.input', function (node, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makeMarkdown.input.onStart', node.outerHTML);
-  startEvent
-    .setOutput(null)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  startEvent = globals.converter.dispatch(startEvent);
+  let input = node.outerHTML;
+  showdown.Event.dispatchStart('makeMarkdown.input.onStart', input, options, globals, {_node: node});
+
+  // A checkbox input maps to a `[ ]`/`[x]` task marker only when the `tasklists` option is
+  // enabled, the checkbox lives inside a list item, AND it is followed by some content.
+  // The list-item context matters: in Markdown a `[ ]`/`[x]` marker is only a task when it
+  // leads a list item, so a naked checkbox (top level, or inside a `<p>`/`<div>`) would
+  // degrade into meaningless literal bracket text that no longer round-trips back to a
+  // checkbox. The following-content check matters for the same reason: a bare
+  // `<li><input type="checkbox"></li>` has no task text, and `- [ ]` on its own does not
+  // round-trip to a checkbox, so it is kept as the raw `<input>` instead. Detection
+  // deliberately keys on the `<li>` ancestry rather than the `task-list-item` class (which
+  // `makeHtml` only emits under `moreStyling`), so checkboxes in hand-written or unstyled
+  // list HTML are still recognised. Anything that fails these checks passes through as raw
+  // HTML. A `checked` attribute (any value, including empty) marks it done; its absence open.
+  let isTask = node.getAttribute('type') === 'checkbox' && options.tasklists &&
+        isInsideListItem(node) && hasFollowingContent(node),
+      checked = node.getAttribute('checked') !== null;
+
+  // this construct renders a task marker rather than inner content, so its capture carries no
+  // `text` key; the checked state is exposed (and honored) under `checked`
+  let captureEvent = showdown.Event.dispatchCapture('makeMarkdown.input.onCapture', input, {
+    regexp: null,
+    matches: {_wholeMatch: input, _node: node, checked: checked},
+    attributes: null
+  }, options, globals);
 
   let result;
-  if (startEvent.output && startEvent.output !== '') {
-    result = startEvent.output;
+  if (captureEvent.output && captureEvent.output !== '') {
+    result = captureEvent.output;
+  } else if (!isTask) {
+    result = node.outerHTML;
   } else {
-    result = (function () {
-      // A checkbox input maps to a `[ ]`/`[x]` task marker only when the `tasklists` option
-      // is enabled, the checkbox lives inside a list item, AND it is followed by some content.
-      // The list-item context matters: in Markdown a `[ ]`/`[x]` marker is only a task when it
-      // leads a list item, so a naked checkbox (top level, or inside a `<p>`/`<div>`) would
-      // degrade into meaningless literal bracket text that no longer round-trips back to a
-      // checkbox. The following-content check matters for the same reason: a bare
-      // `<li><input type="checkbox"></li>` has no task text, and `- [ ]` on its own does not
-      // round-trip to a checkbox, so it is kept as the raw `<input>` instead. Detection
-      // deliberately keys on the `<li>` ancestry rather than the `task-list-item` class (which
-      // `makeHtml` only emits under `moreStyling`), so checkboxes in hand-written or unstyled
-      // list HTML are still recognised. Anything that fails these checks passes through as raw
-      // HTML. A `checked` attribute (any value, including empty) marks it done; its absence open.
-      if (node.getAttribute('type') !== 'checkbox' || !options.tasklists ||
-          !isInsideListItem(node) || !hasFollowingContent(node)) {
-        return node.outerHTML;
-      }
-      return (node.getAttribute('checked') !== null) ? '[x]' : '[ ]';
-    })();
+    result = captureEvent.matches.checked ? '[x]' : '[ ]';
   }
 
-  let endEvent = new showdown.Event('makeMarkdown.input.onEnd', result);
-  endEvent
-    .setOutput(result)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  endEvent = globals.converter.dispatch(endEvent);
-  return endEvent.output;
+  return showdown.Event.dispatchEnd('makeMarkdown.input.onEnd', result, options, globals, {_node: node}).output;
 
   // Walks up the ancestor chain looking for an enclosing `<li>` (covers both tight
   // `<li><input>` items and loose `<li><p><input>` ones).

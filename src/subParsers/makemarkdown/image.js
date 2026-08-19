@@ -1,18 +1,37 @@
+/**
+ * @file      makemarkdown/image.js
+ * @summary   Renders `<img>` back to Markdown image syntax `![alt](src)`, reversing emoji images to `:code:` when `emoji` is on.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown). Emits `makeMarkdown.image.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.image', function (node, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makeMarkdown.image.onStart', node.outerHTML);
-  startEvent
-    .setOutput(null)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  startEvent = globals.converter.dispatch(startEvent);
+  let input = node.outerHTML;
+  showdown.Event.dispatchStart('makeMarkdown.image.onStart', input, options, globals, {_node: node});
+
+  // descriptive pieces exposed on the capture event (all mutable and honored by the
+  // standard `![alt](url "title")` rendering below)
+  let src   = node.hasAttribute('src') ? node.getAttribute('src') : '',
+      alt   = node.getAttribute('alt') || '',
+      title = node.hasAttribute('title') ? node.getAttribute('title') : null;
+
+  let captureEvent = showdown.Event.dispatchCapture('makeMarkdown.image.onCapture', input, {
+    regexp: null,
+    matches: {_wholeMatch: input, _node: node, text: alt, url: src, title: title},
+    attributes: null
+  }, options, globals);
 
   let result;
-  if (startEvent.output && startEvent.output !== '') {
-    result = startEvent.output;
+  if (captureEvent.output && captureEvent.output !== '') {
+    result = captureEvent.output;
   } else {
+    alt = captureEvent.matches.text;
+    src = captureEvent.matches.url;
+    title = captureEvent.matches.title;
     result = (function () {
       let txt = '';
 
@@ -21,9 +40,9 @@ showdown.subParser('makeMarkdown.image', function (node, options, globals) {
       // through to normal image handling, so a disabled feature degrades to plain image markdown.
       if (options.emoji && node.hasAttribute('src')) {
         let emojiImages = showdown.helper.emojiReverse().images,
-            src = node.getAttribute('src');
-        if (Object.prototype.hasOwnProperty.call(emojiImages, src)) {
-          return ':' + emojiImages[src] + ':';
+            emojiSrc = node.getAttribute('src');
+        if (Object.prototype.hasOwnProperty.call(emojiImages, emojiSrc)) {
+          return ':' + emojiImages[emojiSrc] + ':';
         }
       }
 
@@ -36,8 +55,8 @@ showdown.subParser('makeMarkdown.image', function (node, options, globals) {
           return node.outerHTML;
         }
 
-        txt += '![' + showdown.helper.escapeMarkdownText(node.getAttribute('alt') || '') + '](';
-        txt += '<' + showdown.helper.escapeMarkdownDestination(node.getAttribute('src')) + '>';
+        txt += '![' + showdown.helper.escapeMarkdownText(alt) + '](';
+        txt += '<' + showdown.helper.escapeMarkdownDestination(src) + '>';
         if (hasDimensions) {
           let width = node.getAttribute('width');
           let height = node.getAttribute('height');
@@ -45,7 +64,7 @@ showdown.subParser('makeMarkdown.image', function (node, options, globals) {
         }
 
         if (node.hasAttribute('title')) {
-          txt += ' "' + showdown.helper.escapeMarkdownTitle(node.getAttribute('title')) + '"';
+          txt += ' "' + showdown.helper.escapeMarkdownTitle(title) + '"';
         }
         txt += ')';
       }
@@ -53,12 +72,5 @@ showdown.subParser('makeMarkdown.image', function (node, options, globals) {
     })();
   }
 
-  let endEvent = new showdown.Event('makeMarkdown.image.onEnd', result);
-  endEvent
-    .setOutput(result)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  endEvent = globals.converter.dispatch(endEvent);
-  return endEvent.output;
+  return showdown.Event.dispatchEnd('makeMarkdown.image.onEnd', result, options, globals, {_node: node}).output;
 });

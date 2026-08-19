@@ -153,6 +153,8 @@ Return `true` if `ext` is a structurally valid extension, `false` otherwise. *(A
 
 Get or register a sub-parser. With two arguments it registers `func` under `name`; with one it returns the registered sub-parser (throws if not found). *(Advanced — used to override core conversion logic.)*
 
+The registry contains **constructs only** — passes that recognize a piece of Markdown syntax (headings, lists, links, …) and emit [events](event-system.md). Internal mechanism passes (character encoders, hash/unhash placeholder plumbing) are plain `showdown.helper.*` functions and are **not** in the registry — see the [sub-parser taxonomy](event-system.md#sub-parser-taxonomy-constructs-vs-mechanisms).
+
 ### `showdown.getSubParserList()`
 
 Return the map of all registered sub-parsers. *(Advanced.)*

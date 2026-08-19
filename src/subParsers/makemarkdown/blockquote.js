@@ -1,46 +1,43 @@
+/**
+ * @file      makemarkdown/blockquote.js
+ * @summary   Renders a `<blockquote>` element back into `>`-prefixed Markdown.
+ * @author    Estêvão Soares dos Santos (Tivie) <https://github.com/tivie>
+ * @copyright 2018-2026 ShowdownJS
+ * @license   MIT
+ *
+ * A `makeMarkdown.*` DOM-node subparser (HTML→Markdown): recurses into the blockquote's children and
+ * prefixes each rendered line with `>`. Emits `makeMarkdown.blockquote.onStart`/`onCapture`/`onEnd`.
+ */
 showdown.subParser('makeMarkdown.blockquote', function (node, options, globals) {
   'use strict';
 
-  let startEvent = new showdown.Event('makeMarkdown.blockquote.onStart', node.outerHTML);
-  startEvent
-    .setOutput(null)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  startEvent = globals.converter.dispatch(startEvent);
+  let input = node.outerHTML;
+  showdown.Event.dispatchStart('makeMarkdown.blockquote.onStart', input, options, globals, {_node: node});
+
+  // render child content
+  let text = '';
+  if (node.hasChildNodes()) {
+    const children = node.childNodes,
+        childrenLength = children.length;
+    for (let i = 0; i < childrenLength; ++i) {
+      text += showdown.subParser('makeMarkdown.node')(children[i], options, globals);
+    }
+  }
+  text = text.trim();
+
+  let captureEvent = showdown.Event.dispatchCapture('makeMarkdown.blockquote.onCapture', input, {
+    regexp: null,
+    matches: {_wholeMatch: input, _node: node, text: text},
+    attributes: null
+  }, options, globals);
 
   let result;
-  if (startEvent.output && startEvent.output !== '') {
-    result = startEvent.output;
+  if (captureEvent.output && captureEvent.output !== '') {
+    result = captureEvent.output;
   } else {
-    result = (function () {
-      var txt = '';
-      if (node.hasChildNodes()) {
-        var children = node.childNodes,
-            childrenLength = children.length;
-
-        for (var i = 0; i < childrenLength; ++i) {
-          var innerTxt = showdown.subParser('makeMarkdown.node')(children[i], options, globals);
-
-          if (innerTxt === '') {
-            continue;
-          }
-          txt += innerTxt;
-        }
-      }
-      // cleanup
-      txt = txt.trim();
-      txt = '> ' + txt.split('\n').join('\n> ');
-      return txt;
-    })();
+    text = captureEvent.matches.text;
+    result = '> ' + text.split('\n').join('\n> ');
   }
 
-  let endEvent = new showdown.Event('makeMarkdown.blockquote.onEnd', result);
-  endEvent
-    .setOutput(result)
-    ._setGlobals(globals)
-    ._setOptions(options)
-    .setMatches({node: node});
-  endEvent = globals.converter.dispatch(endEvent);
-  return endEvent.output;
+  return showdown.Event.dispatchEnd('makeMarkdown.blockquote.onEnd', result, options, globals, {_node: node}).output;
 });
