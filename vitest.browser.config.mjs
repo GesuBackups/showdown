@@ -14,10 +14,14 @@ export default defineConfig({
     // *.node-env.js specs assert a bare Node environment (no global window/document);
     // they can't pass in a real browser and belong to the Node (jsdom) project only.
     exclude: ['test/unit/showdown*.node-env.js'],
+    // Keep browser-mode failure attachments out of the source tree (test-results/ is gitignored).
+    attachmentsDir: 'test-results/attachments',
     browser: {
       enabled: true,
       provider: playwright(),
       headless: true,
+      // On-failure screenshots go under the gitignored test-results/ instead of __screenshots__/.
+      screenshotDirectory: 'test-results/screenshots',
       instances: [
         { browser: 'chromium' },
         { browser: 'firefox' },
